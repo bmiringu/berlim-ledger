@@ -577,7 +577,7 @@ body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
 /* ---------- state ---------- */
 const COLS=["properties","units","tenants","readings","invoices","payments","providers","pbills","ppays","approvals","staff","accessRequests","remits","ldeds","linvoices","landlords","lreports","sms"];
 const DEFAULT_SETTINGS={company:"Berlim Homes Limited",phone:"0791 025 078 / 0731 220 221",email:"info@berlimhomes.com",website:"www.berlimhomes.com",address:"Nairoview Plaza, 1st Floor, Room 205, Ruiru",preparedBy:"",
-  paybill:"222111",accPrefix:"2371748#",waterRate:150,elecRate:0,garbage:300,serviceCharge:0,dueDay:5,penaltyPct:10};
+  paybill:"222111",accPrefix:"2371748#",waterRate:150,elecRate:0,garbage:300,serviceCharge:0,dueDay:5,penaltyPct:10,llPayDay:10,llPayWhen:"same"};
 const S={settings:{...DEFAULT_SETTINGS},properties:[],units:[],tenants:[],readings:[],invoices:[],payments:[],providers:[],pbills:[],ppays:[],approvals:[],staff:[],accessRequests:[],remits:[],ldeds:[],linvoices:[],landlords:[],lreports:[]};
 let mode="loading", db=null, downloads=null, mcp=null, readOnly=false, assets=null, USER=null;
 const ME={id:null,admin:true,staff:null,email:"",name:"",ready:false};
@@ -603,6 +603,14 @@ function fmtDate(d){if(!d)return "";const [y,m,dd]=d.split("-");return +dd+" "+M
 function dueDayOf(p){const d=+((p||{}).dueDay)||0;return d>=1&&d<=28?d:(+S.settings.dueDay||5)}
 function dueDateFor(m,p){return m+"-"+String(dueDayOf(p)).padStart(2,"0")}
 function graceOf(p){return Math.max(0,+((p||{}).graceDays)||0)}
+/* landlords are paid on their own date, separate from the tenants' rent due day */
+function llPayDayOf(p){const d=+((p||{}).llPayDay)||0;return d>=1&&d<=28?d:(+S.settings.llPayDay||10)}
+function llPayWhenOf(p){const w=(p||{}).llPayWhen||S.settings.llPayWhen||"same";return w==="next"?"next":"same"}
+function llDueDate(p,m){const mm=llPayWhenOf(p)==="next"?monthAdd(m,1):m;return mm+"-"+String(llPayDayOf(p)).padStart(2,"0")}
+function llDueLabel(p){return ord(llPayDayOf(p))+(llPayWhenOf(p)==="next"?" of the following month":" of the same month")}
+function llDuePill(p,m,L){const due=llDueDate(p,m);if(L.forward<=0)return "";if(L.forwarded>=L.forward)return `<span class="sub">Due ${fmtDate(due)}</span>`;
+  const d=Math.round((new Date(due+"T00:00:00Z")-new Date(todayStr+"T00:00:00Z"))/864e5);
+  return d<0?`<span class="pill p-bad">Overdue ${-d} day${d===-1?"":"s"}</span><span class="sub">Was due ${fmtDate(due)}</span>`:d<=3?`<span class="pill p-warn">${d===0?"Due today":"Due in "+d+" day"+(d===1?"":"s")}</span><span class="sub">${fmtDate(due)}</span>`:`<span class="sub">Due ${fmtDate(due)}</span>`}
 function penaltyFrom(i){const p=propOf(get("units",i.unitId));const d=new Date(i.dueDate+"T00:00:00");d.setDate(d.getDate()+graceOf(p));return iso(d)}
 function ord(n){return n+(n%10===1&&n!==11?"st":n%10===2&&n!==12?"nd":n%10===3&&n!==13?"rd":"th")}
 function lastDay(m){const [y,mo]=m.split("-").map(Number);return m+"-"+String(new Date(y,mo,0).getDate()).padStart(2,"0")}
@@ -612,7 +620,7 @@ const propOf=u=>u?get("properties",u.propertyId):null;
 const activeTenantOf=unitId=>S.tenants.find(t=>t.active&&t.unitId===unitId);
 const reading=(m,unitId)=>S.readings.find(r=>r.id===m+"_"+unitId);
 function sortUnits(a,b){const pa=(propOf(a)||{}).code||(propOf(a)||{}).name||"",pb=(propOf(b)||{}).code||(propOf(b)||{}).name||"";return pa.localeCompare(pb,undefined,{numeric:true})||String(a.label).localeCompare(String(b.label),undefined,{numeric:true})}
-const PROP_DEFAULTS={lettingPct:0,caretakerFee:0,caretakerName:"",fixedDeds:[],dueDay:"",graceDays:0,penaltyPct:"",lrNo:"",elecMeter:"",elecAccount:"",waterMeter:"",waterAccount:"",code:"",elecRate:0,utilCommissionPct:0,garbage:0,waterMode:"none",waterFlat:0,waterRate:0,serviceCharge:0,penaltyFlat:0,commissionPct:10,commissionBase:"rent",vatPct:0,landlordPay:""};
+const PROP_DEFAULTS={llPayDay:"",llPayWhen:"",lettingPct:0,caretakerFee:0,caretakerName:"",fixedDeds:[],dueDay:"",graceDays:0,penaltyPct:"",lrNo:"",elecMeter:"",elecAccount:"",waterMeter:"",waterAccount:"",code:"",elecRate:0,utilCommissionPct:0,garbage:0,waterMode:"none",waterFlat:0,waterRate:0,serviceCharge:0,penaltyFlat:0,commissionPct:10,commissionBase:"rent",vatPct:0,landlordPay:""};
 const cfg=p=>({...PROP_DEFAULTS,...(p||{})});
 const sortedProps=()=>[...S.properties].sort((a,b)=>(a.code||a.name).localeCompare(b.code||b.name,undefined,{numeric:true}));
 const propTag=p=>p?`<span class="code">${esc(p.code||"—")}</span> ${esc(p.name)}`:"";
@@ -956,6 +964,8 @@ function vSetup(){
    ${F("paybill","M-Pesa Paybill",s.paybill,"text","Family Bank paybill")}${F("accPrefix","Account number prefix",s.accPrefix,"text","Tenant account = prefix + property code + house number, e.g. "+esc(s.accPrefix)+"E1A3")}
   </div><div class="ch" style="border-top:1px solid var(--line)"><h2>Rent terms for all properties</h2></div><div class="cb fg">
    ${F("dueDay","Default rent due day",s.dueDay,"number","Used where a property has no due day of its own")}${F("penaltyPct","Default late penalty (% of rent)",s.penaltyPct,"number","Used where a property sets no penalty of its own")}
+   ${F("llPayDay","Default day to pay landlords",s.llPayDay??10,"number","Used where a property has no landlord payment day of its own")}
+   <div class="f"><label for="s-llPayWhen">Landlords are paid for each month's rent in</label><select id="s-llPayWhen" name="llPayWhen"><option value="same" ${(s.llPayWhen||"same")==="same"?"selected":""}>The same month</option><option value="next" ${s.llPayWhen==="next"?"selected":""}>The following month</option></select></div>
    <p class="full" style="margin:0;color:var(--muted);font-size:13px">Garbage, water, service charge, fixed penalties and commission are set per property code under Properties &amp; units › Edit.</p>
   </div><div class="mf"><button class="btn primary" type="submit">Save setup</button></div></form>
   ${importCard()}`;
@@ -1099,11 +1109,14 @@ function formProp(id){
    <div class="f"><label for="p-waterMode">Water billing</label><select id="p-waterMode" name="waterMode">${[["none","Not charged"],["flat","Flat rate per house"],["metered","Metered (readings)"]].map(([v,l])=>`<option value="${v}" ${p.waterMode===v?"selected":""}>${l}</option>`).join("")}</select></div>
    ${I("waterFlat","Flat water charge (KES)","number","Used when billing is flat rate")}${I("waterRate","Water rate (KES per unit)","number","Used with meter readings")}
    ${I("elecRate","Electricity rate (KES per unit)","number","Used with meter readings")}
-   <h3 class="full fsec">Rent due date and late payment</h3>
+   <h3 class="full fsec">Tenants: rent due date and late payment</h3>
    ${I("dueDay","Rent due day of month","number","Blank = company default ("+ord(+S.settings.dueDay||5)+")","e.g. 10")}
    ${I("graceDays","Grace days before penalty","number","Penalty applies this many days after the due day")}
    ${I("penaltyFlat","Late penalty, fixed (KES)","number","Used first when set")}
    ${I("penaltyPct","Late penalty (% of rent)","number","Blank = company default ("+S.settings.penaltyPct+"%)")}
+   <h3 class="full fsec">Landlord: when we pay the landlord</h3>
+   ${I("llPayDay","Pay the landlord by day of month","number","Blank = company default ("+ord(+S.settings.llPayDay||10)+"). Separate from the tenants' due day.","e.g. 10")}
+   <div class="f"><label for="p-llPayWhen">For each month's rent, pay in</label><select id="p-llPayWhen" name="llPayWhen"><option value="" ${!p.llPayWhen?"selected":""}>Company default (${(S.settings.llPayWhen||"same")==="next"?"following month":"same month"})</option><option value="same" ${p.llPayWhen==="same"?"selected":""}>The same month (e.g. November rent paid by ${ord(+p.llPayDay||+S.settings.llPayDay||10)} November)</option><option value="next" ${p.llPayWhen==="next"?"selected":""}>The following month (e.g. November rent paid by ${ord(+p.llPayDay||+S.settings.llPayDay||10)} December)</option></select></div>
    <h3 class="full fsec">Monthly costs deducted from the landlord</h3>
    ${I("caretakerFee","Caretaker fee (KES per month)","number","Fixed amount deducted every month. 0 if none")}${I("caretakerName","Caretaker's name","text","Optional")}
    ${[0,1,2].map(k=>{const fd=(p.fixedDeds||[])[k]||{};return `<div class="f"><label for="p-fdd${k}">Other monthly cost ${k+1}</label><input id="p-fdd${k}" name="fd_desc_${k}" value="${esc(fd.desc||"")}" placeholder="${["e.g. Security guard","e.g. Cleaner","e.g. Garbage collector"][k]}"></div><div class="f"><label for="p-fda${k}">Amount (KES per month)</label><input id="p-fda${k}" name="fd_amt_${k}" type="number" min="0" step="any" value="${esc(fd.amount||"")}"></div>`}).join("")}
@@ -1128,7 +1141,7 @@ function formProp(id){
     d.fixedDeds=[0,1,2].map(k=>({desc:String(d["fd_desc_"+k]||"").trim(),amount:+d["fd_amt_"+k]||0})).filter(x=>x.desc&&x.amount);[0,1,2].forEach(k=>{delete d["fd_desc_"+k];delete d["fd_amt_"+k]});
     const fdP=new FormData(e.target),LL={name:String(fdP.get("pl_name")||"").trim(),idNo:String(fdP.get("pl_idNo")||"").trim(),phone:String(fdP.get("pl_phone")||"").trim(),email:String(fdP.get("pl_email")||"").trim(),...readPay(fdP,"pl_")};
     Object.keys(d).filter(k=>k.startsWith("pl_")).forEach(k=>delete d[k]);d.landlord=LL.name;d.landlordPhone=LL.phone;d.landlordEmail=LL.email;d.landlordPay=bankLine(LL);
-    ["dueDay","penaltyPct"].forEach(k=>d[k]=String(d[k]??"").trim()===""?"":+d[k]);
+    ["dueDay","penaltyPct","llPayDay"].forEach(k=>d[k]=String(d[k]??"").trim()===""?"":+d[k]);if(d.llPayDay!==""&&(d.llPayDay<1||d.llPayDay>28)){toast("Landlord payment day must be between 1 and 28");return}
     if(d.dueDay!==""&&(d.dueDay<1||d.dueDay>28)){toast("Due day must be between 1 and 28");return}
     d.holdDeposits=d.holdDeposits==="on";d.garbageToLandlord=d.garbageToLandlord==="on";
     ["landlordPhone","landlordEmail","code","name","location","landlord","landlordPay","lrNo","elecMeter","elecAccount","waterMeter","waterAccount"].forEach(k=>d[k]=(d[k]||"").trim());d.code=d.code.toUpperCase();
@@ -1488,8 +1501,9 @@ document.addEventListener("submit",async e=>{
     if(q&&(exact||hits.length===1)){pickProp(scope,(exact||hits[0]).id);return}
     render();return}
   if(e.target.id!=="setupForm")return;e.preventDefault();const d=Object.fromEntries(new FormData(e.target));
-  const nums=["waterRate","elecRate","garbage","serviceCharge","dueDay","penaltyPct"];nums.forEach(k=>d[k]=+d[k]||0);
+  const nums=["waterRate","elecRate","garbage","serviceCharge","dueDay","penaltyPct","llPayDay"];nums.forEach(k=>d[k]=+d[k]||0);
   if(d.dueDay<1||d.dueDay>28){toast("Due day must be between 1 and 28");return}
+  if(d.llPayDay<1||d.llPayDay>28){toast("Landlord payment day must be between 1 and 28");return}
   if(await saveSettings({...S.settings,...d}))toast("Setup saved");
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();if(e.key==="Enter"&&e.target.classList&&e.target.classList.contains("clickrow"))e.target.click()});
@@ -2238,10 +2252,10 @@ function vLandlords(){
    <div class="tile"><span class="k">Total deductions</span><span class="v">${n0(T(L=>L.totalDed))}</span><span class="s">Commission ${n0(T(L=>L.fees))} and other costs</span></div>
    <div class="tile"><span class="k">To forward landlords</span><span class="v">${n0(T(L=>L.forward))}</span><span class="s">For ${monthShort(month)}</span></div>
    <div class="tile"><span class="k">Forwarded</span><span class="v">${n0(T(L=>L.forwarded))}</span><span class="s">Remittances recorded</span></div>
-   <div class="tile ${T(L=>Math.max(0,L.outstanding))>0?"alert":""}"><span class="k">Not yet forwarded</span><span class="v">${n0(T(L=>Math.max(0,L.outstanding)))}</span><span class="s">For ${monthShort(month)}</span></div></div>
-  <div class="card"><div class="tw"><table><thead><tr><th>Code</th><th>Property</th><th>Landlord</th><th class="num">Total collection</th><th class="num">Total deductions</th><th class="num">To forward</th><th class="num">Forwarded</th><th>Status</th><th></th></tr></thead><tbody>
-  ${reps.map(({p,L})=>`<tr><td><span class="code">${esc(p.code)}</span></td><td>${esc(p.name)}</td><td>${esc(p.landlord||"")}</td><td class="num">${n0(L.total)}</td><td class="num">${n0(L.totalDed)}</td><td class="num"><strong>${n0(L.forward)}</strong></td><td class="num">${n0(L.forwarded)}</td><td>${L.forward<=0?pill("Clear"):L.forwarded>=L.forward?pill("Paid"):L.forwarded>0?pill("Partial"):`<span class="pill p-warn">To forward</span>`} ${L.rep.sentAt?`<span class="pill p-info">Sent ${esc(fmtDate(L.rep.sentAt))}</span>`:`<span class="pill p-mute">Not sent</span>`}</td><td class="num"><button class="btn sm primary" data-a="llOpen" data-id="${p.id}">Open report</button></td></tr>`).join("")}
-  </tbody><tfoot><tr><td colspan="3">TOTAL</td><td class="num">${n0(T(L=>L.total))}</td><td class="num">${n0(T(L=>L.totalDed))}</td><td class="num">${n0(T(L=>L.forward))}</td><td class="num">${n0(T(L=>L.forwarded))}</td><td colspan="2"></td></tr></tfoot></table></div></div>`;
+   <div class="tile ${T(L=>Math.max(0,L.outstanding))>0?"alert":""}"><span class="k">Not yet forwarded</span><span class="v">${n0(T(L=>Math.max(0,L.outstanding)))}</span><span class="s">For ${monthShort(month)}${(()=>{const od=reps.filter(({p,L})=>L.outstanding>0&&llDueDate(p,month)<todayStr).length;return od?` · <b>${od} overdue</b>`:""})()}</span></div></div>
+  <div class="card"><div class="tw"><table><thead><tr><th>Code</th><th>Property</th><th>Landlord</th><th class="num">Total collection</th><th class="num">Total deductions</th><th class="num">To forward</th><th class="num">Forwarded</th><th>Pay landlord by</th><th>Status</th><th></th></tr></thead><tbody>
+  ${reps.map(({p,L})=>`<tr><td><span class="code">${esc(p.code)}</span></td><td>${esc(p.name)}</td><td>${esc(p.landlord||"")}</td><td class="num">${n0(L.total)}</td><td class="num">${n0(L.totalDed)}</td><td class="num"><strong>${n0(L.forward)}</strong></td><td class="num">${n0(L.forwarded)}</td><td style="white-space:nowrap">${llDuePill(p,month,L)||`<span class="sub">${fmtDate(llDueDate(p,month))}</span>`}</td><td>${L.forward<=0?pill("Clear"):L.forwarded>=L.forward?pill("Paid"):L.forwarded>0?pill("Partial"):`<span class="pill p-warn">To forward</span>`} ${L.rep.sentAt?`<span class="pill p-info">Sent ${esc(fmtDate(L.rep.sentAt))}</span>`:`<span class="pill p-mute">Not sent</span>`}</td><td class="num"><button class="btn sm primary" data-a="llOpen" data-id="${p.id}">Open report</button></td></tr>`).join("")}
+  </tbody><tfoot><tr><td colspan="3">TOTAL</td><td class="num">${n0(T(L=>L.total))}</td><td class="num">${n0(T(L=>L.totalDed))}</td><td class="num">${n0(T(L=>L.forward))}</td><td class="num">${n0(T(L=>L.forwarded))}</td><td colspan="3"></td></tr></tfoot></table></div></div>`;
 }
 function vLandlordAccount(pid){
   const L=landlordMonth(pid,month),p=L.p,ph=waNum(p.landlordPhone),Lp=landlordOf(pid);
@@ -2256,7 +2270,8 @@ function vLandlordAccount(pid){
    <div class="tile"><span class="k">Total deductions</span><span class="v">${n0(L.totalDed)}</span><span class="s">Commission ${n0(L.fees)}${L.inv?", invoice "+esc(L.inv.no):""}</span></div>
    <div class="tile"><span class="k">To forward landlord</span><span class="v">${n0(L.forward)}</span><span class="s">For ${monthShort(month)}</span></div>
    <div class="tile"><span class="k">Forwarded</span><span class="v">${n0(L.forwarded)}</span><span class="s">${L.rems.length?"Last on "+fmtDate(L.rems[L.rems.length-1].date):"Nothing recorded yet"}</span></div>
-   <div class="tile ${L.outstanding>0?"alert":""}"><span class="k">Not yet forwarded</span><span class="v">${n0(Math.max(0,L.outstanding))}</span><span class="s">For ${monthShort(month)}</span></div></div>
+   <div class="tile ${L.outstanding>0?"alert":""}"><span class="k">Not yet forwarded</span><span class="v">${n0(Math.max(0,L.outstanding))}</span><span class="s">For ${monthShort(month)} · pay by ${fmtDate(llDueDate(p,month))}</span></div></div>
+  <p style="margin:0 0 12px">Landlord is paid by the <b>${llDueLabel(p)}</b> ${llDuePill(p,month,L)} · tenants pay by the <b>${ord(dueDayOf(p))}</b>. <button class="link" data-a="prop" data-id="${pid}">Change dates</button></p>
   <div class="card"><div class="cb">${llStatementHTML(pid,month)}</div></div>
   <div class="card"><div class="ch"><h2>Monthly reports</h2><span style="color:var(--muted);font-size:13px">Each month on its own; click a month to open its report</span></div><div class="tw"><table><thead><tr><th>Month</th><th class="num">Total collection</th><th class="num">Deductions</th><th class="num">To forward</th><th class="num">Forwarded</th><th>Status</th></tr></thead><tbody>
    ${hist.map(({m,H})=>`<tr><td><button class="link" data-a="llMonth" data-id="${m}">${monthLabel(m)}</button></td><td class="num">${n0(H.total)}</td><td class="num">${n0(H.totalDed)}</td><td class="num"><strong>${n0(H.forward)}</strong></td><td class="num">${n0(H.forwarded)}</td><td>${H.forward<=0?pill("Clear"):H.forwarded>=H.forward?pill("Paid"):H.forwarded>0?pill("Partial"):`<span class="pill p-warn">To forward</span>`} ${H.rep.sentAt?`<span class="pill p-info">Sent</span>`:""}</td></tr>`).join("")}
@@ -2367,7 +2382,7 @@ function llStatementHTML(pid,m){
   <h3 class="dsec">Deductions from rent collection</h3><table class="lrsum"><tbody>${L.ded.map(d=>`<tr><td>${esc(d.desc)}</td><td class="num">${n0(d.amount)}</td></tr>`).join("")||`<tr><td colspan="2">No deductions</td></tr>`}</tbody><tfoot><tr><td>TOTAL DEDUCTIONS</td><td class="num">${n0(L.totalDed)}</td></tr></tfoot></table>
   <table class="lrsum lrfin"><tbody><tr><td>TOTAL COLLECTION</td><td class="num">${n0(L.total)}</td></tr><tr><td>TOTAL DEDUCTIONS</td><td class="num">${n0(L.totalDed)}</td></tr></tbody><tfoot><tr><td>AMOUNTS TO FORWARD LANDLORD</td><td class="num">${n0(L.forward)}</td></tr></tfoot></table>
   ${others.length===0&&!fees.length?"":""}
-  <p class="lrfwd">${L.rems.length?`AMOUNTS FORWARDED TO LANDLORD KES ${n0(L.forwarded)} AS AT ${ordDate(L.rems[L.rems.length-1].date)}${L.rems.length>1||L.rems[0].ref?` (Paid ${L.rems.map(r=>"Kes "+n0(r.amount)+(r.ref?" "+esc(r.ref):"")).join(" + ")})`:""}${L.outstanding>0?`. BALANCE OF KES ${n0(L.outstanding)} STILL TO BE FORWARDED.`:""}`:`AMOUNT OF KES ${n0(L.forward)} TO BE FORWARDED TO LANDLORD${p.landlordPay?" TO "+esc(p.landlordPay.toUpperCase()):""}.`}</p>
+  <p class="lrfwd">${L.rems.length?`AMOUNTS FORWARDED TO LANDLORD KES ${n0(L.forwarded)} AS AT ${ordDate(L.rems[L.rems.length-1].date)}${L.rems.length>1||L.rems[0].ref?` (Paid ${L.rems.map(r=>"Kes "+n0(r.amount)+(r.ref?" "+esc(r.ref):"")).join(" + ")})`:""}${L.outstanding>0?`. BALANCE OF KES ${n0(L.outstanding)} STILL TO BE FORWARDED.`:""}`:`AMOUNT OF KES ${n0(L.forward)} TO BE FORWARDED TO LANDLORD${p.landlordPay?" TO "+esc(p.landlordPay.toUpperCase()):""} BY ${ordDate(llDueDate(p,m))}.`}</p>
   ${L.rems.length?`<h3 class="dsec">Payment details</h3><table class="lrsum lrpay"><thead><tr><th>Date</th><th>Paid by</th><th>Reference</th><th>Paid to</th><th class="num">Amount</th></tr></thead><tbody>${L.rems.map(r=>`<tr><td>${fmtDate(r.date)}</td><td>${esc(r.method||"")}</td><td><strong>${esc(r.ref||"")}</strong></td><td>${esc(r.paidTo||p.landlordPay||"")}</td><td class="num">${n0(r.amount)}</td></tr>`).join("")}</tbody><tfoot><tr><td colspan="4">TOTAL FORWARDED</td><td class="num">${n0(L.forwarded)}</td></tr></tfoot></table>`:""}
   <p class="lrprep">Report prepared by: <strong>${esc(L.rep.preparedBy||S.settings.preparedBy||"")}</strong></p>
   <p class="lrthanks">Thank you for your continued trust in our property management services. We value our partnership and look forward to continuing to work with you.</p>
@@ -2570,7 +2585,7 @@ function smsCard(){
     <div><b style="font-size:22px">${queued}</b><span class="sub">Waiting to send</span></div>
     <div><b style="font-size:22px" class="${failed?"neg":""}">${failed}</b><span class="sub">Failed</span></div>
     <div><b style="font-size:22px">${rem}</b><span class="sub">Owe for their next due date</span></div></div>
-   <p style="margin:0 0 12px;font-size:13px"><b>Rent due dates:</b> ${[...S.properties].sort((x,y)=>(x.code||"").localeCompare(y.code||"")).map(p=>`<span class="code">${esc(p.code||"")}</span> ${ord(dueDayOf(p))}${graceOf(p)?" +"+graceOf(p)+"d grace":""}`).join(" · ")||"No properties yet"} <span class="hint">Change in Properties › Edit property › Rent due date.</span></p>
+   <p style="margin:0 0 12px;font-size:13px"><b>Tenants' rent due dates:</b> ${[...S.properties].sort((x,y)=>(x.code||"").localeCompare(y.code||"")).map(p=>`<span class="code">${esc(p.code||"")}</span> ${ord(dueDayOf(p))}${graceOf(p)?" +"+graceOf(p)+"d grace":""}`).join(" · ")||"No properties yet"} <span class="hint">Change in Properties › Edit property › Rent due date.</span></p>
    ${live?"":`<p class="hint" style="margin:0 0 12px">Texts wait here until the Berlim Homes SMS sender (Google Apps Script) is running. ${st.lastRun?"It last checked in "+fmtDate(st.lastRun.slice(0,10))+".":"It hasn't checked in yet."}</p>`}
    ${st.error?`<p class="err" style="margin:0 0 12px">Mspace said: ${esc(st.error)}</p>`:""}
    <form id="fSms" class="fg">
