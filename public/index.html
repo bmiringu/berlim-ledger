@@ -575,7 +575,7 @@ body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
 <script>
 "use strict";
 /* ---------- state ---------- */
-const COLS=["properties","units","tenants","readings","invoices","payments","providers","pbills","ppays","approvals","staff","accessRequests","remits","ldeds","linvoices","landlords","lreports"];
+const COLS=["properties","units","tenants","readings","invoices","payments","providers","pbills","ppays","approvals","staff","accessRequests","remits","ldeds","linvoices","landlords","lreports","sms"];
 const DEFAULT_SETTINGS={company:"Berlim Homes Limited",phone:"0791 025 078 / 0731 220 221",email:"info@berlimhomes.com",website:"www.berlimhomes.com",address:"Nairoview Plaza, 1st Floor, Room 205, Ruiru",preparedBy:"",
   paybill:"222111",accPrefix:"2371748#",waterRate:150,elecRate:0,garbage:300,serviceCharge:0,dueDay:5,penaltyPct:10};
 const S={settings:{...DEFAULT_SETTINGS},properties:[],units:[],tenants:[],readings:[],invoices:[],payments:[],providers:[],pbills:[],ppays:[],approvals:[],staff:[],accessRequests:[],remits:[],ldeds:[],linvoices:[],landlords:[],lreports:[]};
@@ -1069,11 +1069,12 @@ function formTenant(id,unitId){
    <div class="f"><label for="t-dep">Deposit paid (KES)</label><input id="t-dep" name="deposit" type="number" min="0" value="${esc(t?t.deposit:((get("units",sel)||{}).deposit||0))}"></div>
    <div class="f full"><label for="t-note">Notes</label><input id="t-note" name="note" value="${esc(t?t.note||"":"")}" placeholder="Next of kin, lease end, etc."></div>
    <div class="f full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="noLetting" ${t&&t.noLetting?"checked":""}> Moved from another house we manage (not a new tenant, no letting fee)</label></div>
+   <div class="f full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="noSms" ${t&&t.noSms?"checked":""}> Don't send this tenant SMS reminders or receipts</label></div>
    ${t?"":`<div class="full" id="mvBill"></div>`}</form>`,
    `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fT" type="submit">${t?"Save changes":"Add tenant and send bills"}</button>`,!t);
   if(!t)wireMoveInBill();
   document.getElementById("fT").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));
-    const obj={...(t||{id:uid(),active:true}),name:d.name.trim(),phone:d.phone.trim(),email:d.email.trim(),unitId:d.unitId,moveIn:d.moveIn,deposit:+d.deposit||0,note:d.note.trim(),noLetting:d.noLetting==="on"};
+    const obj={...(t||{id:uid(),active:true}),name:d.name.trim(),phone:d.phone.trim(),email:d.email.trim(),unitId:d.unitId,moveIn:d.moveIn,deposit:+d.deposit||0,note:d.note.trim(),noLetting:d.noLetting==="on",noSms:d.noSms==="on"};
     if(t){if(await submit("tenants","Edit tenant "+obj.name,[{op:"set",col:"tenants",obj}],"tenants"))closeModal();return}
     const bills=moveInInvoices(obj);if(bills===null)return;
     const tot=bills.reduce((s,b)=>s+b.total,0);
@@ -1523,14 +1524,17 @@ async function submit(_col,summary,ops,perm){
   if(await applyOps(ops)){toast("Saved: "+summary);return "done"}return false;
 }
 async function applyOps(ops){
-  noReserve={};
+  noReserve={};const newPays=[];
   for(const o of ops){
     if(o.op==="del"){if(!await remove(o.col,o.id))return false;continue}
     const obj={...o.obj};
     if(o.renum){const ex=get(o.col,obj.id);if(!ex){if(o.col==="payments")obj.receiptNo=nextNo("RCPT","payments","receiptNo");else obj.no=nextNo(o.renum)}}
+    const isNewPay=o.col==="payments"&&!get("payments",obj.id);
     if(!await save(o.col,obj))return false;
     if(mode==="cloud"){const arr=S[o.col],i=arr.findIndex(x=>x.id===obj.id);if(i>=0)arr[i]=obj;else arr.push(obj)}
+    if(isNewPay)newPays.push(obj);
   }
+  for(const p of newPays){try{await smsOnPayment(p)}catch(e){}}
   return true;
 }
 function applyRoleChrome(){
@@ -1661,6 +1665,7 @@ function vAdmin(){
     <td>${s.approval!==false?pill("Needs approval"):`<span class="pill p-good">Trusted</span>`}</td><td>${s.active===false?pill("Suspended"):`<span class="pill p-good">Active</span>`}</td>
     <td class="num"><button class="btn sm" data-a="staffEdit" data-id="${s.id}">Edit</button> <button class="btn sm danger" data-a="staffDel" data-id="${s.id}">Remove</button></td></tr>`).join("")}
    </tbody></table>`:`<div class="empty">No team members yet.</div>`}</div></div>
+  ${smsCard()}
   ${dataCard()}`;
 }
 function addStaffCard(){return `<div class="card"><div class="ch"><h2>Add a team member</h2></div><div class="cb"><form id="fNewStaff" class="fg">
@@ -2481,6 +2486,127 @@ async function shareLandlordPDF(pid){
     `<button class="btn" data-a="close">Close</button>${waNum(p.landlordPhone)?`<a class="btn primary" href="${waLink(p.landlordPhone,text+" The PDF report is attached.")}" target="_blank" rel="noopener">Open WhatsApp chat</a>`:""}`);
 }
 /* ---------- render & routing ---------- */
+/* ===== SMS (Mspace) — texts are queued in the "sms" collection; the Berlim Homes Google Apps Script sends them ===== */
+const SMS_DEFAULTS={on:false,payMsg:true,remind:true,remindDays:3,late:true,auto:true,
+  tplPay:"Dear {name}, we have received KES {amount} for House {house} ({code}). Receipt {receipt}. {balanceText}. Thank you. {company}",
+  tplRemind:"Dear {name}, reminder: your rent for {month} is due on {due}. Amount due KES {balance}. Pay via M-Pesa Paybill {paybill}, Account {account}. {company} {phone}",
+  tplLate:"Dear {name}, your balance of KES {balance} for House {house} ({code}) was due on {due} and is now late. Please pay today via Paybill {paybill}, Account {account}. {company} {phone}"};
+const smsCfg=()=>({...SMS_DEFAULTS,...(S.settings.sms||{})});
+const smsReady=()=>!!window.FB_BUILD&&mode==="cloud";
+function smsPhone(ph){const n=waNum(ph);return /^254(7|1)\d{8}$/.test(n)?n:""}
+function smsDueDate(p,m){return m+"-"+String(dueDayOf(p)).padStart(2,"0")}
+function smsVars(t,extra){
+  const u=get("units",t.unitId)||{},p=propOf(u)||{},C=compute(),b=C.ten[t.id]?C.ten[t.id].balance:0,s=S.settings,m=todayStr.slice(0,7);
+  return {name:(t.name||"").split(" ")[0]||t.name||"",fullname:t.name||"",house:unitName(u),code:p.code||"",property:p.name||"",
+    balance:n0(Math.max(0,b)),balanceText:b>0?"Balance KES "+n0(b):b<0?"In credit KES "+n0(-b):"Your account is clear",
+    month:MN[+m.slice(5)-1]+" "+m.slice(0,4),due:fmtDate(smsDueDate(p,m)),paybill:cfg(p).paybill||s.paybill||"",account:acctFor(u),
+    company:"Berlim Homes",phone:(s.phone||"").split("/")[0].trim(),...(extra||{})};
+}
+function smsFill(tpl,v){return String(tpl||"").replace(/\{(\w+)\}/g,(m,k)=>v[k]!=null?String(v[k]):m).replace(/\s+/g," ").trim()}
+function smsDoc(id,t,text,kind){return {id,to:smsPhone(t.phone),tenantId:t.id,name:t.name,text,kind,status:"queued",createdAt:new Date().toISOString(),by:ME.id||""}}
+async function smsQueue(docs){let n=0;for(const d of docs){if(!d.to)continue;try{await db.collection("sms").doc(d.id).set(JSON.parse(JSON.stringify(d)));n++}catch(e){}}return n}
+
+/* who should get a reminder / late notice today */
+function smsDueList(kind,force){
+  const c=smsCfg(),C=compute(),m=todayStr.slice(0,7),day=+todayStr.slice(8,10),out=[];
+  for(const t of S.tenants){
+    if(!t.active||t.noSms||!smsPhone(t.phone))continue;
+    const b=C.ten[t.id]?C.ten[t.id].balance:0;if(b<=0)continue;
+    const u=get("units",t.unitId),p=propOf(u);if(!p)continue;
+    const due=dueDayOf(p),late=due+graceOf(p)+1;
+    if(!force){
+      if(kind==="remind"&&!(day>=due-(+c.remindDays||0)&&day<=due))continue;
+      if(kind==="late"&&!(day>=late&&day<=late+5))continue;
+    }
+    const id=kind+"-"+m+"-"+t.id;if(get("sms",id))continue;
+    out.push({t,b,id});
+  }
+  return out;
+}
+let smsAutoDone=false;
+async function smsAuto(){
+  if(smsAutoDone||!smsReady())return;const c=smsCfg();if(!c.on||!c.auto)return;
+  smsAutoDone=true;
+  const docs=[];
+  if(c.remind)smsDueList("remind").forEach(r=>docs.push(smsDoc(r.id,r.t,smsFill(c.tplRemind,smsVars(r.t)),"Reminder")));
+  if(c.late)smsDueList("late").forEach(r=>docs.push(smsDoc(r.id,r.t,smsFill(c.tplLate,smsVars(r.t)),"Late notice")));
+  if(docs.length){const n=await smsQueue(docs);if(n)toast(n+" rent reminder text"+(n>1?"s":"")+" queued")}
+}
+/* after a new payment is saved */
+async function smsOnPayment(p){
+  if(!smsReady())return;const c=smsCfg();if(!c.on||!c.payMsg||p.method==="Settled before system")return;
+  const t=get("tenants",p.tenantId);if(!t||t.noSms||!smsPhone(t.phone))return;
+  await smsQueue([smsDoc("pay-"+p.id,t,smsFill(c.tplPay,smsVars(t,{amount:n0(p.amount),receipt:p.receiptNo||"",date:fmtDate(p.date)})),"Payment received")]);
+}
+
+const SMS_KIND_PILL={"Payment received":"p-good","Reminder":"","Late notice":"p-bad","Message":""};
+function smsCard(){
+  if(!window.FB_BUILD)return `<div class="card"><div class="ch"><h2>SMS to tenants</h2></div><div class="cb"><p style="margin:0">Text messages through Mspace work on the Berlim Homes website (berlim-homes-ltd.web.app), not in this Claude copy.</p></div></div>`;
+  const c=smsCfg(),st=get("sms","_status")||{},log=S.sms.filter(x=>x.id!=="_status").sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
+  const queued=log.filter(x=>x.status==="queued").length,failed=log.filter(x=>x.status==="failed").length;
+  const live=st.lastRun&&(Date.now()-new Date(st.lastRun).getTime())<15*60*1000;
+  const chk=(k,l)=>`<label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="${k}" ${c[k]?"checked":""}> ${l}</label>`;
+  const rem=smsDueList("remind",true).length;
+  return `<div class="card"><div class="ch"><h2>SMS to tenants (Mspace)</h2>
+   <span class="pill ${live?"p-good":"p-bad"}">${live?"Sender connected":"Sender not connected"}</span></div><div class="cb">
+   <div class="row" style="gap:18px;flex-wrap:wrap;margin-bottom:12px">
+    <div><b style="font-size:22px">${st.balance!=null?n0(st.balance):"—"}</b><span class="sub">SMS credit left${st.balanceAt?" · "+fmtDate(st.balanceAt.slice(0,10)):""}</span></div>
+    <div><b style="font-size:22px">${queued}</b><span class="sub">Waiting to send</span></div>
+    <div><b style="font-size:22px" class="${failed?"neg":""}">${failed}</b><span class="sub">Failed</span></div>
+    <div><b style="font-size:22px">${rem}</b><span class="sub">Tenants with a balance</span></div></div>
+   ${live?"":`<p class="hint" style="margin:0 0 12px">Texts wait here until the Berlim Homes SMS sender (Google Apps Script) is running. ${st.lastRun?"It last checked in "+fmtDate(st.lastRun.slice(0,10))+".":"It hasn't checked in yet."}</p>`}
+   ${st.error?`<p class="err" style="margin:0 0 12px">Mspace said: ${esc(st.error)}</p>`:""}
+   <form id="fSms" class="fg">
+    <div class="f full">${chk("on","Send texts to tenants")}</div>
+    <div class="f full">${chk("payMsg","Text the tenant each time a payment is recorded")}</div>
+    <div class="f">${chk("remind","Rent reminders to tenants who haven't paid")}</div>
+    <div class="f"><label for="sm-rd">Start reminding this many days before the due day</label><input id="sm-rd" name="remindDays" type="number" min="0" max="10" value="${esc(c.remindDays)}"></div>
+    <div class="f full">${chk("late","Late notice the day after the grace period ends (each property's own dates)")}</div>
+    <div class="f full">${chk("auto","Send reminders and late notices automatically when the ledger is opened (once per tenant per month)")}</div>
+    <div class="f full"><label for="sm-tp">Payment received message</label><textarea id="sm-tp" name="tplPay" rows="2">${esc(c.tplPay)}</textarea></div>
+    <div class="f full"><label for="sm-tr">Reminder message</label><textarea id="sm-tr" name="tplRemind" rows="2">${esc(c.tplRemind)}</textarea></div>
+    <div class="f full"><label for="sm-tl">Late notice message</label><textarea id="sm-tl" name="tplLate" rows="2">${esc(c.tplLate)}</textarea>
+     <span class="hint">Fill-ins: {name} {fullname} {house} {code} {property} {amount} {receipt} {balance} {balanceText} {month} {due} {paybill} {account} {company} {phone}. One SMS is 160 characters; longer texts cost 2.</span></div>
+    <div class="full row"><button class="btn primary" type="submit">Save SMS settings</button><button class="btn" type="button" data-a="smsCompose">Send a message now</button><button class="btn" type="button" data-a="smsRemindNow">Send reminders now</button><span class="hint" id="smsMsg"></span></div>
+   </form></div></div>
+   <div class="card"><div class="ch"><h2>Texts sent</h2></div><div class="tw">${log.length?`<table><thead><tr><th>When</th><th>Tenant</th><th>Phone</th><th>Type</th><th>Message</th><th>Status</th></tr></thead><tbody>
+    ${log.slice(0,150).map(x=>`<tr><td style="white-space:nowrap">${fmtDate((x.sentAt||x.createdAt||"").slice(0,10))}<span class="sub">${esc((x.sentAt||x.createdAt||"").slice(11,16))}</span></td><td>${esc(x.name||"")}</td><td>${esc(x.to||"")}</td><td><span class="pill ${SMS_KIND_PILL[x.kind]||""}">${esc(x.kind||"")}</span></td><td style="font-size:13px;max-width:420px">${esc(x.text||"")}</td>
+     <td>${x.status==="sent"?`<span class="pill p-good">Sent</span>`:x.status==="failed"?`<span class="pill p-bad" title="${esc(x.error||"")}">Failed</span> <button class="link" data-a="smsRetry" data-id="${esc(x.id)}">Retry</button>`:`<span class="pill">Waiting</span>`}</td></tr>`).join("")}
+    </tbody></table>`:`<div class="empty">No texts yet.</div>`}</div></div>`;
+}
+function smsCompose(){
+  const props=[...S.properties].sort((a,b)=>(a.code||"").localeCompare(b.code||""));
+  openModal("Send a text message",`<form id="fSmsNew" class="fg">
+   <div class="f"><label for="sn-w">Send to</label><select id="sn-w" name="who"><option value="owing">Tenants with a balance</option><option value="all">All current tenants</option><option value="paid">Tenants who are fully paid</option><option value="one">One tenant</option></select></div>
+   <div class="f"><label for="sn-p">Property</label><select id="sn-p" name="prop"><option value="all">All properties</option>${props.map(p=>`<option value="${p.id}">${esc(p.code||"")} ${esc(p.name||"")}</option>`).join("")}</select></div>
+   <div class="f full" id="sn-onew" hidden><label for="sn-t">Tenant</label><select id="sn-t" name="tid">${S.tenants.filter(t=>t.active).map(t=>{const u=get("units",t.unitId);return `<option value="${t.id}">${esc((propOf(u)||{}).code||"")} ${esc(unitName(u))} · ${esc(t.name)}</option>`}).join("")}</select></div>
+   <div class="f full"><label for="sn-m">Message</label><textarea id="sn-m" name="text" rows="4" required placeholder="Dear {name}, ...">Dear {name}, </textarea><span class="hint">Fill-ins: {name} {house} {code} {balance} {balanceText} {paybill} {account} {company} {phone}</span></div>
+   <div class="full"><span class="hint" id="sn-c"></span><span class="err" id="sn-e"></span></div></form>`,
+   `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fSmsNew" type="submit">Send</button>`);
+  const f=document.getElementById("fSmsNew");
+  const pick=()=>{const d=Object.fromEntries(new FormData(f)),C=compute();document.getElementById("sn-onew").hidden=d.who!=="one";
+    let list=d.who==="one"?S.tenants.filter(t=>t.id===d.tid):S.tenants.filter(t=>t.active&&!t.noSms&&(d.prop==="all"||(get("units",t.unitId)||{}).propertyId===d.prop)).filter(t=>{const b=C.ten[t.id]?C.ten[t.id].balance:0;return d.who==="owing"?b>0:d.who==="paid"?b<=0:true});
+    const ok=list.filter(t=>smsPhone(t.phone)),txt=d.text||"",sample=ok[0]?smsFill(txt,smsVars(ok[0])):"";
+    document.getElementById("sn-c").textContent=ok.length+" tenant"+(ok.length===1?"":"s")+" will get this"+(list.length>ok.length?" ("+(list.length-ok.length)+" skipped: no valid phone)":"")+(sample?" · "+sample.length+" characters, e.g. “"+sample.slice(0,90)+(sample.length>90?"…":"")+"”":"");return ok};
+  f.addEventListener("input",pick);f.addEventListener("change",pick);pick();
+  f.onsubmit=async e=>{e.preventDefault();const ok=pick(),txt=new FormData(f).get("text");if(!ok.length){document.getElementById("sn-e").textContent="No one to send to.";return}
+    const batch="msg-"+uid();const n=await smsQueue(ok.map((t,i)=>smsDoc(batch+"-"+i,t,smsFill(txt,smsVars(t)),"Message")));closeModal();toast(n+" text"+(n===1?"":"s")+" queued")};
+}
+document.addEventListener("click",async e=>{
+  const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;
+  if(a==="smsCompose"){e.preventDefault();smsCompose()}
+  else if(a==="smsRemindNow"){e.preventDefault();const c=smsCfg(),list=smsDueList("remind",true);
+    if(!list.length){toast("Everyone with a balance has already had this month's reminder, or no one owes.");return}
+    askConfirm(`Send a rent reminder now to ${list.length} tenant${list.length>1?"s":""} with a balance? Each tenant gets at most one reminder a month.`,"Send reminders",async()=>{const n=await smsQueue(list.map(r=>smsDoc(r.id,r.t,smsFill(c.tplRemind,smsVars(r.t)),"Reminder")));toast(n+" reminder"+(n===1?"":"s")+" queued")})}
+  else if(a==="smsRetry"){e.preventDefault();const x=get("sms",b.dataset.id);if(x){try{await db.collection("sms").doc(x.id).set({...x,status:"queued",error:"",tries:0});toast("Will try again")}catch(err){toast("Could not retry just now")}}}
+});
+document.addEventListener("submit",async e=>{
+  if(e.target.id!=="fSms")return;e.preventDefault();const f=new FormData(e.target),c=smsCfg();
+  const sms={...c,remindDays:+f.get("remindDays")||0,tplPay:String(f.get("tplPay")||"").trim(),tplRemind:String(f.get("tplRemind")||"").trim(),tplLate:String(f.get("tplLate")||"").trim()};
+  ["on","payMsg","remind","late","auto"].forEach(k=>sms[k]=f.get(k)==="on");
+  if(await saveSettings({...S.settings,sms})){document.getElementById("smsMsg").textContent="Saved";toast("SMS settings saved")}
+},true);
+
 const VIEWS={dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:vApprovals,setup:vSetup,admin:vAdmin};
 let pendingRender=false;
 function render(){
@@ -2545,7 +2671,7 @@ loadImportFile();
   await identify(user);
   const slow=setTimeout(()=>setStatus("demo","Records may be out of date, still connecting"),10000);
   const fresh=new Set();
-  const settle=()=>{if(fresh.size>=COLS.length+1){clearTimeout(slow);setStatus("ok",readOnly?"Saved records, view only":"Saved records, synced");setTimeout(autoHistory,1500)}};
+  const settle=()=>{if(fresh.size>=COLS.length+1){clearTimeout(slow);setStatus("ok",readOnly?"Saved records, view only":"Saved records, synced");setTimeout(autoHistory,1500);setTimeout(()=>smsAuto().catch(()=>{}),4000)}};
   COLS.forEach(col=>{db.collection(col).onSnapshot(snap=>{S[col]=snap.docs.map(d=>({...d.data(),id:d.id}));if(col==="staff")staffLoaded=true;if(!snap.metadata.fromCache){fresh.add(col);settle()}render()},
     err=>{if(col==="staff"){staffLoaded=true;render()}clearTimeout(slow);setStatus("demo","Could not load "+col);fresh.add(col)})});
   db.doc("settings/config").onSnapshot(d=>{S.settings=d.exists?{...DEFAULT_SETTINGS,...d.data()}:{...DEFAULT_SETTINGS};if(!d.metadata.fromCache){fresh.add("settings");settle()}render()},()=>{fresh.add("settings")});
