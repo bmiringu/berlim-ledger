@@ -168,7 +168,7 @@ table.read input.cell{width:84px}
 table.stmt td{font-size:13px}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;z-index:40;box-shadow:0 8px 24px rgba(0,0,0,.2)}
 @media (prefers-reduced-motion:no-preference){.toast{animation:up .2s ease-out}@keyframes up{from{transform:translate(-50%,8px)}}}
-.items input,.items select{width:100%;font:14px var(--body);padding:7px 8px;border:1px solid var(--line);border-radius:8px}.items td{vertical-align:middle}.items .it-x{color:var(--bad);font-size:15px}
+.items input,.items select{width:100%;font:14px var(--body);padding:7px 8px;border:1px solid var(--line);border-radius:8px}.items td{vertical-align:middle}.items .it-x{color:var(--bad);font-size:15px}.items .it-k{min-width:150px}.items .it-ll{min-width:150px}.items .it-d{min-width:160px}
 </style>
 <style id="modern">
 /* refreshed look: deeper navy masthead with a gold rule, floating icon tabs, rounded cards with soft shadows */
@@ -707,10 +707,11 @@ function monthReport(pid,m){
     for(const t of ts){
       const before=S.invoices.filter(i=>i.tenantId===t.id&&(i.month<m||(i.adj&&i.month===m))).reduce((s,i)=>s+invAmt(i),0)-S.payments.filter(x=>x.tenantId===t.id&&(x.date||"")<start).reduce((s,x)=>s+(+x.amount||0),0);
       const ch={};S.invoices.filter(i=>i.tenantId===t.id&&i.month===m&&!i.adj&&!i.reversed).forEach(i=>i.lines.forEach(l=>{const k=COLS_R.some(c=>c[0]===l.kind)?l.kind:"other";ch[k]=(ch[k]||0)+(+l.amount||0)}));
+      const chL={};S.invoices.filter(i=>i.tenantId===t.id&&i.month===m&&!i.adj&&!i.reversed).forEach(i=>i.lines.forEach(l=>{if(l.toLandlord===false)return;const k=COLS_R.some(c=>c[0]===l.kind)?l.kind:"other";chL[k]=(chL[k]||0)+(+l.amount||0)}));
       const pays=S.payments.filter(x=>x.tenantId===t.id&&(x.date||"").slice(0,7)===m);
       const paid=pays.reduce((s,x)=>s+(+x.amount||0),0),direct=pays.filter(x=>x.method==="Paid to landlord").reduce((s,x)=>s+(+x.amount||0),0);
       const charges=Object.values(ch).reduce((s,v)=>s+v,0);
-      rows.push({u,t,ch,bf:before,paid,direct,arrears:before+charges-paid});
+      rows.push({u,t,ch,chL,bf:before,paid,direct,arrears:before+charges-paid});
     }
   }
   const sum=k=>rows.reduce((s,r)=>s+(r.ch[k]||0),0);
@@ -1354,7 +1355,7 @@ function showStatement(tid){
     <button class="btn gold" id="stLink">${link?"Make a fresh link":"Create download link"}</button>
     ${link?`<a class="btn" href="${esc(link)}" target="_blank" rel="noopener">Open link</a><button class="btn" id="stCopyLink">Copy link</button>`:""}
     <p id="stMsg" class="hint" style="width:100%;margin:0">${link?"Link ready: "+esc(link):(window.fbShare?"Creates a download link for the statement PDF. WhatsApp and email messages then include the link.":"Saves the statement PDF to your Google Drive and shares it with the tenant's email. WhatsApp and email messages then include the link.")}</p></div>`;
-  openModal("Tenant statement",share+statementHTML(tid),
+  openModal("Tenant statement",share+statementHTML(tid)+stmtInvoicesCard(tid),
     `<button class="btn" id="dlPdf">Download PDF</button>
      <a class="btn" href="${waLink(t.phone,text)}" target="_blank" rel="noopener">Send on WhatsApp${t.phone?"":" (choose chat)"}</a>
      <a class="btn" href="mailto:${encodeURIComponent(t.email||"")}?subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(text)}" target="_blank" rel="noopener">Send by email</a>
@@ -1523,7 +1524,7 @@ document.getElementById("mnext").onclick=()=>{monthPinned=true;month=monthAdd(mo
 const PERMS=[["payments","Record, edit and delete tenant payments"],["invoices","Generate, reverse and penalise invoices"],["readings","Enter meter readings and meter photos"],["tenants","Add, edit and move out tenants (with move-in bills)"],["providers","Service provider bills and payments"],["props","Properties, houses, rates and setup"],["landlords","Landlord accounts, agreements and remittances"]];
 const PSHORT={payments:"Payments",invoices:"Invoices",readings:"Meter readings",tenants:"Tenants",providers:"Service providers",props:"Properties & setup",landlords:"Landlord accounts"};
 const ROLES={admin:{label:"Administrator (full access)",perms:PERMS.map(p=>p[0])},manager:{label:"Property manager",perms:PERMS.map(p=>p[0])},accountant:{label:"Accountant",perms:["payments","invoices","providers","landlords"]},field:{label:"Field officer / caretaker",perms:["readings","tenants"]},viewer:{label:"View only",perms:[]}};
-const NEED={charge:"invoices",smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
+const NEED={llToggle:"invoices",charge:"invoices",smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
 let staffLoaded=false;
 function myStaff(){return ME.id?S.staff.find(s=>s.id===ME.id&&s.active!==false)||null:null}
 function can(p){if(ME.admin)return true;const s=ME.staff;if(!s||readOnly)return false;return !p||(s.perms||[]).includes(p)}
@@ -2283,6 +2284,7 @@ function vLandlordAccount(pid){
    <div class="tile ${L.outstanding>0?"alert":""}"><span class="k">Not yet forwarded</span><span class="v">${n0(Math.max(0,L.outstanding))}</span><span class="s">For ${monthShort(month)} · pay by ${fmtDate(llDueDate(p,month))}</span></div></div>
   <p style="margin:0 0 12px">Landlord is paid by the <b>${llDueLabel(p)}</b> ${llDuePill(p,month,L)} · tenants pay by the <b>${ord(dueDayOf(p))}</b>. <button class="link" data-a="prop" data-id="${pid}">Change dates</button></p>
   <div class="card"><div class="cb">${llStatementHTML(pid,month)}</div></div>
+  ${llInvoicesCard(pid,month)}
   <div class="card"><div class="ch"><h2>Monthly reports</h2><span style="color:var(--muted);font-size:13px">Each month on its own; click a month to open its report</span></div><div class="tw"><table><thead><tr><th>Month</th><th class="num">Total collection</th><th class="num">Deductions</th><th class="num">To forward</th><th class="num">Forwarded</th><th>Status</th></tr></thead><tbody>
    ${hist.map(({m,H})=>`<tr><td><button class="link" data-a="llMonth" data-id="${m}">${monthLabel(m)}</button></td><td class="num">${n0(H.total)}</td><td class="num">${n0(H.totalDed)}</td><td class="num"><strong>${n0(H.forward)}</strong></td><td class="num">${n0(H.forwarded)}</td><td>${H.forward<=0?pill("Clear"):H.forwarded>=H.forward?pill("Paid"):H.forwarded>0?pill("Partial"):`<span class="pill p-warn">To forward</span>`} ${H.rep.sentAt?`<span class="pill p-info">Sent</span>`:""}</td></tr>`).join("")}
    </tbody></table></div></div>
@@ -2355,7 +2357,7 @@ const LR_COLS=[["deposit","Deposit"],["water","Water"],["elec","Electricity"],["
 const lrVal=(ch,c)=>c[0]==="other"?(ch.other||0)+(ch.manual||0):(ch[c[0]]||0);
 function landlordMonth(pid,m){
   const R=monthReport(pid,m),p=R.p,inv=llInv(pid,m),rep=lrep(pid,m)||{};
-  const rows=R.rows.map(r=>{const ch={};if(r.t)Object.entries(r.ch).forEach(([k,v])=>{if(k!=="penalty"&&(k!=="garbage"||p.garbageToLandlord))ch[k]=v});return {...r,lch:ch,ltot:Object.values(ch).reduce((s,v)=>s+v,0)}});
+  const rows=R.rows.map(r=>{const ch={};if(r.t)Object.entries(r.chL||r.ch).forEach(([k,v])=>{if(k!=="penalty"&&(k!=="garbage"||p.garbageToLandlord))ch[k]=v});return {...r,lch:ch,ltot:Object.values(ch).reduce((s,v)=>s+v,0)}});
   const cols=LR_COLS.filter(c=>c[0]==="rent"||rows.some(r=>lrVal(r.lch,c)));
   const T={};cols.forEach(c=>T[c[0]]=rows.reduce((s,r)=>s+lrVal(r.lch,c),0));
   const total=Math.round(rows.reduce((s,r)=>s+r.ltot,0));
@@ -2806,6 +2808,7 @@ function itemRow(k,desc,qty,price){return `<tr class="itr"><td><select class="it
  <td><input class="it-d" placeholder="Description, e.g. Broken window, bedroom" value="${esc(desc||"")}" aria-label="Description"></td>
  <td><input class="it-q" type="number" min="0" step="any" value="${esc(qty??1)}" style="width:70px" aria-label="Quantity"></td>
  <td><input class="it-p" type="number" min="0" step="any" value="${esc(price??"")}" style="width:110px" aria-label="Unit price (KES)"></td>
+ <td><select class="it-ll" aria-label="On landlord report?"><option value="">Choose…</option><option value="yes" ${LL_DEFAULT_YES.includes(k)?"selected":""}>Yes, include</option><option value="no">No, tenant only</option></select></td>
  <td class="num it-a">0</td><td><button type="button" class="link it-x" aria-label="Remove item">✕</button></td></tr>`}
 function formCharge(tid){
   const C=compute(),ts=S.tenants.filter(t=>t.active||(C.ten[t.id]&&C.ten[t.id].balance>0)||t.id===tid).sort((a,b)=>sortUnits(get("units",a.unitId)||{label:""},get("units",b.unitId)||{label:""}));
@@ -2817,8 +2820,8 @@ function formCharge(tid){
    <div class="f"><label for="ch-m">For month</label><input id="ch-m" name="month" type="month" value="${month}" required></div>
    <div class="f"><label for="ch-i">Invoice date</label><input id="ch-i" name="issueDate" type="date" value="${todayStr}" required></div>
    <div class="f"><label for="ch-dd">Due date</label><input id="ch-dd" name="dueDate" type="date" value="${iso(new Date(Date.now()+7*864e5))}" required></div>
-   <div class="f full"><div class="tw"><table class="items"><thead><tr><th>Item</th><th>Description</th><th>Qty</th><th>Unit price (KES)</th><th class="num">Amount</th><th></th></tr></thead><tbody id="chItems">${itemRow("damage","",1,"")}</tbody>
-    <tfoot><tr><td colspan="4"><button type="button" class="btn sm" id="chAdd">+ Add another item</button></td><td class="num"><strong id="chTot">0</strong></td><td></td></tr></tfoot></table></div></div>
+   <div class="f full"><div class="tw"><table class="items"><thead><tr><th>Item</th><th>Description</th><th>Qty</th><th>Unit price (KES)</th><th>On landlord report?</th><th class="num">Amount</th><th></th></tr></thead><tbody id="chItems">${itemRow("damage","",1,"")}</tbody>
+    <tfoot><tr><td colspan="5"><button type="button" class="btn sm" id="chAdd">+ Add another item</button></td><td class="num"><strong id="chTot">0</strong></td><td></td></tr></tfoot></table></div></div>
    <div class="f full"><label for="ch-n">Note on the invoice (optional)</label><input id="ch-n" name="note" placeholder="e.g. As agreed at move-out inspection on 30 Oct"></div>
    ${window.FB_BUILD?`<div class="f full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="sms" ${smsCfg().on?"checked":""}> Text the tenant about this invoice (SMS)</label></div>`:""}
    <div class="full"><span class="err" id="chErr"></span></div></form>`,
@@ -2830,14 +2833,16 @@ function formCharge(tid){
   pc.addEventListener("input",houses);houses();
   const calc=()=>{let tot=0;body.querySelectorAll(".itr").forEach(r=>{const a=Math.round((+r.querySelector(".it-q").value||0)*(+r.querySelector(".it-p").value||0));r.querySelector(".it-a").textContent=n0(a);tot+=a});document.getElementById("chTot").textContent="KES "+n0(tot);return tot};
   body.addEventListener("input",calc);
-  body.addEventListener("change",e=>{if(e.target.classList.contains("it-k")){const r=e.target.closest(".itr"),k=e.target.value,t=get("tenants",sel.value),u=t&&get("units",t.unitId);
+  body.addEventListener("change",e=>{if(e.target.classList.contains("it-ll"))e.target.style.borderColor="";if(e.target.classList.contains("it-k")){const r=e.target.closest(".itr"),k=e.target.value,t=get("tenants",sel.value),u=t&&get("units",t.unitId);r.querySelector(".it-ll").value=LL_DEFAULT_YES.includes(k)?"yes":"";
     if(k==="rent"&&u&&!r.querySelector(".it-p").value){r.querySelector(".it-p").value=u.rent||"";if(!r.querySelector(".it-d").value)r.querySelector(".it-d").value="Rent "+monthLabel(f.month.value)}calc()}});
   body.addEventListener("click",e=>{if(e.target.classList.contains("it-x")){if(body.querySelectorAll(".itr").length>1)e.target.closest(".itr").remove();calc()}});
   document.getElementById("chAdd").onclick=()=>{body.insertAdjacentHTML("beforeend",itemRow("other","",1,""));calc()};
   f.onsubmit=async e=>{e.preventDefault();const err=document.getElementById("chErr");err.textContent="";const d=Object.fromEntries(new FormData(f));
     const t=get("tenants",d.tenantId);if(!t){err.textContent="Choose the house first.";return}
-    const lines=[...body.querySelectorAll(".itr")].map(r=>{const k=r.querySelector(".it-k").value,q=+r.querySelector(".it-q").value||0,pr=+r.querySelector(".it-p").value||0,ds=r.querySelector(".it-d").value.trim();
-      return {kind:k,desc:(ds?ITEM_LABEL[k]+": "+ds:ITEM_LABEL[k])+(q!==1?` (${q} × ${n0(pr)})`:""),qty:q,rate:pr,amount:Math.round(q*pr)}}).filter(l=>l.amount>0);
+    const unset=[...body.querySelectorAll(".itr")].filter(r=>(+r.querySelector(".it-p").value||0)>0&&!r.querySelector(".it-ll").value);
+    if(unset.length){unset.forEach(r=>r.querySelector(".it-ll").style.borderColor="var(--bad)");err.textContent="Confirm for each item whether it goes on the landlord report (Yes or No).";return}
+    const lines=[...body.querySelectorAll(".itr")].map(r=>{const ll=r.querySelector(".it-ll").value==="yes",k=r.querySelector(".it-k").value,q=+r.querySelector(".it-q").value||0,pr=+r.querySelector(".it-p").value||0,ds=r.querySelector(".it-d").value.trim();
+      return {kind:k,desc:(ds?ITEM_LABEL[k]+": "+ds:ITEM_LABEL[k])+(q!==1?` (${q} × ${n0(pr)})`:""),qty:q,rate:pr,amount:Math.round(q*pr),toLandlord:ll}}).filter(l=>l.amount>0);
     if(!lines.length){err.textContent="Add at least one item with a price.";return}
     if(d.dueDate<d.issueDate){err.textContent="The due date is before the invoice date.";return}
     const total=lines.reduce((s,l)=>s+l.amount,0);noReserve={};
@@ -2893,6 +2898,32 @@ document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.c
   if(a==="rentCheck"){e.preventDefault();showRentCheck()}
   else if(a==="rcSet"){e.preventDefault();const u=get("units",b.dataset.id),v=+b.dataset.v;if(!u)return;
     if(await submit("units","House "+u.label+" rent "+kes(u.rent)+" → "+kes(v),[{op:"set",col:"units",obj:{...u,rent:v}}],"props")){toast("House "+u.label+" rent set to KES "+n0(v));showRentCheck()}}});
+
+
+/* ===== invoices list with reverse / restore, on the tenant statement and the landlord report ===== */
+const LL_DEFAULT_YES=["rent","bfadj","water","elec","garbage","service","deposit"];
+function invOnLL(i){const ls=i.lines||[];if(!ls.length)return "yes";const n=ls.filter(l=>l.toLandlord===false).length;return n===0?"yes":n===ls.length?"no":"part"}
+function invActions(i){const C=compute(),c=C.inv[i.id]||{};
+  return `<button class="btn sm" data-a="inv" data-id="${i.id}">Open</button>${can("invoices")?(i.reversed?` <button class="btn sm" data-a="restoreInv" data-id="${i.id}">Restore</button>`:` <button class="btn sm danger" data-a="reverseInv" data-id="${i.id}">Reverse</button>`)+(catOf(i)==="misc"?` <button class="btn sm" data-a="llToggle" data-id="${i.id}">${invOnLL(i)==="no"?"Add to landlord report":"Remove from landlord report"}</button>`:""):""}`}
+function invRowsHTML(list,showTenant){
+  const C=compute();
+  return list.length?`<table><thead><tr><th>Invoice</th><th>Month</th><th>Type</th>${showTenant?"<th>House / tenant</th>":""}<th>Items</th><th class="num">Amount</th><th>Status</th><th>Landlord report</th><th></th></tr></thead><tbody>
+  ${list.map(i=>{const t=get("tenants",i.tenantId)||{},u=get("units",i.unitId)||{},c=C.inv[i.id]||{},ll=invOnLL(i);
+   return `<tr${i.reversed?' style="opacity:.6"':""}><td style="white-space:nowrap"><strong>${esc(i.no||"")}</strong></td><td>${monthShort(i.month)}</td><td>${esc((CATS[catOf(i)]||{}).short||"")}</td>${showTenant?`<td>House ${esc(unitName(u))}<span class="sub">${esc(t.name||"")}</span></td>`:""}
+   <td style="font-size:13px">${(i.lines||[]).map(l=>esc(l.desc)+(l.toLandlord===false?' <span class="pill p-mute">not on landlord report</span>':"")).join("<br>")}</td><td class="num">${n0(i.total)}</td>
+   <td>${i.reversed?`<span class="pill p-bad">Reversed</span><span class="sub">${esc(i.reverseReason||"")}</span>`:pill(c.status||"Unpaid")}</td><td>${i.reversed?"—":ll==="yes"?'<span class="pill p-good">Included</span>':ll==="no"?'<span class="pill p-mute">Not included</span>':'<span class="pill p-warn">Part</span>'}</td>
+   <td class="num" style="white-space:nowrap">${invActions(i)}</td></tr>`}).join("")}</tbody></table>`:`<div class="empty">No invoices.</div>`}
+function stmtInvoicesCard(tid){
+  const list=S.invoices.filter(i=>i.tenantId===tid&&!i.adj).sort((a,b)=>(b.month+(b.issueDate||"")).localeCompare(a.month+(a.issueDate||"")));
+  return `<div class="card" style="margin-top:14px"><div class="ch"><h2>Invoices on this account</h2><span style="color:var(--muted);font-size:13px">Reverse an invoice to cancel it on both the tenant's statement and the landlord report. Restore undoes a reversal.</span></div><div class="tw">${invRowsHTML(list,false)}</div></div>`}
+function llInvoicesCard(pid,m){
+  const list=S.invoices.filter(i=>!i.adj&&i.month===m&&(get("units",i.unitId)||{}).propertyId===pid).sort((a,b)=>sortUnits(get("units",a.unitId)||{label:""},get("units",b.unitId)||{label:""})||(a.no||"").localeCompare(b.no||""));
+  return `<div class="card"><div class="ch"><h2>Tenant invoices in this report</h2><span style="color:var(--muted);font-size:13px">Every tenant invoice for ${monthLabel(m)}. Reversed invoices and items marked "not on landlord report" are left out of the report above.</span></div><div class="tw">${invRowsHTML(list,true)}</div></div>`}
+document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;
+  if(b.dataset.a==="llToggle"){e.preventDefault();const i=get("invoices",b.dataset.id);if(!i)return;const to=invOnLL(i)==="no";
+    askConfirm(`${to?"Include":"Leave out"} invoice <strong>${esc(i.no)}</strong> (KES ${n0(i.total)}) ${to?"on":"from"} the ${esc(((propOf(get("units",i.unitId))||{}).code)||"")} landlord report for ${monthLabel(i.month)}?`,to?"Include":"Leave out",async()=>{
+      const lines=i.lines.map(l=>({...l,toLandlord:to}));
+      if(await submit("invoices",`${i.no} ${to?"included on":"left out of"} the landlord report`,[{op:"set",col:"invoices",obj:{...i,lines}}],"invoices"))toast(i.no+(to?" now included on":" left out of")+" the landlord report")})}});
 
 const VIEWS={dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:vApprovals,setup:vSetup,admin:vAdmin};
 let pendingRender=false;
