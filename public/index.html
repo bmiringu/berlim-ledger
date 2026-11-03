@@ -684,6 +684,7 @@ function makeInvoices(t,m,only){
     if(only&&cat!==only)continue;
     const id=m+"_"+t.id+info.suf,ex=get("invoices",id);
     if(ex&&(ex.reversed||ex.locked)){out.push(ex);continue}
+    if(ex&&(m<todayStr.slice(0,7)||((lrep(p.id,m)||{}).sentAt))){out.push(ex);continue}
     const keep=ex&&cat==="rent"?ex.lines.filter(l=>l.kind==="penalty"||l.kind==="manual"):[];
     const lines=[...all.filter(l=>(CAT_OF[l.kind]||"rent")===cat),...keep];
     if(!lines.length&&!ex)continue;
@@ -937,7 +938,7 @@ function vInvoices(){
   const have=new Set(S.invoices.filter(i=>i.month===month&&!i.adj&&inCode(i)).map(i=>i.tenantId)).size,missing=eligibleTenants(month).filter(t=>!get("invoices",month+"_"+t.id)&&(filters.code==="all"||(get("units",t.unitId)||{}).propertyId===filters.code)).length;
   return `<div class="pagehead"><h1>Invoices, ${monthLabel(month)}</h1><div class="row">
     <select class="inline" id="invf" aria-label="Filter by status">${["all","Unpaid","Partial","Overdue","Paid"].map(s=>`<option value="${s}" ${filters.invStatus===s?"selected":""}>${s==="all"?"All statuses":s}</option>`).join("")}</select>
-    <button class="btn" data-a="charge">New invoice (any item)</button><button class="btn gold" data-a="gen">Generate / refresh invoices</button>
+    <button class="btn" data-a="rentCheck">Rent check</button><button class="btn" data-a="charge">New invoice (any item)</button><button class="btn gold" data-a="gen">Generate / refresh invoices</button>
     <button class="btn" data-a="penalty">Apply late penalties</button>
     ${downloads?`<button class="btn" data-a="csvInv">Export CSV</button>`:""}</div>
     <p>${have} tenant${have===1?"":"s"} billed for ${monthLabel(month)}${missing?`, ${missing} still to bill`:""}. Each tenant gets a separate rent invoice, garbage invoice and utility bill. Refreshing rebuilds them from the latest rates and readings and keeps any penalties. Penalties apply to invoices still unpaid after each property's due day and grace days (set under Edit property).</p></div>
@@ -2256,6 +2257,7 @@ function vLandlords(){
   const reps=sortedProps().map(p=>({p,L:landlordMonth(p.id,month)}));const T=f=>reps.reduce((s,x)=>s+f(x.L),0);
   return `<div class="pagehead"><h1>Landlord reports, ${monthLabel(month)}</h1><p>Each month stands on its own: what was collected for the landlord, what was deducted, and the amount to forward. Search a property code or landlord to open the full report.</p></div>
   ${llSeg()}${propSearch("ll")}
+  <div class="row" style="margin:0 0 12px"><button class="btn gold" data-a="rentCheck">Rent check: statements vs landlord reports</button></div>
   <div class="tiles"><div class="tile"><span class="k">Total collection</span><span class="v">${n0(T(L=>L.total))}</span><span class="s">All properties, ${monthShort(month)}</span></div>
    <div class="tile"><span class="k">Total deductions</span><span class="v">${n0(T(L=>L.totalDed))}</span><span class="s">Commission ${n0(T(L=>L.fees))} and other costs</span></div>
    <div class="tile"><span class="k">To forward landlords</span><span class="v">${n0(T(L=>L.forward))}</span><span class="s">For ${monthShort(month)}</span></div>
@@ -2849,6 +2851,48 @@ function formCharge(tid){
       setTimeout(()=>{if(get("invoices",obj.id))showInvoice(obj.id)},300)}};
 }
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;if(b.dataset.a==="charge"){e.preventDefault();formCharge(b.dataset.id)}});
+
+
+/* ===== Rent check: tenant statements vs landlord reports vs house rent settings ===== */
+function stmtRent(tid,m){return S.invoices.filter(i=>i.tenantId===tid&&i.month===m&&!i.adj&&!i.reversed).reduce((s,i)=>s+i.lines.filter(l=>l.kind==="rent").reduce((a,l)=>a+(+l.amount||0),0),0)}
+function rentCheck(m){
+  const out=[];
+  for(const P of sortedProps()){
+    const L=landlordMonth(P.id,m);const seen=new Set();
+    for(const r of L.rows){if(!r.t)continue;seen.add(r.t.id);
+      const lr=lrVal(r.lch,["rent"]),st=stmtRent(r.t.id,m),u=r.u,set=+u.rent||0;
+      const rentInv=S.invoices.filter(i=>i.tenantId===r.t.id&&i.month===m&&!i.adj&&!i.reversed&&i.lines.some(l=>l.kind==="rent"));
+      const otherUnit=rentInv.filter(i=>i.unitId!==u.id);
+      const iss=[];
+      if(st!==lr)iss.push({k:"stmt",txt:`Statement shows ${n0(st)}, landlord report ${n0(lr)}`});
+      if(rentInv.length>1&&rentInv.filter(i=>catOf(i)==="rent").length>1)iss.push({k:"dup",txt:`${rentInv.length} rent invoices this month (${rentInv.map(i=>i.no).join(", ")})`});
+      if(otherUnit.length)iss.push({k:"unit",txt:`Rent invoice ${otherUnit.map(i=>i.no).join(", ")} is for House ${otherUnit.map(i=>unitName(get("units",i.unitId))).join(", ")}, but the tenant is now in House ${unitName(u)}`});
+      if(lr>0&&set!==lr&&r.t.active)iss.push({k:"set",txt:`House rent setting is ${n0(set)} but ${monthShort(m)} was charged ${n0(lr)}. New invoices will use ${n0(set)}.`,fix:lr});
+      if(iss.length)out.push({P,u,t:r.t,st,lr,set,iss});
+    }
+    // statement rent for tenants of this property that the landlord report doesn't show
+    for(const t of S.tenants){if(seen.has(t.id))continue;const st=stmtRent(t.id,m);if(!st)continue;
+      const inv=S.invoices.find(i=>i.tenantId===t.id&&i.month===m&&!i.adj&&!i.reversed&&i.lines.some(l=>l.kind==="rent"));if(!inv)continue;
+      const iu=get("units",inv.unitId);if(!iu||iu.propertyId!==P.id)continue;
+      out.push({P,u:iu,t,st,lr:0,set:+iu.rent||0,iss:[{k:"missing",txt:`Statement charges ${n0(st)} rent for House ${unitName(iu)}, but the tenant is filed under ${unitName(get("units",t.unitId))} so ${P.code}'s landlord report leaves it out`}]});}
+  }
+  return out;
+}
+function showRentCheck(){
+  const m=month,rows=rentCheck(m),tot=rows.length;
+  openModal("Rent check, "+monthLabel(m),`<p style="margin:0 0 10px">Compares, for every tenant, the rent on their <strong>statement</strong> with the rent on the <strong>landlord report</strong>, and the <strong>house rent setting</strong> that new invoices will use. Past months are now protected: refreshing invoices no longer changes a month that has ended or a report you have marked as sent.</p>
+   ${tot?`<div class="tw"><table><thead><tr><th>Code</th><th>House</th><th>Tenant</th><th class="num">Statement</th><th class="num">Landlord report</th><th class="num">House setting</th><th>What's different</th><th></th></tr></thead><tbody>
+   ${rows.map(x=>`<tr><td><span class="code">${esc(x.P.code)}</span></td><td><strong>${esc(unitName(x.u))}</strong></td><td>${esc(x.t.name)}</td><td class="num">${n0(x.st)}</td><td class="num">${n0(x.lr)}</td><td class="num">${n0(x.set)}</td><td style="font-size:13px">${x.iss.map(i=>esc(i.txt)).join("<br>")}</td>
+    <td class="num">${x.iss.some(i=>i.k==="set")&&can("props")?`<button class="btn sm" data-a="rcSet" data-id="${x.u.id}" data-v="${x.iss.find(i=>i.k==="set").fix}">Set house rent to ${n0(x.iss.find(i=>i.k==="set").fix)}</button>`:""} <button class="btn sm" data-a="stmt" data-id="${x.t.id}">Statement</button></td></tr>`).join("")}</tbody></table></div>`
+   :`<div class="empty" style="padding:22px">All ${S.tenants.filter(t=>t.active).length} tenants match: statement rent, landlord report rent and house rent settings agree for ${monthLabel(m)}.</div>`}
+   <p class="hint" style="margin:10px 0 0">Change the month at the top of the page to check another month.</p>`,
+   `<button class="btn" data-a="close">Close</button>${downloads&&tot?`<button class="btn" id="rcCsv">Export list</button>`:""}`,true);
+  const c=document.getElementById("rcCsv");if(c)c.onclick=()=>dlFile("rent-check-"+m+".csv",csv([["Code","House","Tenant","Statement rent","Landlord report rent","House rent setting","Difference"],...rows.map(x=>[x.P.code,unitName(x.u),x.t.name,x.st,x.lr,x.set,x.iss.map(i=>i.txt).join(" / ")])]));
+}
+document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;
+  if(a==="rentCheck"){e.preventDefault();showRentCheck()}
+  else if(a==="rcSet"){e.preventDefault();const u=get("units",b.dataset.id),v=+b.dataset.v;if(!u)return;
+    if(await submit("units","House "+u.label+" rent "+kes(u.rent)+" → "+kes(v),[{op:"set",col:"units",obj:{...u,rent:v}}],"props")){toast("House "+u.label+" rent set to KES "+n0(v));showRentCheck()}}});
 
 const VIEWS={dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:vApprovals,setup:vSetup,admin:vAdmin};
 let pendingRender=false;
