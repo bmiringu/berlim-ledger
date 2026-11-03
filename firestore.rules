@@ -1,0 +1,26 @@
+rules_version = '2';
+// Berlim Homes Rent Ledger: only signed-in team members can read or change records.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Keep this list the same as ADMIN_EMAILS in public/config.js (lower case).
+    function adminEmails() { return ['berlimhomes@gmail.com']; }
+    function signedIn() { return request.auth != null; }
+    function staffPath() { return /databases/$(database)/documents/staff/$(request.auth.uid); }
+    function isStaff() { return signedIn() && exists(staffPath()) && get(staffPath()).data.get('active', true) != false; }
+    function isAdmin() {
+      return signedIn() && ((request.auth.token.email != null && request.auth.token.email.lower() in adminEmails())
+        || (isStaff() && get(staffPath()).data.get('role', '') == 'admin'));
+    }
+    function member() { return isStaff() || isAdmin(); }
+
+    // Team list: everyone in the team can see it; only administrators change it.
+    match /staff/{uid} { allow read: if member(); allow write: if isAdmin(); }
+    // Each person's display name and email, written by themselves.
+    match /people/{uid} { allow read: if member(); allow write: if signedIn() && (request.auth.uid == uid || isAdmin()); }
+    match /accessRequests/{uid} { allow read: if isAdmin() || (signedIn() && request.auth.uid == uid); allow write: if isAdmin() || (signedIn() && request.auth.uid == uid); }
+    // All business records (properties, tenants, invoices, payments, landlords, providers, approvals, settings...).
+    match /{col}/{id} {
+      allow read, write: if member() && !(col in ['staff', 'people', 'accessRequests']);
+    }
+  }
+}
