@@ -4,7 +4,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { FIREBASE_CONFIG, ADMIN_EMAILS, STORAGE_ON } from "./config.js";
+import * as CFG from "./config.js";
+const { FIREBASE_CONFIG, ADMIN_EMAILS, STORAGE_ON } = CFG;
+const FIRESTORE_DB = CFG.FIRESTORE_DB || "(default)";
 
 const $ = id => document.getElementById(id);
 const showLogin = on => { $("fbLogin").hidden = !on; document.body.classList.toggle("fb-locked", on); };
@@ -17,7 +19,7 @@ if (String(FIREBASE_CONFIG.apiKey).startsWith("PASTE")) {
 }
 
 const app = initializeApp(FIREBASE_CONFIG);
-const auth = getAuth(app), fs = getFirestore(app), st = STORAGE_ON ? getStorage(app) : null;
+const auth = getAuth(app), fs = FIRESTORE_DB === "(default)" ? getFirestore(app) : getFirestore(app, FIRESTORE_DB), st = STORAGE_ON ? getStorage(app) : null;
 const adminList = ADMIN_EMAILS.map(e => e.toLowerCase());
 const mapErr = e => { const c = (e && e.code) || ""; const x = new Error(e && e.message || c); x.code = c === "permission-denied" ? "invalid_argument" : c.includes("quota") || c === "resource-exhausted" ? "quota_exceeded" : c; throw x; };
 const wrapQ = s => ({ docs: s.docs.map(d => ({ id: d.id, data: () => d.data() })), metadata: { fromCache: s.metadata.fromCache } });
@@ -122,7 +124,9 @@ onAuthStateChanged(auth, async u => {
   started = true; say("Opening your records…");
   const email = (u.email || "").toLowerCase();
   let staff = null;
+  const slow = setTimeout(() => { showLogin(true); say("Can't reach the records database. Check your internet, then reload the page.", true); }, 20000);
   try { const d = await getDoc(doc(fs, "staff", u.uid)); staff = d.exists() ? d.data() : null; } catch (e) { staff = null; }
+  clearTimeout(slow);
   const isAdmin = adminList.includes(email) || (!!staff && staff.active !== false && staff.role === "admin");
   const active = !!staff && staff.active !== false;
   try { await setDoc(doc(fs, "people", u.uid), { email: u.email, name: (staff && staff.label) || u.displayName || "", lastLogin: new Date().toISOString() }, { merge: true }); } catch (e) {}

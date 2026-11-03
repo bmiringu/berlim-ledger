@@ -14,3 +14,6 @@ export const ADMIN_EMAILS = ["berlimhomes@gmail.com"];
 // File storage (meter photos, signed agreements, PDF links) needs Firebase Storage, which needs the Blaze plan.
 // Leave false on the free Spark plan; change to true after you turn on Storage.
 export const STORAGE_ON = false;
+// Name of the Firestore database (Firebase console > Firestore > the database dropdown).
+// Usually "(default)"; this project's database is named "default".
+export const FIRESTORE_DB = "default";
