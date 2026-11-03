@@ -570,6 +570,7 @@ body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
   <a href="#landlords" data-v="landlords"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a5 5 0 1 1-5 5 5 5 0 0 1 5-5zm0 12c5.3 0 8 2.7 8 5v3H4v-3c0-2.3 2.7-5 8-5zm6.5-6h4v2h-4zm1-3h3v2h-3zm0 6h3v2h-3z"/></svg><span class="lg">Landlords</span><span class="sm">Landlords</span></a>
   <a href="#approvals" data-v="approvals"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg><span class="lg" id="apLabel">Approvals</span><span class="sm" id="apLabelSm">Approvals</span><b class="navbadge" id="apCount" hidden></b></a>
   <a href="#setup" data-v="setup"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3h-4l-.4 2.7a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1L11 21h4l.4-2.7a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5A3.5 3.5 0 1 1 16.5 12 3.5 3.5 0 0 1 13 15.5z"/></svg><span class="lg">Setup</span><span class="sm">Setup</span></a>
+  <a href="#mgmt" data-v="mgmt" id="mgmtTab" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h2v16h16v2H3zm4 10h3v5H7zm5-5h3v10h-3zm5-4h3v14h-3z"/></svg><span class="lg">Management</span><span class="sm">Mgmt</span></a>
   <a href="#admin" data-v="admin" id="adminTab" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1 3 5v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V5zm0 6a3 3 0 1 1-3 3 3 3 0 0 1 3-3zm0 13.2a8.9 8.9 0 0 1-5.4-3.9c0-1.8 3.6-2.8 5.4-2.8s5.4 1 5.4 2.8a8.9 8.9 0 0 1-5.4 3.9z"/></svg><span class="lg">Admin</span><span class="sm">Admin</span></a>
 </nav>
 <main id="main"><div class="empty">Loading records…</div></main>
@@ -780,7 +781,7 @@ function vDashboard(){
     <div class="tile"><span class="k">Due to landlords</span><span class="v">${n0(T("forward"))}</span><span class="s">${ME.admin?"After commission "+n0(T("commission")+T("vat")):"After deductions"}</span></div>
     <div class="tile"><span class="k">Occupancy</span><span class="v">${occ}/${units}</span><span class="s">${units?Math.round(occ/units*100):0}% of houses let</span></div>
   </div>
-  ${incomeCard()}
+  ${ME.admin?`<a class="card" href="#mgmt" style="display:flex;align-items:center;gap:14px;padding:14px 18px;text-decoration:none;color:inherit"><b style="font:600 18px var(--display);color:var(--navy)">Management income ${monthShort(month)}: KES ${n0(mgmtIncome(month).T.total)}</b><span class="sub" style="flex:1">Income, arrears, vacancies and top balances are on the Management page (admins only).</span><span class="btn sm">Open Management</span></a>`:""}
   <div class="card"><div class="ch"><h2>Billed vs received, last six months</h2></div><div class="cb">
     <div class="bars">${series.map(x=>`<div class="grp"><div class="pair"><div class="b billed" style="height:${x.b/max*100}%" title="Billed ${kes(x.b)}"></div><div class="b coll" style="height:${x.c/max*100}%" title="Received ${kes(x.c)}"></div></div></div>`).join("")}</div>
     <div class="row" style="justify-content:space-around">${series.map(x=>`<span style="font-size:12px;color:var(--muted);flex:1;text-align:center">${monthShort(x.m)}</span>`).join("")}</div>
@@ -1566,7 +1567,7 @@ function applyRoleChrome(){
   document.body.classList.toggle("is-admin",!!ME.admin);document.body.classList.toggle("is-staff",!ME.admin);
   const rb=document.getElementById("rolebadge");
   if(mode==="cloud"||mode==="demo"){rb.hidden=false;rb.innerHTML=ME.admin?`Admin console`:ME.staff?`Staff <small>${esc((ROLES[ME.staff.role]||{}).label||"")}</small>`:`No access yet`}
-  document.getElementById("adminTab").hidden=!ME.admin;
+  document.getElementById("adminTab").hidden=!ME.admin;{const mt=document.getElementById("mgmtTab");if(mt)mt.hidden=!ME.admin}
   const st=document.querySelector('#tabs a[data-v="setup"]');if(st)st.hidden=!can("props");
   const pend=S.approvals.filter(a=>a.status==="pending"&&(ME.admin||a.by===ME.id)).length;
   const c=document.getElementById("apCount");c.hidden=!pend;c.textContent=pend;
@@ -2972,7 +2973,65 @@ function incomeCard(){
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b||b.dataset.a!=="incCsv"||!ME.admin)return;e.preventDefault();
   const I=mgmtIncome(month);dlFile("management-income-"+month+".csv",csv([["Code","Property","Management commission","Utility commission","Letting fees","Penalties kept","Total income","VAT collected","Tenant charges kept"],...I.rows.map(r=>[r.p.code,r.p.name,r.comm,r.util,r.letting,r.pen,r.total,r.vat,r.kept])]))});
 
-const VIEWS={dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:vApprovals,setup:vSetup,admin:vAdmin};
+
+/* ===== Management (admin only): income and portfolio analysis ===== */
+function lastPayDate(tid){let d="";for(const x of S.payments)if(x.tenantId===tid&&(x.date||"")>d)d=x.date;return d}
+function vacantSince(uid){let d="";for(const t of S.tenants)if(t.unitId===uid&&!t.active&&(t.moveOut||"")>d)d=t.moveOut;return d}
+function mgmtData(){
+  const C=compute(),m=month;
+  const props=sortedProps().map(p=>{
+    const us=S.units.filter(u=>u.propertyId===p.id),occ=us.filter(u=>activeTenantOf(u.id)),vac=us.filter(u=>!activeTenantOf(u.id));
+    const R=monthReport(p.id,m),charged=R.charges,paid=R.tot.paid;
+    const ts=S.tenants.filter(t=>t.active&&us.some(u=>u.id===t.unitId));
+    const arrears=ts.reduce((s,t)=>s+Math.max(0,C.ten[t.id]?C.ten[t.id].balance:0),0),owing=ts.filter(t=>(C.ten[t.id]?C.ten[t.id].balance:0)>0).length;
+    const roll=occ.reduce((s,u)=>s+(+u.rent||0),0),lost=vac.reduce((s,u)=>s+(+u.rent||0),0);
+    return {p,units:us.length,occ:occ.length,vac,charged,paid,rate:charged?Math.round(paid/charged*100):0,arrears,owing,roll,lost,income:mgmtIncome(m).rows.find(r=>r.p.id===p.id)};
+  });
+  const tenants=S.tenants.filter(t=>t.active).map(t=>{const u=get("units",t.unitId)||{},p=propOf(u)||{},b=C.ten[t.id]?C.ten[t.id].balance:0;return {t,u,p,b,months:+u.rent?b/(+u.rent):0,last:lastPayDate(t.id)}}).filter(x=>x.b>0).sort((a,b)=>b.b-a.b);
+  const vacant=props.flatMap(x=>x.vac.map(u=>{const since=vacantSince(u.id);return {p:x.p,u,since,days:since?Math.max(0,Math.round((new Date(todayStr)-new Date(since))/864e5)):null}})).sort((a,b)=>(b.days??-1)-(a.days??-1));
+  const ex=S.tenants.filter(t=>!t.active).map(t=>({t,b:C.ten[t.id]?C.ten[t.id].balance:0})).filter(x=>x.b>0).sort((a,b)=>b.b-a.b);
+  const llDue=sortedProps().map(p=>({p,L:landlordMonth(p.id,m)})).filter(x=>x.L.outstanding>0);
+  const deposits=S.tenants.filter(t=>t.active).reduce((s,t)=>s+(+t.deposit||0),0);
+  return {props,tenants,vacant,ex,llDue,deposits};
+}
+function vMgmt(){
+  if(!ME.admin)return vDashboard();
+  const D=mgmtData(),I=mgmtIncome(month);
+  const units=D.props.reduce((s,x)=>s+x.units,0),occ=D.props.reduce((s,x)=>s+x.occ,0),charged=D.props.reduce((s,x)=>s+x.charged,0),paid=D.props.reduce((s,x)=>s+x.paid,0);
+  const arrears=D.props.reduce((s,x)=>s+x.arrears,0),lost=D.props.reduce((s,x)=>s+x.lost,0),exOwed=D.ex.reduce((s,x)=>s+x.b,0);
+  const byArr=[...D.props].sort((a,b)=>b.arrears-a.arrears),maxArr=Math.max(1,...byArr.map(x=>x.arrears));
+  const bar=(v,max,col)=>`<div style="background:#EFE8D8;border-radius:6px;height:8px;min-width:80px"><div style="width:${Math.round(v/max*100)}%;height:8px;border-radius:6px;background:${col}"></div></div>`;
+  const top=D.tenants.slice(0,20);
+  return `<div class="pagehead"><h1>Management, ${monthLabel(month)}</h1><p>Income and how the portfolio is doing. Only administrators can open this page.</p>
+   <div class="row">${window.FB_BUILD?`<button class="btn" data-a="smsNotice" data-who="owing">Send arrears notice</button>`:""}${downloads?`<button class="btn" data-a="mgmtCsv">Export analysis</button>`:""}</div></div>
+  <div class="tiles">
+   <div class="tile accent"><span class="k">Management income</span><span class="v">${n0(I.T.total)}</span><span class="s">Commission, letting fees, penalties</span></div>
+   <div class="tile"><span class="k">Collection rate</span><span class="v">${charged?Math.round(paid/charged*100):0}%</span><span class="s">KES ${n0(paid)} of ${n0(charged)} charged</span></div>
+   <div class="tile ${arrears>0?"alert":""}"><span class="k">Arrears, current tenants</span><span class="v">${n0(arrears)}</span><span class="s">${D.tenants.length} tenant${D.tenants.length===1?"":"s"} owing</span></div>
+   <div class="tile"><span class="k">Vacancies</span><span class="v">${units-occ}/${units}</span><span class="s">${units?Math.round(occ/units*100):0}% let · KES ${n0(lost)} rent a month lost</span></div>
+   <div class="tile"><span class="k">Ex-tenants owing</span><span class="v">${n0(exOwed)}</span><span class="s">${D.ex.length} former tenant${D.ex.length===1?"":"s"}</span></div>
+   <div class="tile"><span class="k">Deposits held</span><span class="v">${n0(D.deposits)}</span><span class="s">Current tenants</span></div>
+  </div>
+  ${incomeCard()}
+  <div class="card"><div class="ch"><h2>Properties: arrears, vacancies and collections</h2><span style="color:var(--muted);font-size:13px">Sorted by arrears, highest first</span></div><div class="tw"><table><thead><tr><th>Code</th><th>Property</th><th class="num">Houses</th><th class="num">Vacant</th><th class="num">Occupancy</th><th class="num">Charged ${monthShort(month)}</th><th class="num">Collected</th><th>Collection</th><th class="num">Arrears</th><th></th><th class="num">Tenants owing</th><th class="num">Income</th></tr></thead><tbody>
+   ${byArr.map((x,i)=>`<tr><td><span class="code">${esc(x.p.code)}</span>${i===0&&x.arrears>0?' <span class="pill p-bad">Highest arrears</span>':""}</td><td>${esc(x.p.name)}</td><td class="num">${x.units}</td><td class="num ${x.vac.length?"neg":""}">${x.vac.length}</td><td class="num">${x.units?Math.round(x.occ/x.units*100):0}%</td><td class="num">${n0(x.charged)}</td><td class="num">${n0(x.paid)}</td><td style="min-width:110px">${bar(x.paid,Math.max(1,x.charged),x.rate>=80?"#2E8B57":x.rate>=50?"#C9962B":"#C0392B")}<span class="sub">${x.rate}%</span></td><td class="num"><strong>${n0(x.arrears)}</strong></td><td style="min-width:90px">${bar(x.arrears,maxArr,"#C0392B")}</td><td class="num">${x.owing}</td><td class="num">${n0((x.income||{}).total||0)}</td></tr>`).join("")}
+  </tbody></table></div></div>
+  <div class="grid2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px">
+  <div class="card"><div class="ch"><h2>Tenants with the highest balances</h2><span style="color:var(--muted);font-size:13px">Top ${top.length} of ${D.tenants.length} owing</span></div><div class="tw">${top.length?`<table><thead><tr><th>Code</th><th>House</th><th>Tenant</th><th class="num">Balance</th><th class="num">Months of rent</th><th>Last paid</th><th></th></tr></thead><tbody>
+   ${top.map(x=>`<tr><td><span class="code">${esc(x.p.code||"")}</span></td><td><strong>${esc(unitName(x.u))}</strong></td><td>${esc(x.t.name)}<span class="sub">${esc(x.t.phone||"")}</span></td><td class="num neg"><strong>${n0(x.b)}</strong></td><td class="num">${x.months?x.months.toFixed(1):"—"}${x.months>=2?' <span class="pill p-bad">2+</span>':""}</td><td style="white-space:nowrap">${x.last?fmtDate(x.last):'<span class="sub">Never</span>'}</td>
+    <td class="num" style="white-space:nowrap"><button class="btn sm" data-a="stmt" data-id="${x.t.id}">Statement</button>${window.FB_BUILD?` <button class="btn sm" data-a="smsNotice" data-tid="${x.t.id}">SMS</button>`:""}</td></tr>`).join("")}</tbody></table>`:`<div class="empty">No current tenant owes anything.</div>`}</div></div>
+  <div class="card"><div class="ch"><h2>Vacant houses</h2><span style="color:var(--muted);font-size:13px">${D.vacant.length} empty · KES ${n0(lost)} rent a month not coming in</span></div><div class="tw">${D.vacant.length?`<table><thead><tr><th>Code</th><th>House</th><th>Type</th><th class="num">Rent</th><th>Vacant since</th><th class="num">Days</th><th></th></tr></thead><tbody>
+   ${D.vacant.map(x=>`<tr><td><span class="code">${esc(x.p.code)}</span></td><td><strong>${esc(unitName(x.u))}</strong></td><td>${esc(x.u.type||"")}</td><td class="num">${n0(x.u.rent)}</td><td>${x.since?fmtDate(x.since):'<span class="sub">Not recorded</span>'}</td><td class="num ${x.days>30?"neg":""}">${x.days??"—"}</td><td class="num">${can("tenants")?`<button class="btn sm" data-a="tenant" data-unit="${x.u.id}">Let</button>`:""}</td></tr>`).join("")}</tbody></table>`:`<div class="empty">Every house is let.</div>`}</div></div>
+  </div>
+  <div class="grid2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px">
+  <div class="card"><div class="ch"><h2>Ex-tenants who still owe</h2></div><div class="tw">${D.ex.length?`<table><thead><tr><th>Tenant</th><th>Moved out</th><th class="num">Owes</th><th></th></tr></thead><tbody>${D.ex.slice(0,12).map(x=>{const u=get("units",x.t.unitId)||{};return `<tr><td>${esc(x.t.name)}<span class="sub">${esc(((propOf(u)||{}).code||"")+" House "+unitName(u))}</span></td><td>${fmtDate(x.t.moveOut)||"—"}</td><td class="num neg">${n0(x.b)}</td><td class="num"><button class="btn sm" data-a="stmt" data-id="${x.t.id}">Statement</button></td></tr>`}).join("")}</tbody></table>`:`<div class="empty">No ex-tenant owes money.</div>`}</div></div>
+  <div class="card"><div class="ch"><h2>Landlords still to be paid, ${monthShort(month)}</h2></div><div class="tw">${D.llDue.length?`<table><thead><tr><th>Code</th><th>Landlord</th><th class="num">Still to forward</th><th>Pay by</th><th></th></tr></thead><tbody>${D.llDue.map(x=>`<tr><td><span class="code">${esc(x.p.code)}</span></td><td>${esc(x.p.landlord||"")}</td><td class="num">${n0(x.L.outstanding)}</td><td>${typeof llDuePill==="function"?llDuePill(x.p,month,x.L):""}</td><td class="num"><button class="btn sm" data-a="llOpen" data-id="${x.p.id}">Open report</button></td></tr>`).join("")}</tbody></table>`:`<div class="empty">All landlords are paid for ${monthLabel(month)}.</div>`}</div></div>
+  </div>`;
+}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b||b.dataset.a!=="mgmtCsv"||!ME.admin)return;e.preventDefault();const D=mgmtData();
+  dlFile("management-analysis-"+month+".csv",csv([["PROPERTIES"],["Code","Property","Houses","Vacant","Charged","Collected","Collection %","Arrears","Tenants owing","Income"],...D.props.map(x=>[x.p.code,x.p.name,x.units,x.vac.length,x.charged,x.paid,x.rate,x.arrears,x.owing,(x.income||{}).total||0]),[],["TENANTS OWING"],["Code","House","Tenant","Phone","Balance","Months of rent","Last paid"],...D.tenants.map(x=>[x.p.code,unitName(x.u),x.t.name,x.t.phone,x.b,x.months.toFixed(1),x.last]),[],["VACANT HOUSES"],["Code","House","Rent","Vacant since","Days"],...D.vacant.map(x=>[x.p.code,unitName(x.u),x.u.rent,x.since,x.days])]))});
+
+const VIEWS={mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:vApprovals,setup:vSetup,admin:vAdmin};
 let pendingRender=false;
 function render(){
   if(mode==="loading")return;
@@ -2985,6 +3044,7 @@ function render(){
   applyRoleChrome();
   if(!ME.admin&&!ME.staff){m.innerHTML=banner+vNoAccess();return}
   if(view==="admin"&&!ME.admin)view="dashboard";
+  if(view==="mgmt"&&!ME.admin)view="dashboard";
   if(view==="setup"&&!can("props"))view="dashboard";
   m.innerHTML=banner+(VIEWS[view]||vDashboard)();fillProfiles();
   document.querySelectorAll("#tabs a").forEach(a=>a.classList.toggle("on",a.dataset.v===view));
