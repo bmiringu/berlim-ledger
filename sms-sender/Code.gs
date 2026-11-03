@@ -89,10 +89,13 @@ function sendOne_(to, text) {
   const c = creds_();
   const r = mspace_('sendtext', '<sms><username>' + xml_(c.user) + '</username><senderId>' + xml_(c.sender) + '</senderId><recipient>' + to + '</recipient><message>' + xml_(text) + '</message></sms>');
   const t = r.text, low = t.toLowerCase();
-  const bad = /fail|invalid|insufficient|error|denied|unauthori|not allowed|blacklist|reject/.test(low);
-  const ok = r.code < 300 && !bad && (/success/.test(low) || /messageid/.test(low) || /^\s*\[?\s*\{/.test(t));
-  let messageId = '';
+  // Mspace replies {"message":[{"messageId":"87474190","status":111,"statusDescription":"Message sent succesfully"}]}
+  // errors come back as HTTP 200 too, e.g. status 100 "ERR113 - Invalid sender Id."
+  let messageId = '', status = null;
   const m = t.match(/messageId"?\s*[:=]\s*"?(\w+)/i); if (m) messageId = m[1];
+  const sm = t.match(/"status"\s*:\s*"?(\d+)/); if (sm) status = Number(sm[1]);
+  const bad = /err\d+|fail|invalid|insufficient|denied|unauthori|not allowed|blacklist|reject/.test(low);
+  const ok = r.code < 300 && !bad && !!messageId && (status === 111 || /succes/.test(low));
   return { ok, transient: r.code >= 500 || r.code === 429, code: r.code, text: t.slice(0, 300), messageId };
 }
 function balance_() {
@@ -155,4 +158,12 @@ function sendTestSms() {
   if (!to) throw new Error('Add TEST_PHONE (your phone number) in Script properties first.');
   const r = sendOne_(to, 'Test from the Berlim Homes rent ledger. SMS is working.');
   console.log((r.ok ? 'SENT. ' : 'NOT SENT. ') + 'Mspace replied (' + r.code + '): ' + r.text);
+}
+
+/* shows exactly what Mspace replies (for troubleshooting) */
+function checkMspace() {
+  const c = creds_();
+  console.log('Username has ' + c.user.length + ' characters; sender ID: ' + c.sender + '; key has ' + c.key.length + ' characters');
+  const a = mspace_('balance', '<user><username>' + xml_(c.user) + '</username></user>');
+  console.log('POST balance -> ' + a.code + ': ' + a.text.slice(0, 300));
 }
