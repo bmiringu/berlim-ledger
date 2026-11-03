@@ -17,10 +17,12 @@ service cloud.firestore {
     match /staff/{uid} { allow read: if member(); allow write: if isAdmin(); }
     // Each person's display name and email, written by themselves.
     match /people/{uid} { allow read: if member(); allow write: if signedIn() && (request.auth.uid == uid || isAdmin()); }
+    // Sign-in log: each person adds their own entries; nobody can change or delete them; only admins read them.
+    match /logins/{id} { allow create: if signedIn() && request.resource.data.uid == request.auth.uid; allow read: if isAdmin(); allow update, delete: if false; }
     match /accessRequests/{uid} { allow read: if isAdmin() || (signedIn() && request.auth.uid == uid); allow write: if isAdmin() || (signedIn() && request.auth.uid == uid); }
     // All business records (properties, tenants, invoices, payments, landlords, providers, approvals, settings...).
     match /{col}/{id} {
-      allow read, write: if member() && !(col in ['staff', 'people', 'accessRequests']);
+      allow read, write: if member() && !(col in ['staff', 'people', 'accessRequests', 'logins']);
     }
   }
 }

@@ -17,3 +17,5 @@ export const STORAGE_ON = false;
 // Name of the Firestore database (Firebase console > Firestore > the database dropdown).
 // Usually "(default)"; this project's database is named "default".
 export const FIRESTORE_DB = "default";
+// Security: sign out automatically after this many minutes without any activity.
+export const IDLE_MINUTES = 3;

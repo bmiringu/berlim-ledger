@@ -537,6 +537,8 @@ body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
 #fbUser[hidden]{display:none}
 #fbUser button{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:999px;padding:5px 12px;font:600 12px var(--body);cursor:pointer}
 @media (max-width:760px){#fbWho{display:none}}
+#fbIdle{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:20px;background:rgba(7,15,33,.72);backdrop-filter:blur(6px)}
+#fbIdle .wm{font:700 22px var(--display);color:var(--navy)}
 </style>
 </head>
 <body class="fb-locked">
@@ -1681,12 +1683,13 @@ function vAdmin(){
     <td class="num"><button class="btn sm" data-a="staffEdit" data-id="${s.id}">Edit</button> <button class="btn sm danger" data-a="staffDel" data-id="${s.id}">Remove</button></td></tr>`).join("")}
    </tbody></table>`:`<div class="empty">No team members yet.</div>`}</div></div>
   ${smsCard()}
+  ${loginsCard()}
   ${dataCard()}`;
 }
 function addStaffCard(){return `<div class="card"><div class="ch"><h2>Add a team member</h2></div><div class="cb"><form id="fNewStaff" class="fg">
    <div class="f"><label for="ns-l">Name</label><input id="ns-l" name="label" required placeholder="e.g. Scholastica Wanjiku"></div>
    <div class="f"><label for="ns-e">Email (their login)</label><input id="ns-e" name="email" type="email" required autocomplete="off"></div>
-   <div class="f"><label for="ns-p">Starting password</label><input id="ns-p" name="password" type="text" minlength="8" required autocomplete="new-password" placeholder="At least 8 characters"><span class="hint">Give it to them privately; they can change it with "Forgot password" on the login screen.</span></div>
+   <div class="f"><label for="ns-p">Starting password</label><input id="ns-p" name="password" type="text" minlength="10" required autocomplete="new-password" placeholder="10+ characters, letters and numbers"><span class="hint">Give it to them privately; they can change it with "Forgot password" on the login screen.</span></div>
    <div class="f"><label for="ns-r">Role</label><select id="ns-r" name="role">${Object.entries(ROLES).map(([k,v])=>`<option value="${k}" ${k==="field"?"selected":""}>${v.label}</option>`).join("")}</select></div>
    <div class="f full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="approval" checked> Their payments, reversals, tenant changes and provider payments wait for my approval</label></div>
    <div class="full row"><button class="btn primary" type="submit">Create login</button><span class="err" id="nsErr"></span></div></form></div></div>`}
@@ -1722,6 +1725,7 @@ function importAll(){const inp=document.createElement("input");inp.type="file";i
 document.addEventListener("submit",async e=>{if(e.target.id!=="fNewStaff")return;e.preventDefault();const fd=new FormData(e.target),err=document.getElementById("nsErr");err.textContent="";
   const email=String(fd.get("email")).trim().toLowerCase(),pw=String(fd.get("password")),role=fd.get("role");
   if(!USER||!USER.createAccount){err.textContent="Creating logins isn't available here.";return}
+  if(!strongPw(pw)){err.textContent="Use a password of at least 10 characters with both letters and numbers.";return}
   try{const id=await USER.createAccount(email,pw);
     await save("staff",{id,label:String(fd.get("label")).trim(),email,role,perms:(ROLES[role]||ROLES.viewer).perms,approval:role==="admin"?false:fd.get("approval")==="on",active:true,since:todayStr});
     e.target.reset();toast("Login created for "+email)}
@@ -2778,6 +2782,16 @@ function smsNotice(opts){
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;
   if(a==="lease"){e.preventDefault();showLease(b.dataset.id)}
   else if(a==="smsNotice"){e.preventDefault();smsNotice({prop:b.dataset.prop,tid:b.dataset.tid,who:b.dataset.who})}});
+
+
+/* ===== security: recent sign-ins (stand-alone site) ===== */
+function loginsCard(){if(!window.fbRecentLogins)return "";setTimeout(loadLogins,50);
+ return `<div class="card"><div class="ch"><h2>Recent sign-ins</h2><span style="color:var(--muted);font-size:13px">Every sign-in and sign-out, with the device used. Anyone idle for 3 minutes is signed out automatically.</span></div><div class="tw" id="loginsBox"><div class="empty">Loading…</div></div></div>`}
+async function loadLogins(){const box=document.getElementById("loginsBox");if(!box)return;
+ try{const rows=await window.fbRecentLogins(60);if(!document.getElementById("loginsBox"))return;
+  box.innerHTML=rows.length?`<table><thead><tr><th>When</th><th>Who</th><th>What</th><th>Device</th></tr></thead><tbody>${rows.map(r=>`<tr><td style="white-space:nowrap">${fmtDate((r.at||"").slice(0,10))} <span class="sub">${new Date(r.at).toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"})}</span></td><td>${esc(staffLabel(r.uid)||r.email||"")}<span class="sub">${esc(r.email||"")}</span></td><td>${/in$/.test(r.event)?`<span class="pill p-good">Signed in</span>`:/activity/.test(r.event)?`<span class="pill p-warn">Timed out</span>`:`<span class="pill">Signed out</span>`}</td><td style="font-size:13px">${esc(r.device||"")}</td></tr>`).join("")}</tbody></table>`:`<div class="empty">No sign-ins recorded yet.</div>`}
+ catch(e){box.innerHTML=`<div class="empty">Couldn't load sign-ins just now.</div>`}}
+function strongPw(pw){return pw.length>=10&&/[A-Za-z]/.test(pw)&&/\d/.test(pw)}
 
 const VIEWS={dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:vApprovals,setup:vSetup,admin:vAdmin};
 let pendingRender=false;
