@@ -2487,7 +2487,7 @@ async function shareLandlordPDF(pid){
 }
 /* ---------- render & routing ---------- */
 /* ===== SMS (Mspace) — texts are queued in the "sms" collection; the Berlim Homes Google Apps Script sends them ===== */
-const SMS_DEFAULTS={on:false,payMsg:true,remind:true,remindDays:3,late:true,auto:true,
+const SMS_DEFAULTS={on:false,payMsg:true,remind:true,remindAt:"5, 1",late:true,auto:true,
   tplPay:"Dear {name}, we have received KES {amount} for House {house} ({code}). Receipt {receipt}. {balanceText}. Thank you. {company}",
   tplRemind:"Dear {name}, reminder: your rent for {month} is due on {due}. Amount due KES {balance}. Pay via M-Pesa Paybill {paybill}, Account {account}. {company} {phone}",
   tplLate:"Dear {name}, your balance of KES {balance} for House {house} ({code}) was due on {due} and is now late. Please pay today via Paybill {paybill}, Account {account}. {company} {phone}"};
@@ -2506,20 +2506,36 @@ function smsFill(tpl,v){return String(tpl||"").replace(/\{(\w+)\}/g,(m,k)=>v[k]!
 function smsDoc(id,t,text,kind){return {id,to:smsPhone(t.phone),tenantId:t.id,name:t.name,text,kind,status:"queued",createdAt:new Date().toISOString(),by:ME.id||""}}
 async function smsQueue(docs){let n=0;for(const d of docs){if(!d.to)continue;try{await db.collection("sms").doc(d.id).set(JSON.parse(JSON.stringify(d)));n++}catch(e){}}return n}
 
-/* who should get a reminder / late notice today */
+/* reminder days, e.g. "5, 1" = 5 days before and 1 day before the due day ("0" = on the due day) */
+function smsRemindAt(c){const v=[...new Set(String((c||smsCfg()).remindAt??"5, 1").split(/[^0-9]+/).filter(x=>x!=="").map(Number).filter(n=>n>=0&&n<=20))].sort((a,b)=>b-a);return v.length?v:[5,1]}
+const dPlus=(d,n)=>{const x=new Date(d+"T00:00:00Z");x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)};
+const dDiff=(a,b)=>Math.round((new Date(a+"T00:00:00Z")-new Date(b+"T00:00:00Z"))/864e5);
+function smsDueOn(p,m){return m+"-"+String(dueDayOf(p)).padStart(2,"0")}
+/* next due date on or after today for this property */
+function smsNextDue(p){const m=todayStr.slice(0,7),d=smsDueOn(p,m);return d>=todayStr?d:smsDueOn(p,monthAdd(m,1))}
+function smsRentInvoiced(t,m){return S.invoices.some(i=>i.tenantId===t.id&&i.month===m&&!i.reversed&&catOf(i)==="rent")}
+/* who should get a reminder / late notice today. kind: "remind" | "late"; force = ignore the day windows (Send reminders now) */
 function smsDueList(kind,force){
-  const c=smsCfg(),C=compute(),m=todayStr.slice(0,7),day=+todayStr.slice(8,10),out=[];
+  const c=smsCfg(),C=compute(),out=[],at=smsRemindAt(c);
   for(const t of S.tenants){
     if(!t.active||t.noSms||!smsPhone(t.phone))continue;
-    const b=C.ten[t.id]?C.ten[t.id].balance:0;if(b<=0)continue;
     const u=get("units",t.unitId),p=propOf(u);if(!p)continue;
-    const due=dueDayOf(p),late=due+graceOf(p)+1;
-    if(!force){
-      if(kind==="remind"&&!(day>=due-(+c.remindDays||0)&&day<=due))continue;
-      if(kind==="late"&&!(day>=late&&day<=late+5))continue;
+    const b=C.ten[t.id]?C.ten[t.id].balance:0;
+    if(kind==="remind"){
+      const due=smsNextDue(p),dm=due.slice(0,7),days=dDiff(due,todayStr);
+      const amt=b+(smsRentInvoiced(t,dm)?0:(+((u||{}).rent)||0));if(amt<=0)continue;
+      let n=0;
+      if(force)n=at.findIndex((d,i)=>days<=d&&(i===at.length-1||days>at[i+1]))+1||1;
+      else{const i=at.findIndex((d,k)=>days<=d&&(k===at.length-1||days>at[k+1]));if(i<0)continue;n=i+1}
+      const id="remind"+n+"-"+dm+"-"+t.id;if(get("sms",id))continue;
+      out.push({t,b:amt,id,n,vars:{balance:n0(amt),due:fmtDate(due),month:MN[+dm.slice(5)-1]+" "+dm.slice(0,4)}});
+    }else{
+      if(b<=0)continue;
+      const m=todayStr.slice(0,7),due=smsDueOn(p,m),late=dPlus(due,graceOf(p)+1),since=dDiff(todayStr,late);
+      if(!force&&!(since>=0&&since<=5))continue;
+      const id="late-"+m+"-"+t.id;if(get("sms",id))continue;
+      out.push({t,b,id,vars:{balance:n0(b),due:fmtDate(due)}});
     }
-    const id=kind+"-"+m+"-"+t.id;if(get("sms",id))continue;
-    out.push({t,b,id});
   }
   return out;
 }
@@ -2528,8 +2544,8 @@ async function smsAuto(){
   if(smsAutoDone||!smsReady())return;const c=smsCfg();if(!c.on||!c.auto)return;
   smsAutoDone=true;
   const docs=[];
-  if(c.remind)smsDueList("remind").forEach(r=>docs.push(smsDoc(r.id,r.t,smsFill(c.tplRemind,smsVars(r.t)),"Reminder")));
-  if(c.late)smsDueList("late").forEach(r=>docs.push(smsDoc(r.id,r.t,smsFill(c.tplLate,smsVars(r.t)),"Late notice")));
+  if(c.remind)smsDueList("remind").forEach(r=>docs.push(smsDoc(r.id,r.t,smsFill(c.tplRemind,smsVars(r.t,r.vars)),"Reminder "+r.n)));
+  if(c.late)smsDueList("late").forEach(r=>docs.push(smsDoc(r.id,r.t,smsFill(c.tplLate,smsVars(r.t,r.vars)),"Late notice")));
   if(docs.length){const n=await smsQueue(docs);if(n)toast(n+" rent reminder text"+(n>1?"s":"")+" queued")}
 }
 /* after a new payment is saved */
@@ -2539,7 +2555,7 @@ async function smsOnPayment(p){
   await smsQueue([smsDoc("pay-"+p.id,t,smsFill(c.tplPay,smsVars(t,{amount:n0(p.amount),receipt:p.receiptNo||"",date:fmtDate(p.date)})),"Payment received")]);
 }
 
-const SMS_KIND_PILL={"Payment received":"p-good","Reminder":"","Late notice":"p-bad","Message":""};
+const SMS_KIND_PILL={"Payment received":"p-good","Late notice":"p-bad"};
 function smsCard(){
   if(!window.FB_BUILD)return `<div class="card"><div class="ch"><h2>SMS to tenants</h2></div><div class="cb"><p style="margin:0">Text messages through Mspace work on the Berlim Homes website (berlim-homes-ltd.web.app), not in this Claude copy.</p></div></div>`;
   const c=smsCfg(),st=get("sms","_status")||{},log=S.sms.filter(x=>x.id!=="_status").sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
@@ -2553,14 +2569,15 @@ function smsCard(){
     <div><b style="font-size:22px">${st.balance!=null?n0(st.balance):"—"}</b><span class="sub">SMS credit left${st.balanceAt?" · "+fmtDate(st.balanceAt.slice(0,10)):""}</span></div>
     <div><b style="font-size:22px">${queued}</b><span class="sub">Waiting to send</span></div>
     <div><b style="font-size:22px" class="${failed?"neg":""}">${failed}</b><span class="sub">Failed</span></div>
-    <div><b style="font-size:22px">${rem}</b><span class="sub">Tenants with a balance</span></div></div>
+    <div><b style="font-size:22px">${rem}</b><span class="sub">Owe for their next due date</span></div></div>
+   <p style="margin:0 0 12px;font-size:13px"><b>Rent due dates:</b> ${[...S.properties].sort((x,y)=>(x.code||"").localeCompare(y.code||"")).map(p=>`<span class="code">${esc(p.code||"")}</span> ${ord(dueDayOf(p))}${graceOf(p)?" +"+graceOf(p)+"d grace":""}`).join(" · ")||"No properties yet"} <span class="hint">Change in Properties › Edit property › Rent due date.</span></p>
    ${live?"":`<p class="hint" style="margin:0 0 12px">Texts wait here until the Berlim Homes SMS sender (Google Apps Script) is running. ${st.lastRun?"It last checked in "+fmtDate(st.lastRun.slice(0,10))+".":"It hasn't checked in yet."}</p>`}
    ${st.error?`<p class="err" style="margin:0 0 12px">Mspace said: ${esc(st.error)}</p>`:""}
    <form id="fSms" class="fg">
     <div class="f full">${chk("on","Send texts to tenants")}</div>
     <div class="f full">${chk("payMsg","Text the tenant each time a payment is recorded")}</div>
     <div class="f">${chk("remind","Rent reminders to tenants who haven't paid")}</div>
-    <div class="f"><label for="sm-rd">Start reminding this many days before the due day</label><input id="sm-rd" name="remindDays" type="number" min="0" max="10" value="${esc(c.remindDays)}"></div>
+    <div class="f"><label for="sm-rd">Send reminders this many days before the due day</label><input id="sm-rd" name="remindAt" value="${esc(c.remindAt??"5, 1")}" placeholder="5, 1"><span class="hint">Separate with commas. "5, 1" = two reminders, 5 days and 1 day before. "7, 3, 0" = three, the last on the due day. Each property uses its own due day.</span></div>
     <div class="f full">${chk("late","Late notice the day after the grace period ends (each property's own dates)")}</div>
     <div class="f full">${chk("auto","Send reminders and late notices automatically when the ledger is opened (once per tenant per month)")}</div>
     <div class="f full"><label for="sm-tp">Payment received message</label><textarea id="sm-tp" name="tplPay" rows="2">${esc(c.tplPay)}</textarea></div>
@@ -2597,12 +2614,12 @@ document.addEventListener("click",async e=>{
   if(a==="smsCompose"){e.preventDefault();smsCompose()}
   else if(a==="smsRemindNow"){e.preventDefault();const c=smsCfg(),list=smsDueList("remind",true);
     if(!list.length){toast("Everyone with a balance has already had this month's reminder, or no one owes.");return}
-    askConfirm(`Send a rent reminder now to ${list.length} tenant${list.length>1?"s":""} with a balance? Each tenant gets at most one reminder a month.`,"Send reminders",async()=>{const n=await smsQueue(list.map(r=>smsDoc(r.id,r.t,smsFill(c.tplRemind,smsVars(r.t)),"Reminder")));toast(n+" reminder"+(n===1?"":"s")+" queued")})}
+    askConfirm(`Send a rent reminder now to ${list.length} tenant${list.length>1?"s":""} who owe for their next due date? A tenant never gets the same reminder twice.`,"Send reminders",async()=>{const n=await smsQueue(list.map(r=>smsDoc(r.id,r.t,smsFill(c.tplRemind,smsVars(r.t,r.vars)),"Reminder "+r.n)));toast(n+" reminder"+(n===1?"":"s")+" queued")})}
   else if(a==="smsRetry"){e.preventDefault();const x=get("sms",b.dataset.id);if(x){try{await db.collection("sms").doc(x.id).set({...x,status:"queued",error:"",tries:0});toast("Will try again")}catch(err){toast("Could not retry just now")}}}
 });
 document.addEventListener("submit",async e=>{
   if(e.target.id!=="fSms")return;e.preventDefault();const f=new FormData(e.target),c=smsCfg();
-  const sms={...c,remindDays:+f.get("remindDays")||0,tplPay:String(f.get("tplPay")||"").trim(),tplRemind:String(f.get("tplRemind")||"").trim(),tplLate:String(f.get("tplLate")||"").trim()};
+  const sms={...c,remindAt:smsRemindAt({remindAt:f.get("remindAt")}).join(", "),tplPay:String(f.get("tplPay")||"").trim(),tplRemind:String(f.get("tplRemind")||"").trim(),tplLate:String(f.get("tplLate")||"").trim()};
   ["on","payMsg","remind","late","auto"].forEach(k=>sms[k]=f.get(k)==="on");
   if(await saveSettings({...S.settings,sms})){document.getElementById("smsMsg").textContent="Saved";toast("SMS settings saved")}
 },true);
