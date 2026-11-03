@@ -169,6 +169,7 @@ table.stmt td{font-size:13px}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;z-index:40;box-shadow:0 8px 24px rgba(0,0,0,.2)}
 @media (prefers-reduced-motion:no-preference){.toast{animation:up .2s ease-out}@keyframes up{from{transform:translate(-50%,8px)}}}
 .items input,.items select{width:100%;font:14px var(--body);padding:7px 8px;border:1px solid var(--line);border-radius:8px}.items td{vertical-align:middle}.items .it-x{color:var(--bad);font-size:15px}.items .it-k{min-width:150px}.items .it-ll{min-width:150px}.items .it-d{min-width:160px}
+.incgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.inc{background:#F7F3EA;border:1px solid var(--line);border-radius:12px;padding:12px 14px}.inc .k{display:block;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}.inc b{display:block;font:600 22px var(--display);color:var(--navy);margin:4px 0 2px}.inc .s{font-size:12px;color:var(--muted)}.inc.big{background:var(--navy);border-color:var(--navy)}.inc.big .k,.inc.big .s{color:#C9D0DE}.inc.big b{color:#F3E6C6;font-size:26px}
 </style>
 <style id="modern">
 /* refreshed look: deeper navy masthead with a gold rule, floating icon tabs, rounded cards with soft shadows */
@@ -776,9 +777,10 @@ function vDashboard(){
     <div class="tile accent"><span class="k">Charged this month</span><span class="v">${n0(charges)}</span><span class="s">Rent, utilities, deposits, penalties</span></div>
     <div class="tile"><span class="k">Paid this month</span><span class="v">${n0(paid)}</span><span class="s">${charges?Math.round(paid/charges*100):0}% of this month's charges</span></div>
     <div class="tile ${arrears>0?"alert":""}"><span class="k">Arrears carried</span><span class="v">${n0(arrears)}</span><span class="s">Net of tenant credits</span></div>
-    <div class="tile"><span class="k">Due to landlords</span><span class="v">${n0(T("forward"))}</span><span class="s">After commission ${n0(T("commission")+T("vat"))}</span></div>
+    <div class="tile"><span class="k">Due to landlords</span><span class="v">${n0(T("forward"))}</span><span class="s">${ME.admin?"After commission "+n0(T("commission")+T("vat")):"After deductions"}</span></div>
     <div class="tile"><span class="k">Occupancy</span><span class="v">${occ}/${units}</span><span class="s">${units?Math.round(occ/units*100):0}% of houses let</span></div>
   </div>
+  ${incomeCard()}
   <div class="card"><div class="ch"><h2>Billed vs received, last six months</h2></div><div class="cb">
     <div class="bars">${series.map(x=>`<div class="grp"><div class="pair"><div class="b billed" style="height:${x.b/max*100}%" title="Billed ${kes(x.b)}"></div><div class="b coll" style="height:${x.c/max*100}%" title="Received ${kes(x.c)}"></div></div></div>`).join("")}</div>
     <div class="row" style="justify-content:space-around">${series.map(x=>`<span style="font-size:12px;color:var(--muted);flex:1;text-align:center">${monthShort(x.m)}</span>`).join("")}</div>
@@ -2924,6 +2926,51 @@ document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.c
     askConfirm(`${to?"Include":"Leave out"} invoice <strong>${esc(i.no)}</strong> (KES ${n0(i.total)}) ${to?"on":"from"} the ${esc(((propOf(get("units",i.unitId))||{}).code)||"")} landlord report for ${monthLabel(i.month)}?`,to?"Include":"Leave out",async()=>{
       const lines=i.lines.map(l=>({...l,toLandlord:to}));
       if(await submit("invoices",`${i.no} ${to?"included on":"left out of"} the landlord report`,[{op:"set",col:"invoices",obj:{...i,lines}}],"invoices"))toast(i.no+(to?" now included on":" left out of")+" the landlord report")})}});
+
+
+/* ===== Management income (admin only): commissions, letting fees, penalties kept, other income ===== */
+const _incMemo={};
+function incKey(){let a=0,b=0;for(const i of S.invoices)a+=(+i.total||0)+(i.reversed?7:0)+((i.lines||[]).some(l=>l.toLandlord===false)?3:0);for(const x of S.payments)b+=+x.amount||0;return [S.invoices.length,S.payments.length,a,b,S.tenants.length,S.properties.map(p=>[p.commissionPct,p.utilCommissionPct,p.lettingPct,p.vatPct].join()).join("|")].join(":")}
+function mgmtIncome(m){const k=incKey(),c=_incMemo[m];if(c&&c.k===k)return c.v;const v=mgmtIncome0(m);_incMemo[m]={k,v};return v}
+function mgmtIncome0(m){
+  const rows=sortedProps().map(p=>{const L=landlordMonth(p.id,m),c=cfg(p);
+    const sum=re=>L.ded.filter(d=>d.fee&&re.test(d.desc)).reduce((s,d)=>s+d.amount,0);
+    const comm=sum(/^Management commission/),util=sum(/^Commission on water/),letting=sum(/^Letting fee/),vat=sum(/VAT/);
+    const pen=(collections(p.id,m).penalty)||0;
+    // tenant charges left off the landlord report (e.g. damages, repairs kept by Berlim Homes), billed this month
+    const kept=S.invoices.filter(i=>i.month===m&&!i.adj&&!i.reversed&&(get("units",i.unitId)||{}).propertyId===p.id).reduce((s,i)=>s+(i.lines||[]).filter(l=>l.toLandlord===false).reduce((a,l)=>a+(+l.amount||0),0),0);
+    const total=comm+util+letting+pen;
+    return {p,comm,util,letting,pen,kept,vat,total}});
+  const T={};["comm","util","letting","pen","kept","vat","total"].forEach(k=>T[k]=rows.reduce((s,r)=>s+r[k],0));
+  return {rows,T};
+}
+function incomeCard(){
+  if(!ME.admin)return "";
+  const I=mgmtIncome(month),T=I.T;
+  const hist=[];for(let k=5;k>=0;k--){const m=monthAdd(month,-k);hist.push({m,v:mgmtIncome(m).T.total})}
+  const max=Math.max(1,...hist.map(h=>h.v)),yr=month.slice(0,4);
+  let ytd=0;for(let mm=1;mm<=+month.slice(5);mm++)ytd+=mgmtIncome(yr+"-"+String(mm).padStart(2,"0")).T.total;
+  const pill=(l,v,hint)=>`<div class="inc"><span class="k">${l}</span><b>${n0(v)}</b>${hint?`<span class="s">${hint}</span>`:""}</div>`;
+  return `<div class="card adminonly"><div class="ch"><h2>Management income, ${monthLabel(month)}</h2><span class="pill p-info" title="Only administrators see this">Admin only</span></div><div class="cb">
+   <div class="incgrid">
+    <div class="inc big"><span class="k">Total earned</span><b>KES ${n0(T.total)}</b><span class="s">${yr} to date: KES ${n0(ytd)}</span></div>
+    ${pill("Management commission",T.comm,"On rent, per each property's %")}
+    ${T.util?pill("Commission on utilities",T.util,"Water and electricity"):""}
+    ${pill("Letting fees",T.letting,"New tenants this month")}
+    ${pill("Late penalties kept",T.pen,"Penalties tenants paid this month")}
+    ${T.kept?pill("Tenant charges kept",T.kept,"Billed items not on landlord reports (not in total)"):""}
+    ${T.vat?pill("VAT collected",T.vat,"Owed to KRA, not income"):""}
+   </div>
+   <div class="bars" style="height:110px;margin-top:14px">${hist.map(h=>`<div class="grp"><div class="pair"><div class="b coll" style="height:${h.v/max*100}%" title="${monthLabel(h.m)}: KES ${n0(h.v)}"></div></div></div>`).join("")}</div>
+   <div class="row" style="justify-content:space-around">${hist.map(h=>`<span style="font-size:12px;color:var(--muted);flex:1;text-align:center">${monthShort(h.m)}<br><b style="color:var(--ink)">${n0(h.v)}</b></span>`).join("")}</div>
+   <div class="tw" style="margin-top:14px"><table><thead><tr><th>Code</th><th>Property</th><th class="num">Commission</th><th class="num">Utility commission</th><th class="num">Letting fees</th><th class="num">Penalties kept</th><th class="num">Total</th><th class="num">VAT</th></tr></thead><tbody>
+    ${I.rows.filter(r=>r.total||r.vat||r.kept).map(r=>`<tr><td><span class="code">${esc(r.p.code)}</span></td><td>${esc(r.p.name)}</td><td class="num">${n0(r.comm)}</td><td class="num">${n0(r.util)}</td><td class="num">${n0(r.letting)}</td><td class="num">${n0(r.pen)}</td><td class="num"><strong>${n0(r.total)}</strong></td><td class="num">${n0(r.vat)}</td></tr>`).join("")||`<tr><td colspan="8" class="empty">No management income recorded for ${monthLabel(month)}.</td></tr>`}
+   </tbody><tfoot><tr><td colspan="2">TOTAL</td><td class="num">${n0(T.comm)}</td><td class="num">${n0(T.util)}</td><td class="num">${n0(T.letting)}</td><td class="num">${n0(T.pen)}</td><td class="num">${n0(T.total)}</td><td class="num">${n0(T.vat)}</td></tr></tfoot></table></div>
+   ${downloads?`<div class="row" style="margin-top:10px"><button class="btn sm" data-a="incCsv">Export income to Excel</button></div>`:""}
+  </div></div>`;
+}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b||b.dataset.a!=="incCsv"||!ME.admin)return;e.preventDefault();
+  const I=mgmtIncome(month);dlFile("management-income-"+month+".csv",csv([["Code","Property","Management commission","Utility commission","Letting fees","Penalties kept","Total income","VAT collected","Tenant charges kept"],...I.rows.map(r=>[r.p.code,r.p.name,r.comm,r.util,r.letting,r.pen,r.total,r.vat,r.kept])]))});
 
 const VIEWS={dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:vApprovals,setup:vSetup,admin:vAdmin};
 let pendingRender=false;
