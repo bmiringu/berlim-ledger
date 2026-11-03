@@ -762,7 +762,7 @@ function vDashboard(){
   const max=Math.max(1,...series.map(x=>Math.max(x.b,x.c)));
   return `
   <div class="pagehead"><h1>${monthLabel(month)} rent report</h1>
-    <div class="row">${missing?`<button class="btn gold" data-a="gen">Generate ${missing} invoice${missing>1?"s":""} for ${MN[+month.slice(5)-1]}</button>`:""}<button class="btn primary" data-a="pay">Record payment</button></div></div>
+    <div class="row">${missing?`<button class="btn gold" data-a="gen">Generate ${missing} invoice${missing>1?"s":""} for ${MN[+month.slice(5)-1]}</button>`:""}${window.FB_BUILD?`<button class="btn" data-a="smsNotice">Send notice</button>`:""}<button class="btn primary" data-a="pay">Record payment</button></div></div>
   ${IMP&&S.settings.importedVersion!==IMP.version&&!impState.running?`<div class="banner" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:#F4EEDF;color:var(--navy);border-color:#E3D7BC"><span style="flex:1;min-width:240px"><strong>Your full 2026 history is ready to import</strong>: every month from January, with utilities, penalties and B/f, taken from the Excel reports in your Drive.</span><a class="btn gold" href="#setup">Review and import</a></div>`:""}
   ${roleStrip()}
   ${propSearch("dash")}
@@ -856,13 +856,13 @@ function vTenants(){
   const C=compute(),q=filters.tenantQ.toLowerCase();
   const list=S.tenants.filter(t=>{const u=get("units",t.unitId),p=propOf(u)||{};return t.active&&(filters.code==="all"||(u&&u.propertyId===filters.code))&&(!q||(t.name+" "+(t.phone||"")+" "+(p.code||"")+" "+unitName(u)).toLowerCase().includes(q))})
     .sort((a,b)=>(b.active-a.active)||sortUnits(get("units",a.unitId)||{label:""},get("units",b.unitId)||{label:""}));
-  return `<div class="pagehead"><h1>Tenants</h1><div class="row"><input class="inline" id="tq" placeholder="Search name, phone, code or house" value="${esc(filters.tenantQ)}" aria-label="Search tenants">${can("tenants")?`<button class="btn primary" data-a="tenant">Add tenant and bill</button>`:""}</div></div>
+  return `<div class="pagehead"><h1>Tenants</h1><div class="row"><input class="inline" id="tq" placeholder="Search name, phone, code or house" value="${esc(filters.tenantQ)}" aria-label="Search tenants">${window.FB_BUILD?`<button class="btn" data-a="smsNotice" ${filters.code!=="all"?`data-prop="${esc(filters.code)}"`:""}>Send notice (SMS)</button>`:""}${can("tenants")?`<button class="btn primary" data-a="tenant">Add tenant and bill</button>`:""}</div></div>
   ${tenantSeg()}
   ${codeChips()}
   <div class="card"><div class="tw">${list.length?`<table><thead><tr><th>Code</th><th>House number</th><th>House tenant</th><th>Phone number</th><th>Unit type</th><th class="num">Rent</th><th class="num">Deposit held</th><th class="num">Balance</th><th>Status</th><th></th></tr></thead><tbody>
   ${list.map(t=>{const u=get("units",t.unitId),p=propOf(u)||{},b=C.ten[t.id]?C.ten[t.id].balance:0;const st=!t.active?"Moved out":b>0?"Arrears":b<0?"Credit":"Clear";
    return `<tr><td><span class="code">${esc(p.code||"—")}</span></td><td><strong>${esc(unitName(u))}</strong></td><td>${esc(t.name)}${t.email?`<span class="sub">${esc(t.email)}</span>`:""}</td><td>${esc(t.phone||"")}</td><td>${esc(u?u.type||"":"")}</td><td class="num">${u?n0(u.rent):""}</td><td class="num">${n0(t.deposit)}</td><td class="num"><strong>${b<0?"("+n0(-b)+")":n0(b)}</strong></td><td>${pill(st)}</td>
-   <td class="num"><button class="btn sm" data-a="stmt" data-id="${t.id}">Statement</button> ${can("tenants")?` <button class="btn sm" data-a="tenant" data-id="${t.id}">Edit</button> <button class="btn sm danger" data-a="moveout" data-id="${t.id}">Move out</button>`:""}</td></tr>`}).join("")}
+   <td class="num" style="white-space:nowrap"><button class="btn sm" data-a="stmt" data-id="${t.id}">Statement</button> <button class="btn sm ${leaseStatus(t)==="Signed"?"":"gold"}" data-a="lease" data-id="${t.id}" title="${leaseStatus(t)==="Signed"?"Agreement signed "+fmtDate(t.lease.signedDate):"No signed agreement recorded"}">Agreement${leaseStatus(t)==="Signed"?" ✓":""}</button> ${can("tenants")?` <button class="btn sm" data-a="tenant" data-id="${t.id}">Edit</button> <button class="btn sm danger" data-a="moveout" data-id="${t.id}">Move out</button>`:""}</td></tr>`}).join("")}
   </tbody></table>`:`<div class="empty">No tenants match. Add your properties and houses first, then add tenants to the vacant houses.</div>`}</div></div>`;
 }
 
@@ -872,7 +872,7 @@ function vUnits(){
   ${propRegister()}
   ${props.length?props.map(p0=>{const p=cfg(p0),us=S.units.filter(u=>u.propertyId===p.id).sort(sortUnits);const occ=us.filter(u=>activeTenantOf(u.id)).length;const roll=us.reduce((s,u)=>s+(+u.rent||0),0);
   const rules=[p.garbage?`Garbage ${n0(p.garbage)}`:"",p.waterMode==="flat"?`Water flat ${n0(p.waterFlat)}`:p.waterMode==="metered"?`Water metered ${n0(p.waterRate)}/unit`:"",p.serviceCharge?`Service charge ${n0(p.serviceCharge)}`:"",p.penaltyFlat?`Penalty ${n0(p.penaltyFlat)}`:"",`Commission ${p.commissionPct}%${p.utilCommissionPct?" + "+p.utilCommissionPct+"% of utility bills":""}${p.vatPct?" + VAT "+p.vatPct+"%":""}`].filter(Boolean).join(" · ");
-  return `<div class="card"><div class="ch"><h2>${propTag(p)}</h2><span style="color:var(--muted);font-size:13px">${esc(p.location||"")}${p.landlord?" · Landlord: "+esc(p.landlord):""} · ${occ}/${us.length} let · Rent roll ${kes(roll)}<br>${rules}<br>${regLine(p)}</span>${can("props")?`<button class="btn sm" data-a="prop" data-id="${p.id}">Edit</button>`:""}<button class="btn sm" data-a="unit" data-prop="${p.id}">Add house</button></div>
+  return `<div class="card"><div class="ch"><h2>${propTag(p)}</h2><span style="color:var(--muted);font-size:13px">${esc(p.location||"")}${p.landlord?" · Landlord: "+esc(p.landlord):""} · ${occ}/${us.length} let · Rent roll ${kes(roll)}<br>${rules}<br>${regLine(p)}</span>${can("props")?`<button class="btn sm" data-a="prop" data-id="${p.id}">Edit</button>`:""}<button class="btn sm" data-a="unit" data-prop="${p.id}">Add house</button>${window.FB_BUILD?`<button class="btn sm" data-a="smsNotice" data-prop="${p.id}">Send notice</button>`:""}</div>
    <div class="tw">${us.length?`<table><thead><tr><th>House number</th><th>Unit type</th><th class="num">Monthly rent</th><th class="num">Deposit</th><th class="num">Water / Elec.</th><th>Tenant</th><th>M-Pesa account</th><th>Status</th><th></th></tr></thead><tbody>
    ${us.map(u=>{const t=activeTenantOf(u.id);return `<tr><td><strong>${esc(u.label)}</strong></td><td>${esc(u.type||"")}</td><td class="num">${n0(u.rent)}</td><td class="num">${n0(u.deposit)}</td><td class="num">${u.waterFixed!=null&&u.waterFixed!==""?n0(u.waterFixed):"<span class='sub'>property</span>"}${+u.elecFixed?" / "+n0(u.elecFixed):""}${u.serviceFixed!=null&&u.serviceFixed!==""?`<span class="sub">Service ${n0(u.serviceFixed)}</span>`:""}</td><td>${t?esc(t.name):"<span class='sub'>None</span>"}</td><td><span class="sub" style="font-size:13px">${esc(acctFor(u))}</span></td><td>${pill(t?"Occupied":"Vacant")}</td><td class="num"><button class="btn sm" data-a="unit" data-id="${u.id}">Edit</button>${t?"":` <button class="btn sm" data-a="tenant" data-unit="${u.id}">Let</button>`}</td></tr>`}).join("")}</tbody></table>`:`<div class="empty">No houses in this property yet.</div>`}</div></div>`}).join(""):`<div class="card"><div class="empty">Start by adding a property with its code (for example E1), then its houses with their monthly rent.</div></div>`}`;
 }
@@ -1074,6 +1074,7 @@ function formTenant(id,unitId){
    <div class="f full"><label for="t-name">Full name</label><input id="t-name" name="name" required value="${esc(t?t.name:"")}"></div>
    <div class="f"><label for="t-phone">Phone</label><input id="t-phone" name="phone" value="${esc(t?t.phone:"")}" placeholder="07XX XXX XXX"></div>
    <div class="f"><label for="t-email">Email</label><input id="t-email" name="email" type="email" value="${esc(t?t.email:"")}"></div>
+   <div class="f"><label for="t-idno">ID number</label><input id="t-idno" name="idNo" value="${esc(t?t.idNo||"":"")}"><span class="hint">Goes on the tenancy agreement</span></div>
    <div class="f"><label for="t-unit">House</label><select id="t-unit" name="unitId">${vac.map(u=>`<option value="${u.id}" ${u.id===sel?"selected":""}>${esc((propOf(u)||{}).code||"")} ${esc((propOf(u)||{}).name||"")} · House ${esc(u.label)} · KES ${n0(u.rent)}</option>`).join("")}</select></div>
    <div class="f"><label for="t-in">Move-in date</label><input id="t-in" name="moveIn" type="date" value="${esc(t?t.moveIn:todayStr)}"></div>
    <div class="f"><label for="t-dep">Deposit paid (KES)</label><input id="t-dep" name="deposit" type="number" min="0" value="${esc(t?t.deposit:((get("units",sel)||{}).deposit||0))}"></div>
@@ -1084,12 +1085,12 @@ function formTenant(id,unitId){
    `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fT" type="submit">${t?"Save changes":"Add tenant and send bills"}</button>`,!t);
   if(!t)wireMoveInBill();
   document.getElementById("fT").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));
-    const obj={...(t||{id:uid(),active:true}),name:d.name.trim(),phone:d.phone.trim(),email:d.email.trim(),unitId:d.unitId,moveIn:d.moveIn,deposit:+d.deposit||0,note:d.note.trim(),noLetting:d.noLetting==="on",noSms:d.noSms==="on"};
+    const obj={...(t||{id:uid(),active:true}),name:d.name.trim(),phone:d.phone.trim(),email:d.email.trim(),idNo:(d.idNo||"").trim(),unitId:d.unitId,moveIn:d.moveIn,deposit:+d.deposit||0,note:d.note.trim(),noLetting:d.noLetting==="on",noSms:d.noSms==="on"};
     if(t){if(await submit("tenants","Edit tenant "+obj.name,[{op:"set",col:"tenants",obj}],"tenants"))closeModal();return}
     const bills=moveInInvoices(obj);if(bills===null)return;
     const tot=bills.reduce((s,b)=>s+b.total,0);
     const r=await submit("tenants","New tenant "+obj.name+(bills.length?", "+bills.length+" move-in bill"+(bills.length>1?"s":"")+" "+kes(tot):""),[{op:"set",col:"tenants",obj},...bills.map(b=>({op:"set",col:"invoices",obj:b,renum:b.no.slice(0,4)}))],"tenants");
-    if(r){closeModal();if(r==="done"&&bills.length)toast(obj.name+" added with "+bills.length+" bill"+(bills.length>1?"s":"")+" totalling "+kes(tot))}};
+    if(r){closeModal();if(r==="done"&&bills.length)toast(obj.name+" added with "+bills.length+" bill"+(bills.length>1?"s":"")+" totalling "+kes(tot));if(r==="done")setTimeout(()=>showLease(obj.id),400)}};
 }
 function formProp(id){
   const p0=id?get("properties",id):null,p=cfg(p0||{});
@@ -1516,7 +1517,7 @@ document.getElementById("mnext").onclick=()=>{monthPinned=true;month=monthAdd(mo
 const PERMS=[["payments","Record, edit and delete tenant payments"],["invoices","Generate, reverse and penalise invoices"],["readings","Enter meter readings and meter photos"],["tenants","Add, edit and move out tenants (with move-in bills)"],["providers","Service provider bills and payments"],["props","Properties, houses, rates and setup"],["landlords","Landlord accounts, agreements and remittances"]];
 const PSHORT={payments:"Payments",invoices:"Invoices",readings:"Meter readings",tenants:"Tenants",providers:"Service providers",props:"Properties & setup",landlords:"Landlord accounts"};
 const ROLES={admin:{label:"Administrator (full access)",perms:PERMS.map(p=>p[0])},manager:{label:"Property manager",perms:PERMS.map(p=>p[0])},accountant:{label:"Accountant",perms:["payments","invoices","providers","landlords"]},field:{label:"Field officer / caretaker",perms:["readings","tenants"]},viewer:{label:"View only",perms:[]}};
-const NEED={pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
+const NEED={smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
 let staffLoaded=false;
 function myStaff(){return ME.id?S.staff.find(s=>s.id===ME.id&&s.active!==false)||null:null}
 function can(p){if(ME.admin)return true;const s=ME.staff;if(!s||readOnly)return false;return !p||(s.perms||[]).includes(p)}
@@ -2599,7 +2600,7 @@ function smsCard(){
     <div class="f full"><label for="sm-tr">Reminder message</label><textarea id="sm-tr" name="tplRemind" rows="2">${esc(c.tplRemind)}</textarea></div>
     <div class="f full"><label for="sm-tl">Late notice message</label><textarea id="sm-tl" name="tplLate" rows="2">${esc(c.tplLate)}</textarea>
      <span class="hint">Fill-ins: {name} {fullname} {house} {code} {property} {amount} {receipt} {balance} {balanceText} {month} {due} {paybill} {account} {company} {phone}. One SMS is 160 characters; longer texts cost 2.</span></div>
-    <div class="full row"><button class="btn primary" type="submit">Save SMS settings</button><button class="btn" type="button" data-a="smsCompose">Send a message now</button><button class="btn" type="button" data-a="smsRemindNow">Send reminders now</button><span class="hint" id="smsMsg"></span></div>
+    <div class="full row"><button class="btn primary" type="submit">Save SMS settings</button><button class="btn" type="button" data-a="smsNotice">Send a notice</button><button class="btn" type="button" data-a="smsCompose">Custom message</button><button class="btn" type="button" data-a="smsRemindNow">Send reminders now</button><span class="hint" id="smsMsg"></span></div>
    </form></div></div>
    <div class="card"><div class="ch"><h2>Texts sent</h2></div><div class="tw">${log.length?`<table><thead><tr><th>When</th><th>Tenant</th><th>Phone</th><th>Type</th><th>Message</th><th>Status</th></tr></thead><tbody>
     ${log.slice(0,150).map(x=>`<tr><td style="white-space:nowrap">${fmtDate((x.sentAt||x.createdAt||"").slice(0,10))}<span class="sub">${esc((x.sentAt||x.createdAt||"").slice(11,16))}</span></td><td>${esc(x.name||"")}</td><td>${esc(x.to||"")}</td><td><span class="pill ${SMS_KIND_PILL[x.kind]||""}">${esc(x.kind||"")}</span></td><td style="font-size:13px;max-width:420px">${esc(x.text||"")}</td>
@@ -2638,6 +2639,145 @@ document.addEventListener("submit",async e=>{
   ["on","payMsg","remind","late","auto"].forEach(k=>sms[k]=f.get(k)==="on");
   if(await saveSettings({...S.settings,sms})){document.getElementById("smsMsg").textContent="Saved";toast("SMS settings saved")}
 },true);
+
+/* ===== Tenancy agreements (one per tenant, generated from their details) ===== */
+const LEASE_DEF={startDate:"",termMonths:12,use:"Residential",poBox:"",reviewMonths:6,reviewNoticeDays:60,reviewDate:"",reviewRent:"",refundDays:14,leaseFee:"",signatory:"Bernard K.M",extra:""};
+function leaseOf(t){return {...LEASE_DEF,startDate:t.moveIn||"",...(t.lease||{})}}
+function leaseStatus(t){const a=t.lease||{};return a.signedDate?"Signed":a.generatedAt?"Not signed":"None"}
+const NUMW=["ZERO","ONE","TWO","THREE","FOUR","FIVE","SIX","SEVEN","EIGHT","NINE","TEN","ELEVEN","TWELVE"];
+function termWords(m){m=+m||12;return m%12===0?`${NUMW[m/12]||m/12} (${m/12}) YEAR${m>12?"S":""}`:`${NUMW[m]||m} (${m}) MONTH${m>1?"S":""}`}
+/* Berlim Homes tenancy agreement: same wording as the 2025-26 agreements in Drive (e.g. Karen Hse 08, Elias Mwangi Shop 5) */
+function leaseHTML(t,a){
+  a=a||leaseOf(t);const s=S.settings,u=get("units",t.unitId)||{},p=cfg(propOf(u)||{}),B="……………………";
+  const rent=+u.rent||0,dep=+t.deposit||+u.deposit||0,depM=rent?dep/rent:0,last=dueDayOf(p)+graceOf(p);
+  const pen=+p.penaltyFlat?`a late fee of KES ${n0(p.penaltyFlat)}`:`a ${+p.penaltyPct||+s.penaltyPct||10}% late fee`;
+  const svc=u.serviceFixed!=null&&u.serviceFixed!==""?+u.serviceFixed:+p.serviceCharge;
+  const water=p.waterMode==="metered"?"water is charged separately from rent based on the tenant's sub meter readings":p.waterMode==="flat"?`water is charged at KES ${n0(u.waterFixed!=null&&u.waterFixed!==""?u.waterFixed:p.waterFlat)} per month`:"";
+  const charges=[+p.garbage?`Garbage fee is KES ${n0(p.garbage)} on a monthly basis`:"",svc?`service charge is KES ${n0(svc)} on a monthly basis`:"",water,+p.elecRate?`electricity is charged separately based on the tenant's sub meter readings`:""].filter(Boolean);
+  const cap=x=>x.charAt(0).toUpperCase()+x.slice(1),acct=acctFor(u),sd=a.startDate?fmtDate(a.startDate).toUpperCase().replace(/^(\d+)/,d=>ord(+d).toUpperCase()):B;
+  const dep2=depM&&Math.abs(depM-Math.round(depM))<.01?`${NUMW[Math.round(depM)]?NUMW[Math.round(depM)].toLowerCase():Math.round(depM)}-month rent deposit`:"deposit";
+  const L=(n,t)=>`<p><strong>(${n})</strong> ${t}</p>`;
+  return `<div class="doc agr lease">${docHead("Tenancy agreement",a.no||"")}
+  <p style="text-align:center;margin:0"><strong>REPUBLIC OF KENYA</strong></p><h2 style="text-align:center;margin:4px 0 14px">TENANCY AGREEMENT</h2>
+  <p><strong>Company Name:</strong> ${esc((s.company||"Berlim Homes Ltd").toUpperCase())}. ${esc(a.poBox||s.poBox||"P.O. BOX 38766-00600")} · Phone No: ${esc((s.phone||"").split("/")[0].trim())}</p>
+  <p><strong>MANAGING AGENTS:</strong> (hereinafter referred to as the "MANAGING AGENTS" which expression shall where the context so admits include its personal representatives, assigns and administrators) on behalf of</p>
+  <p>Name: <strong>${esc(((landlordOf(p.id)||{}).name||p.landlord||B).toUpperCase())}</strong></p>
+  <p><strong>LANDLORD:</strong> (hereinafter referred to as the "LANDLORD" which expression shall where the context so admits include its personal representatives, assigns and administrators) on one part and</p>
+  <p>Name: <strong>${esc((t.name||B).toUpperCase())}</strong> &nbsp; ID No: <strong>${esc(t.idNo||B)}</strong><br>P.O Box: ${esc(t.poBox||B)} &nbsp; Tel: <strong>${esc(t.phone||B)}</strong></p>
+  <p><strong>TENANT:</strong> (hereinafter referred to as the "TENANT" which expression shall where the context so admits include its personal representatives, assigns and administrators) on the other part regarding the following premises</p>
+  <p style="border-bottom:1px solid #999;padding-bottom:4px"><strong>${esc((/^(shop|office|stall)/i.test(u.label||"")?"":"HOUSE ")+(u.label||B).toUpperCase())}</strong> &nbsp;&nbsp; PURPOSE: <strong>${esc((a.use||"Residential").toUpperCase())}</strong>${u.type?` &nbsp;&nbsp; ${esc(u.type.toUpperCase())}`:""}</p>
+  <p>HOUSE NO: (hereinafter called "the said premises")<br>${p.lrNo?`L.R. NO: <strong>${esc(p.lrNo)}</strong> &nbsp; `:""}Estate: <strong>${esc(((p.name||"")+(p.location?" "+p.location:"")).toUpperCase()||B)}</strong></p>
+  <h3 class="dsec">1. APPOINTMENT</h3>
+  ${L("i",`The Landlord has appointed ${esc((s.company||"Berlim Homes Ltd").toUpperCase())} as the Managing Agents for the premises.`)}
+  ${L("ii",`The Managing Agents agree to lease the property to the Tenant for <strong>${termWords(a.termMonths)}</strong> beginning <strong>${sd}</strong>.`)}
+  <p>Paybill: <strong>${esc(p.paybill||s.paybill||"")}</strong><br>Account: <strong>${esc(acct)}</strong></p>
+  <h3 class="dsec">2. RENT</h3>
+  ${L("i",`Rent is Kenya Shillings <strong>${n0(rent)}</strong> payable monthly in advance.${a.reviewDate&&+a.reviewRent?` Rent to be reviewed to <strong>${n0(a.reviewRent)}</strong> from <strong>${fmtDate(a.reviewDate)}</strong>.`:""}`)}
+  ${L("ii",`Rent is due on the 1st of each month, no later than the <strong>${ord(last)}</strong>. Cash is not accepted. Payments must be made to the following account:<br>Name: ${esc(s.company||"Berlim Homes Ltd")}<br>Pay Bill: ${esc(p.paybill||s.paybill||"")}<br>A/C No.: ${esc(acct)}`)}
+  ${L("iii",`If rent remains unpaid after the ${ord(last)} of each month, ${pen} applies and will be treated as additional rent. Consistent late payments with no communication and substantial reasons will lead to termination of tenancy.`)}
+  ${charges.length?L("iv",esc(cap(charges.join(" and ")))+"."):""}
+  <h3 class="dsec">3. DEPOSIT</h3>
+  ${L("i",`The Tenant shall pay a ${dep2} of <strong>KES ${n0(dep)}</strong> as security.`)}
+  ${L("ii","The deposit will not offset unpaid rent but will cover repairs, bills, or damage caused by the Tenant.")}
+  ${L("iii",`The deposit will be refunded after ${+a.refundDays||14} working days when the tenancy ends, less any deductions for damages or unpaid charges.`)}
+  <h3 class="dsec">4. TENANT'S OBLIGATIONS</h3>
+  ${["Pay rent on time.","Pay water and electricity bills.","Do not assign, sublet, or transfer possession without written consent.","Return keys to the Managing Agents upon vacating.","Maintain the property in good condition, excluding fair wear and tear.","Keep common areas clear.","Allow the Landlord/Agents access for inspections or repairs with reasonable notice."].map((x,i)=>L(["i","ii","iii","iv","v","vi","vii"][i],x)).join("")}
+  <h3 class="dsec">5. LANDLORD'S OBLIGATIONS</h3>
+  ${L("i","Maintain the structure and major systems of the property.")}${L("ii","Ensure the Tenant can peacefully enjoy the property, provided the rent is paid.")}
+  <h3 class="dsec">6. TERMINATION</h3>
+  ${L("i","Either party can terminate by giving one month's notice or equivalent rent.")}${L("ii","Notice sent by registered post is deemed served within 7 days.")}${L("iii","Upon vacating, the Tenant must repaint and repair any damage not resulting from normal wear and tear.")}
+  <h3 class="dsec">7. RENT REVIEW</h3>
+  <p><strong>1. Review Period.</strong> ${a.reviewDate?`The rent payable under this agreement shall be subject to review on <strong>${fmtDate(a.reviewDate)}</strong>.`:`The rent payable under this agreement shall be subject to review every <strong>${+a.reviewMonths||6} months</strong> from the commencement date of the lease.`}</p>
+  ${a.reviewDate?"":`<p><strong>2. Notice of Review.</strong> The Landlord shall give the Tenant not less than <strong>${+a.reviewNoticeDays||60} days'</strong> written notice of the revised rent amount. Such notice shall specify the new rent and the date from which it is to take effect (the "Review Date").</p>`}
+  <p><strong>${a.reviewDate?2:3}. Basis of Review.</strong> The reviewed rent shall reflect the current open market rental value of the Premises at the time of review, taking into account: the terms and conditions of this lease; the condition and location of the property; comparable premises in the surrounding area.</p>
+  <h3 class="dsec">8. TENANCY RENEWAL</h3>
+  <p>Upon the expiration of this tenancy, it will automatically renew for one-year periods unless terminated or renegotiated. Rent may be reviewed every ${+a.reviewMonths||6} months based on market rates.</p>
+  ${+a.leaseFee?`<p>Kindly note lease charges are <strong>KES ${n0(a.leaseFee)}</strong>, which is renewed every 1 year of your tenancy.</p>`:""}
+  ${a.extra?`<h3 class="dsec">9. OTHER TERMS</h3><p>${esc(a.extra).replace(/\n/g,"<br>")}</p>`:""}
+  <p style="margin-top:22px"><strong>SIGNED:</strong></p>
+  <table class="sig"><tbody>
+   <tr><td><strong>FOR THE TENANT:</strong><br><br>Name: ${esc(t.name||"")}<br><br>ID No: ${esc(t.idNo||"……………………………")}</td><td><br><br>Signature: ……………………………<br><br>Date: ……………………………</td></tr>
+   <tr><td><strong>FOR THE LANDLORD (${esc((s.company||"Berlim Homes Ltd").toUpperCase())}):</strong><br><br>Name: ${esc(a.signatory||"……………………………")}</td><td><br><br>Signature: ……………………………<br><br>Date: ……………………………</td></tr></tbody></table>
+  <p class="hint" style="text-align:center;margin-top:16px">LEASING &amp; MARKETING · TENANT MANAGEMENT · MAINTENANCE &amp; REPAIRS — Where your dream resides</p></div>`;
+}
+function showLease(tid){
+  const t=get("tenants",tid);if(!t)return;const a=leaseOf(t),edit=can("tenants");
+  openModal("Tenancy agreement: "+esc(t.name),`<form id="fLe" class="fg">
+   <div class="f"><label for="le-id">Tenant's ID number</label><input id="le-id" name="idNo" value="${esc(t.idNo||"")}"></div>
+   <div class="f"><label for="le-pb">Tenant's P.O. Box (optional)</label><input id="le-pb" name="tPoBox" value="${esc(t.poBox||"")}"></div>
+   <div class="f"><label for="le-u">Purpose</label><select id="le-u" name="use">${["Residential","Commercial"].map(x=>`<option ${a.use===x?"selected":""}>${x}</option>`).join("")}</select></div>
+   <div class="f"><label for="le-s">Start date</label><input id="le-s" name="startDate" type="date" value="${esc(a.startDate)}"></div>
+   <div class="f"><label for="le-t">Term (months)</label><input id="le-t" name="termMonths" type="number" min="1" value="${esc(a.termMonths)}"><span class="hint">12 = ONE (1) YEAR</span></div>
+   <div class="f"><label for="le-rm">Rent review every (months)</label><input id="le-rm" name="reviewMonths" type="number" min="1" value="${esc(a.reviewMonths)}"></div>
+   <div class="f"><label for="le-rn">Notice of rent review (days)</label><input id="le-rn" name="reviewNoticeDays" type="number" min="1" value="${esc(a.reviewNoticeDays)}"></div>
+   <div class="f"><label for="le-rd">Or a fixed review date (optional)</label><input id="le-rd" name="reviewDate" type="date" value="${esc(a.reviewDate)}"></div>
+   <div class="f"><label for="le-rr">New rent from that date (optional)</label><input id="le-rr" name="reviewRent" type="number" min="0" value="${esc(a.reviewRent)}"></div>
+   <div class="f"><label for="le-rf">Deposit refunded after (working days)</label><input id="le-rf" name="refundDays" type="number" min="1" value="${esc(a.refundDays)}"></div>
+   <div class="f"><label for="le-lf">Yearly lease charges, KES (optional)</label><input id="le-lf" name="leaseFee" type="number" min="0" value="${esc(a.leaseFee)}" placeholder="e.g. 1000"></div>
+   <div class="f"><label for="le-g">Signing for ${esc(S.settings.company)}</label><input id="le-g" name="signatory" value="${esc(a.signatory)}"></div>
+   <div class="f"><label for="le-sd">Date signed</label><input id="le-sd" name="signedDate" type="date" value="${esc(a.signedDate||"")}"><span class="hint">Fill in once both sides have signed the paper copy.</span></div>
+   <div class="f full"><label for="le-x">Other terms (optional)</label><textarea id="le-x" name="extra" rows="2">${esc(a.extra)}</textarea></div>
+   <div class="f full"><span class="hint">Landlord, house, rent, deposit, Paybill account, due date, late fee, garbage and water come from the tenant, house and property records. Same wording as your current agreements in Drive.</span></div></form>
+   <div style="margin-top:14px" id="lePrev">${leaseHTML(t,a)}</div>`,
+   `<button class="btn" data-a="close">Close</button><button class="btn" id="lePrint">Print</button>${downloads?`<button class="btn" id="leDl">Download</button>`:""}${edit?`<button class="btn primary" id="leSave">Save</button>`:""}`,true);
+  const f=document.getElementById("fLe"),read=()=>{const d=Object.fromEntries(new FormData(f));const idNo=(d.idNo||"").trim(),poBox=(d.tPoBox||"").trim();delete d.idNo;delete d.tPoBox;return {idNo,poBox,lease:{...(t.lease||{}),...d,termMonths:+d.termMonths||12}}};
+  f.addEventListener("input",()=>{const r=read();document.getElementById("lePrev").innerHTML=leaseHTML({...t,idNo:r.idNo,poBox:r.poBox},{...leaseOf(t),...r.lease})});
+  const save=async()=>{const r=read();const lease={...r.lease,generatedAt:(t.lease||{}).generatedAt||todayStr};if(!lease.no){noReserve={};lease.no=nextNo("TA","tenants","leaseNo")}
+    return submit("tenants","Tenancy agreement for "+t.name,[{op:"set",col:"tenants",obj:{...t,idNo:r.idNo,poBox:r.poBox,leaseNo:lease.no,lease}}],"tenants")};
+  const sv=document.getElementById("leSave");if(sv)sv.onclick=async()=>{if(await save())closeModal()};
+  const html=()=>{const r=read();return standalone("Tenancy agreement "+t.name,leaseHTML({...t,idNo:r.idNo,poBox:r.poBox},{...leaseOf(t),...r.lease}))};
+  document.getElementById("lePrint").onclick=async()=>{if(edit&&!(t.lease||{}).generatedAt)await save();const w=window.open("","_blank");if(!w){toast("Allow pop-ups to print");return}w.document.write(html().replace("</body>","<script>setTimeout(()=>print(),600)<\/script></body>"));w.document.close()};
+  const dl=document.getElementById("leDl");if(dl)dl.onclick=async()=>{if(edit&&!(t.lease||{}).generatedAt)await save();dlFile(`Tenancy-agreement-${t.name}.html`.replace(/[^\w.-]+/g,"-"),html())};
+}
+
+/* ===== Notices to tenants by SMS (and a printable copy for the notice board) ===== */
+const NOTICE_TPL=[
+ ["General notice","Dear {name}, NOTICE: {details} {company} {phone}"],
+ ["Water interruption","Dear {name}, no water at {property} on {when} due to {details}. Please store enough water. Sorry for the inconvenience. {company}"],
+ ["Electricity interruption","Dear {name}, electricity at {property} will be off on {when} for {details}. Sorry for the inconvenience. {company}"],
+ ["Maintenance / repairs","Dear {name}, maintenance work ({details}) will take place at {property} on {when}. Kindly allow access where needed. {company}"],
+ ["House inspection","Dear {name}, we will inspect House {house} at {property} on {when}. Kindly be available or leave access. {company} {phone}"],
+ ["Tenants' meeting","Dear {name}, there will be a tenants' meeting at {property} on {when}. Agenda: {details}. Your attendance is important. {company}"],
+ ["Rent review","Dear {name}, this is notice that rent for House {house} at {property} will change to KES {details} from {when}. Contact us with any questions. {company} {phone}"],
+ ["Rent arrears","Dear {name}, your rent balance for House {house} is KES {balance}. Kindly clear it by {when} via Paybill {paybill}, Account {account} to avoid penalties. {company} {phone}"],
+ ["Garbage collection","Dear {name}, garbage at {property} will be collected on {when}. Please have it ready, bagged, by the gate. {company}"],
+ ["Security alert","Dear {name}, SECURITY NOTICE for {property}: {details} Please keep gates locked and report anything suspicious. {company} {phone}"]];
+function smsNotice(opts){
+  opts=opts||{};
+  if(!window.FB_BUILD){toast("SMS notices work on the Berlim Homes website (berlim-homes-ltd.web.app).");return}
+  const props=[...S.properties].sort((a,b)=>(a.code||"").localeCompare(b.code||""));
+  openModal("Send a notice to tenants",`<form id="fNo" class="fg">
+   <div class="f"><label for="no-k">Notice</label><select id="no-k" name="kind">${NOTICE_TPL.map(([k],i)=>`<option value="${i}" ${(opts.kind||0)==i?"selected":""}>${esc(k)}</option>`).join("")}</select></div>
+   <div class="f"><label for="no-p">Property</label><select id="no-p" name="prop"><option value="all">All properties</option>${props.map(p=>`<option value="${p.id}" ${opts.prop===p.id?"selected":""}>${esc(p.code||"")} ${esc(p.name||"")}</option>`).join("")}</select></div>
+   <div class="f"><label for="no-w">Send to</label><select id="no-w" name="who"><option value="all">All current tenants</option><option value="owing" ${opts.who==="owing"?"selected":""}>Tenants with a balance</option><option value="paid">Tenants who are fully paid</option><option value="one" ${opts.tid?"selected":""}>One tenant</option></select></div>
+   <div class="f" id="no-onew" hidden><label for="no-t">Tenant</label><select id="no-t" name="tid">${S.tenants.filter(t=>t.active).sort((a,b)=>sortUnits(get("units",a.unitId)||{label:""},get("units",b.unitId)||{label:""})).map(t=>{const u=get("units",t.unitId);return `<option value="${t.id}" ${opts.tid===t.id?"selected":""}>${esc((propOf(u)||{}).code||"")} ${esc(unitName(u))} · ${esc(t.name)}</option>`}).join("")}</select></div>
+   <div class="f"><label for="no-when">When / date</label><input id="no-when" name="when" placeholder="e.g. Friday 7 Nov, 9am to 4pm"></div>
+   <div class="f"><label for="no-d">Details</label><input id="no-d" name="details" placeholder="e.g. tank cleaning"></div>
+   <div class="f full"><label for="no-m">Message</label><textarea id="no-m" name="text" rows="4" required></textarea><span class="hint">Edit freely. {name} {house} {property} {code} {balance} {paybill} {account} are filled in for each tenant.</span></div>
+   <div class="full"><div class="hint" id="no-c"></div><div style="margin-top:6px;padding:10px 12px;background:#F4EEDF;border-radius:10px;font-size:13.5px" id="no-s"></div><span class="err" id="no-e"></span></div></form>`,
+   `<button class="btn" data-a="close">Cancel</button><button class="btn" id="noPrint">Print for notice board</button><button class="btn primary" form="fNo" type="submit">Send SMS</button>`,true);
+  const f=document.getElementById("fNo"),txt=document.getElementById("no-m");let touched=false;
+  const setTpl=()=>{txt.value=NOTICE_TPL[+f.kind.value][1];touched=false};setTpl();
+  txt.addEventListener("input",()=>touched=true);f.kind.addEventListener("change",setTpl);
+  const fillW=(s,t,d)=>smsFill(s.replace(/\{when\}/g,d.when||"{when}").replace(/\{details\}/g,d.details||"{details}"),smsVars(t,{property:((propOf(get("units",t.unitId))||{}).name||"")}));
+  const pick=()=>{const d=Object.fromEntries(new FormData(f)),C=compute();document.getElementById("no-onew").hidden=d.who!=="one";
+    const list=d.who==="one"?S.tenants.filter(t=>t.id===d.tid):S.tenants.filter(t=>t.active&&(d.prop==="all"||(get("units",t.unitId)||{}).propertyId===d.prop)).filter(t=>{const b=C.ten[t.id]?C.ten[t.id].balance:0;return d.who==="owing"?b>0:d.who==="paid"?b<=0:true});
+    const ok=list.filter(t=>smsPhone(t.phone)&&(d.who==="one"||!t.noSms)),sample=ok[0]?fillW(d.text||"",ok[0],d):"";
+    document.getElementById("no-c").textContent=ok.length+" tenant"+(ok.length===1?"":"s")+" will get this SMS"+(list.length>ok.length?" ("+(list.length-ok.length)+" skipped: no valid phone or SMS turned off)":"")+(sample?" · "+sample.length+" characters"+(sample.length>160?" (2 SMS each)":""):"");
+    document.getElementById("no-s").textContent=sample?"Preview: "+sample:"No one to send to.";
+    const left=sample.match(/\{\w+\}/g);document.getElementById("no-e").textContent=left?"Fill in "+[...new Set(left)].join(", ")+" first.":"";return {ok,d,left}};
+  f.addEventListener("input",pick);f.addEventListener("change",pick);pick();
+  f.onsubmit=async e=>{e.preventDefault();const {ok,d,left}=pick();if(!ok.length||left)return;
+    const kind="Notice: "+NOTICE_TPL[+d.kind][0],batch="ntc-"+uid();
+    askConfirm(`Send this notice by SMS to <strong>${ok.length}</strong> tenant${ok.length>1?"s":""}?`,"Send",async()=>{const n=await smsQueue(ok.map((t,i)=>smsDoc(batch+"-"+i,t,fillW(d.text,t,d),kind)));toast(n+" notice"+(n===1?"":"s")+" queued; they go out within a minute")})};
+  document.getElementById("noPrint").onclick=()=>{const {d}=pick(),P=d.prop!=="all"?get("properties",d.prop):null;
+    const body=(d.text||"").replace(/\{when\}/g,d.when||"").replace(/\{details\}/g,d.details||"").replace(/Dear \{name\},?\s*/i,"").replace(/\{property\}/g,P?P.name:"the property").replace(/\{company\}/g,"").replace(/\{phone\}/g,"").replace(/House \{house\}/g,"your house").replace(/\{\w+\}/g,"").replace(/\s+/g," ").trim().replace(/^./,c=>c.toUpperCase());
+    const html=`<div class="doc">${docHead("Notice",fmtDate(todayStr))}<h2 style="text-align:center;font-size:30px;margin:18px 0 6px">NOTICE</h2><h3 style="text-align:center;margin:0 0 22px">${esc(NOTICE_TPL[+d.kind][0].toUpperCase())}${P?" · "+esc((P.name||"").toUpperCase()):""}</h3><p style="font-size:19px;line-height:1.6">To all tenants${P?" of "+esc(P.name):""},</p><p style="font-size:19px;line-height:1.6">${esc(body)}</p><p style="margin-top:40px">Management<br><strong>${esc(S.settings.company)}</strong><br>${esc(S.settings.phone||"")}</p></div>`;
+    const w=window.open("","_blank");if(!w){toast("Allow pop-ups to print");return}w.document.write(standalone("Notice",html).replace("</body>","<script>setTimeout(()=>print(),600)<\/script></body>"));w.document.close()};
+}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;
+  if(a==="lease"){e.preventDefault();showLease(b.dataset.id)}
+  else if(a==="smsNotice"){e.preventDefault();smsNotice({prop:b.dataset.prop,tid:b.dataset.tid,who:b.dataset.who})}});
 
 const VIEWS={dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:vApprovals,setup:vSetup,admin:vAdmin};
 let pendingRender=false;
