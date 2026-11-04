@@ -663,9 +663,9 @@ function pill(st){const c={Paid:"p-good",Partial:"p-warn",Unpaid:"p-mute",Overdu
 /* ---------- invoice building ---------- */
 const meterTxt=l=>l.open!=null&&l.close!=null?`meter ${n0(l.open)} to ${n0(l.close)} = ${n0(l.units)} units @ KES ${n0(l.rate)}`:"";
 function buildLines(t,m){
-  const u=get("units",t.unitId),lines=[];
-  if(!u)return lines;
-  const p=cfg(propOf(u)),L=(desc,qty,rate,kind)=>lines.push({desc,qty,rate:+rate,amount:Math.round(qty*rate),kind});
+  const u0=get("units",t.unitId),lines=[];
+  if(!u0)return lines;const u=withMonth(u0,m);
+  const p=cfg(withMonth(propOf(u0),m)),L=(desc,qty,rate,kind)=>lines.push({desc,qty,rate:+rate,amount:Math.round(qty*rate),kind});
   if(+u.rent>0)L("Rent, "+monthLabel(m),1,u.rent,"rent");
   if(t.moveIn&&t.moveIn.slice(0,7)===m&&+t.deposit>0)L("House deposit",1,t.deposit,"deposit");
   if(+p.garbage>0)L("Garbage collection",1,p.garbage,"garbage");
@@ -891,9 +891,9 @@ function vUnits(){
   ${propRegister()}
   ${props.length?props.map(p0=>{const p=cfg(p0),us=S.units.filter(u=>u.propertyId===p.id).sort(sortUnits);const occ=us.filter(u=>activeTenantOf(u.id)).length;const roll=us.reduce((s,u)=>s+(+u.rent||0),0);
   const rules=[p.garbage?`Garbage ${n0(p.garbage)}`:"",p.waterMode==="flat"?`Water flat ${n0(p.waterFlat)}`:p.waterMode==="metered"?`Water metered ${n0(p.waterRate)}/unit`:"",p.serviceCharge?`Service charge ${n0(p.serviceCharge)}`:"",p.penaltyFlat?`Penalty ${n0(p.penaltyFlat)}`:"",`Commission ${p.commissionPct}%${p.utilCommissionPct?" + "+p.utilCommissionPct+"% of utility bills":""}${p.vatPct?" + VAT "+p.vatPct+"%":""}`].filter(Boolean).join(" · ");
-  return `<div class="card"><div class="ch"><h2>${propTag(p)}</h2><span style="color:var(--muted);font-size:13px">${esc(p.location||"")}${p.landlord?" · Landlord: "+esc(p.landlord):""} · ${occ}/${us.length} let · Rent roll ${kes(roll)}<br>${rules}<br>${regLine(p)}</span>${can("props")?`<button class="btn sm" data-a="prop" data-id="${p.id}">Edit</button>`:""}<button class="btn sm" data-a="unit" data-prop="${p.id}">Add house</button>${can("props")||ME.admin?(propEndPending(p)?'<span class="pill">Ending: waiting for approval</span>':`<button class="btn sm danger" data-a="endProp" data-id="${p.id}">End service</button>`):""}${window.FB_BUILD?`<button class="btn sm" data-a="smsNotice" data-prop="${p.id}">Send notice</button>`:""}</div>
-   <div class="tw">${us.length?`<table><thead><tr><th>House number</th><th>Unit type</th><th class="num">Monthly rent</th><th class="num">Deposit</th><th class="num">Water / Elec.</th><th>Tenant</th><th>M-Pesa account</th><th>Status</th><th></th></tr></thead><tbody>
-   ${us.map(u=>{const t=activeTenantOf(u.id);return `<tr><td><strong>${esc(u.label)}</strong></td><td>${esc(u.type||"")}</td><td class="num">${n0(u.rent)}</td><td class="num">${n0(u.deposit)}</td><td class="num">${u.waterFixed!=null&&u.waterFixed!==""?n0(u.waterFixed):"<span class='sub'>property</span>"}${+u.elecFixed?" / "+n0(u.elecFixed):""}${u.serviceFixed!=null&&u.serviceFixed!==""?`<span class="sub">Service ${n0(u.serviceFixed)}</span>`:""}</td><td>${t?esc(t.name):"<span class='sub'>None</span>"}</td><td><span class="sub" style="font-size:13px">${esc(acctFor(u))}</span></td><td>${pill(t?"Occupied":"Vacant")}</td><td class="num"><button class="btn sm" data-a="unit" data-id="${u.id}">Edit</button>${t?"":` <button class="btn sm" data-a="tenant" data-unit="${u.id}">Let</button>`}</td></tr>`}).join("")}</tbody></table>`:`<div class="empty">No houses in this property yet.</div>`}</div></div>`}).join(""):`<div class="card"><div class="empty">Start by adding a property with its code (for example E1), then its houses with their monthly rent.</div></div>`}`;
+  return `<div class="card"><div class="ch"><h2>${propTag(p)}</h2><span style="color:var(--muted);font-size:13px">${esc(p.location||"")}${p.landlord?" · Landlord: "+esc(p.landlord):""} · ${occ}/${us.length} let · Rent roll ${kes(roll)}<br>${rules}<br>${regLine(p)}</span>${can("props")?`<button class="btn sm" data-a="prop" data-id="${p.id}">Edit</button>`:""}<button class="btn sm" data-a="unit" data-prop="${p.id}">Add house</button>${can("props")?`<button class="btn sm gold" data-a="rates" data-prop="${p.id}">Change rent / charges</button>`:""}${can("props")||ME.admin?(propEndPending(p)?'<span class="pill">Ending: waiting for approval</span>':`<button class="btn sm danger" data-a="endProp" data-id="${p.id}">End service</button>`):""}${window.FB_BUILD?`<button class="btn sm" data-a="smsNotice" data-prop="${p.id}">Send notice</button>`:""}</div>
+   ${schedHTML(p)}<div class="tw">${us.length?`<table><thead><tr><th>House number</th><th>Unit type</th><th class="num">Monthly rent</th><th class="num">Deposit</th><th class="num">Water / Elec.</th><th>Tenant</th><th>M-Pesa account</th><th>Status</th><th></th></tr></thead><tbody>
+   ${us.map(u=>{const t=activeTenantOf(u.id);return `<tr><td><strong>${esc(u.label)}</strong></td><td>${esc(u.type||"")}</td><td class="num">${n0(u.rent)}</td><td class="num">${n0(u.deposit)}</td><td class="num">${u.waterFixed!=null&&u.waterFixed!==""?n0(u.waterFixed):"<span class='sub'>property</span>"}${+u.elecFixed?" / "+n0(u.elecFixed):""}${u.serviceFixed!=null&&u.serviceFixed!==""?`<span class="sub">Service ${n0(u.serviceFixed)}</span>`:""}</td><td>${t?esc(t.name):"<span class='sub'>None</span>"}</td><td><span class="sub" style="font-size:13px">${esc(acctFor(u))}</span></td><td>${pill(t?"Occupied":"Vacant")}</td><td class="num" style="white-space:nowrap">${can("props")?`<button class="btn sm" data-a="rates" data-prop="${p.id}" data-id="${u.id}">Change rent</button> `:""}<button class="btn sm" data-a="unit" data-id="${u.id}">Edit</button>${t?"":` <button class="btn sm" data-a="tenant" data-unit="${u.id}">Let</button>`}</td></tr>`}).join("")}</tbody></table>`:`<div class="empty">No houses in this property yet.</div>`}</div></div>`}).join(""):`<div class="card"><div class="empty">Start by adding a property with its code (for example E1), then its houses with their monthly rent.</div></div>`}`;
 }
 function vUtilities(){
   if(filters.uprop!=="all"&&!get("properties",filters.uprop))filters.uprop="all";
@@ -960,7 +960,7 @@ function vInvoices(){
   ${codeChips()}
   <div class="card"><div class="tw">${list.length?`<table><thead><tr><th>Invoice no.</th><th>Type</th><th>Code</th><th>House</th><th>Tenant</th><th>Due</th><th class="num">Amount</th><th class="num">Paid</th><th class="num">Balance</th><th>Status</th><th></th></tr></thead><tbody>
   ${list.map(i=>{const t=get("tenants",i.tenantId),u=get("units",i.unitId),c=C.inv[i.id]||{paid:0,bal:i.total,status:"Unpaid"};
-  return `<tr><td><button class="link" data-a="inv" data-id="${i.id}">${esc(i.no)}</button></td><td>${esc(CATS[catOf(i)].short)}</td><td><span class="code">${esc((propOf(u)||{}).code||"")}</span></td><td><strong>${esc(unitName(u))}</strong></td><td>${esc(t?t.name:"?")}</td><td>${fmtDate(i.dueDate)}</td><td class="num">${n0(i.total)}</td><td class="num">${n0(c.paid)}</td><td class="num"><strong>${n0(c.bal)}</strong></td><td>${pill(c.status)}</td><td class="num" style="white-space:nowrap"><button class="btn sm" data-a="inv" data-id="${i.id}">View</button>${can("invoices")?(i.reversed?` <button class="btn sm" data-a="restoreInv" data-id="${i.id}">Restore</button>`:` <button class="btn sm danger" data-a="reverseInv" data-id="${i.id}">Reverse</button>`):""}</td></tr>`}).join("")}
+  return `<tr><td><button class="link" data-a="inv" data-id="${i.id}">${esc(i.no)}</button></td><td>${esc(CATS[catOf(i)].short)}</td><td><span class="code">${esc((propOf(u)||{}).code||"")}</span></td><td><strong>${esc(unitName(u))}</strong></td><td>${esc(t?t.name:"?")}</td><td>${fmtDate(i.dueDate)}</td><td class="num">${n0(i.total)}</td><td class="num">${n0(c.paid)}</td><td class="num"><strong>${n0(c.bal)}</strong></td><td>${pill(c.status)}</td><td class="num" style="white-space:nowrap">${window.FB_BUILD&&!i.reversed?`<button class="btn sm" data-a="invSms" data-id="${i.id}">SMS</button> `:""}<button class="btn sm" data-a="inv" data-id="${i.id}">View</button>${can("invoices")?(i.reversed?` <button class="btn sm" data-a="restoreInv" data-id="${i.id}">Restore</button>`:` <button class="btn sm danger" data-a="reverseInv" data-id="${i.id}">Reverse</button>`):""}</td></tr>`}).join("")}
   </tbody><tfoot><tr><td colspan="6">${list.length} invoices</td><td class="num">${n0(tot)}</td><td class="num">${n0(paid)}</td><td class="num">${n0(tot-paid)}</td><td colspan="2"></td></tr></tfoot></table>`:`<div class="empty">No invoices for ${monthLabel(month)} yet. Press Generate to bill every active tenant.</div>`}</div></div>`;
 }
 
@@ -971,7 +971,7 @@ function vPayments(){
   return `<div class="pagehead"><h1>Payments received, ${monthLabel(month)}</h1><div class="row">${downloads?`<button class="btn" data-a="csvPay">Export CSV</button>`:""}<button class="btn primary" data-a="pay">Record payment</button></div>
   <p>${Object.entries(by).map(([m,v])=>esc(m)+" "+kes(v)).join(" · ")||"Nothing received this month yet."}</p></div>
   <div class="card"><div class="tw">${list.length?`<table><thead><tr><th>Date</th><th>Receipt</th><th>Tenant</th><th>Method</th><th>M-Pesa / bank code</th><th class="num">Amount</th><th></th></tr></thead><tbody>
-  ${list.map(p=>{const t=get("tenants",p.tenantId),u=t?get("units",t.unitId):null;return `<tr><td>${fmtDate(p.date)}</td><td><button class="link" data-a="rct" data-id="${p.id}">${esc(p.receiptNo)}</button></td><td>${esc(t?t.name:"?")}<span class="sub">${esc((propOf(u)||{}).code||"")} ${esc(unitName(u))}</span></td><td>${esc(p.method)}</td><td>${p.ref?`<strong>${esc(p.ref)}</strong>`:`<button class="link" data-a="editpay" data-id="${p.id}">Add code</button>`}</td><td class="num">${n0(p.amount)}</td><td class="num"><button class="btn sm" data-a="editpay" data-id="${p.id}">Edit</button> <button class="btn sm" data-a="rct" data-id="${p.id}">Receipt</button> <button class="btn sm danger" data-a="delpay" data-id="${p.id}">Delete</button></td></tr>`}).join("")}
+  ${list.map(p=>{const t=get("tenants",p.tenantId),u=t?get("units",t.unitId):null;return `<tr><td>${fmtDate(p.date)}</td><td><button class="link" data-a="rct" data-id="${p.id}">${esc(p.receiptNo)}</button></td><td>${esc(t?t.name:"?")}<span class="sub">${esc((propOf(u)||{}).code||"")} ${esc(unitName(u))}</span></td><td>${esc(p.method)}</td><td>${p.ref?`<strong>${esc(p.ref)}</strong>${p.split?' <span class="pill p-warn" title="One payment shared across this tenant\'s houses">Split</span>':""}`:`<button class="link" data-a="editpay" data-id="${p.id}">Add code</button>`}</td><td class="num">${n0(p.amount)}</td><td class="num"><button class="btn sm" data-a="editpay" data-id="${p.id}">Edit</button> <button class="btn sm" data-a="rct" data-id="${p.id}">Receipt</button> <button class="btn sm danger" data-a="delpay" data-id="${p.id}">Delete</button></td></tr>`}).join("")}
   </tbody><tfoot><tr><td colspan="5">${list.length} payments</td><td class="num">${n0(tot)}</td><td></td></tr></tfoot></table>`:`<div class="empty">No payments dated ${monthLabel(month)}.</div>`}</div></div>`;
 }
 
@@ -1069,7 +1069,7 @@ function invoiceText(i){
 function receiptHTML(p){
   const t=get("tenants",p.tenantId)||{},u=get("units",t.unitId)||{},C=compute(),bal=C.ten[t.id]?C.ten[t.id].balance:0;
   return `<div class="doc">${docHead("Receipt",p.receiptNo)}
-  <div class="meta"><div><h4>Received from</h4><strong>${esc(t.name)}</strong><br>House ${esc(u.label)}, ${esc((propOf(u)||{}).code||"")} ${esc((propOf(u)||{}).name||"")}</div><div style="text-align:right"><h4>Details</h4>Date: ${fmtDate(p.date)}<br>Method: ${esc(p.method)}<br>${esc(refLabel(p.method))}: <strong>${esc(p.ref||"not recorded")}</strong></div></div>
+  <div class="meta"><div><h4>Received from</h4><strong>${esc(t.name)}</strong><br>House ${esc(u.label)}, ${esc((propOf(u)||{}).code||"")} ${esc((propOf(u)||{}).name||"")}</div><div style="text-align:right"><h4>Details</h4>Date: ${fmtDate(p.date)}<br>Method: ${esc(p.method)}<br>${esc(refLabel(p.method))}: <strong>${esc(p.ref||"not recorded")}</strong>${p.split?" (split payment)":""}</div></div>
   <table><tbody><tr><td>Amount received</td><td class="num"><strong>KES ${n0(p.amount)}</strong></td></tr>${p.note?`<tr><td colspan="2">${esc(p.note)}</td></tr>`:""}<tr><td>Account balance after all payments</td><td class="num">${bal<0?"Credit KES "+n0(-bal):"KES "+n0(bal)}</td></tr></tbody></table>
   <div class="foot">Received by ${esc(S.settings.company)} as managing agent on behalf of the landlord. Thank you.</div></div>`;
 }
@@ -1186,7 +1186,7 @@ function formUnit(id,propId){
    <div class="f"><label for="u-prop">Property</label><select id="u-prop" name="propertyId">${sortedProps().map(p=>`<option value="${p.id}" ${(u?u.propertyId:(propId||(filters.code!=="all"?filters.code:"")))===p.id?"selected":""}>${esc(p.code||"")} ${esc(p.name)}</option>`).join("")}</select></div>
    <div class="f"><label for="u-label">House number</label><input id="u-label" name="label" required value="${esc(u?u.label:"")}" placeholder="e.g. A3"><span class="hint">Used in the M-Pesa account number</span></div>
    <div class="f"><label for="u-type">Type</label><select id="u-type" name="type">${[...new Set(["Single","Bedsitter","Studio","1 Bedroom","2 Bedroom","3 Bedroom","Shop","Workshop","Office",...(u&&u.type?[u.type]:[])])].map(x=>`<option ${u&&u.type===x?"selected":""}>${x}</option>`).join("")}</select></div>
-   <div class="f"><label for="u-rent">Monthly rent (KES)</label><input id="u-rent" name="rent" type="number" min="0" required value="${esc(u?u.rent:"")}"></div>
+   <div class="f"><label for="u-rent">Monthly rent (KES)</label><input id="u-rent" name="rent" type="number" min="0" required value="${esc(u?u.rent:"")}"><span class="hint">Fixed monthly rent. To change it later use "Change rent" so tenants are told and past months stay as billed.</span></div>
    <div class="f"><label for="u-dep">Deposit (KES)</label><input id="u-dep" name="deposit" type="number" min="0" value="${esc(u?u.deposit:"")}"></div>
    <div class="f"><label for="u-wf">Water for this house (KES / month)</label><input id="u-wf" name="waterFixed" type="number" min="0" value="${esc(u&&u.waterFixed!=null?u.waterFixed:"")}" placeholder="Blank = property's water rule"><span class="hint">Use when water differs by house; 0 = no water</span></div>
    <div class="f"><label for="u-sc">Service charge for this house (KES / month)</label><input id="u-sc" name="serviceFixed" type="number" min="0" value="${esc(u&&u.serviceFixed!=null?u.serviceFixed:"")}" placeholder="Blank = property's amount"><span class="hint">Use when this house pays a different service charge; 0 = none</span></div>
@@ -1220,11 +1220,11 @@ function formPay(tid){
     if(list.length===1)sel.value=list[0].id;fill()};
   pc.addEventListener("input",houses);sel.onchange=fill;houses();if(!pc.value)pc.focus();else if(!sel.value)sel.focus();wireMethod();
   document.getElementById("fPay").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));
-    const ref=d.ref.trim().toUpperCase(),er=refError(d.method,ref,null);
+    const ref=d.ref.trim().toUpperCase(),split=d.split==="on",er=refError(d.method,ref,null,d.tenantId,split);
     if(er){document.getElementById("payErr").textContent=er;return}
-    const obj={id:uid(),tenantId:d.tenantId,amount:+d.amount,date:d.date,method:d.method,ref,note:d.note.trim(),receiptNo:(noReserve={},nextNo("RCPT","payments","receiptNo"))};
+    const obj={id:uid(),tenantId:d.tenantId,amount:+d.amount,date:d.date,method:d.method,ref,...(split?{split:true}:{}),note:d.note.trim(),receiptNo:(noReserve={},nextNo("RCPT","payments","receiptNo"))};
     const tt=get("tenants",d.tenantId)||{};
-    const r=await submit("payments","Payment "+kes(obj.amount)+" from "+(tt.name||"tenant")+(ref?" ("+ref+")":""),[{op:"set",col:"payments",obj,renum:"RCPT"}],"payments");
+    const r=await submit("payments","Payment "+kes(obj.amount)+" from "+(tt.name||"tenant")+(ref?" ("+ref+(split?", split":"")+")":""),[{op:"set",col:"payments",obj,renum:"RCPT"}],"payments");
     if(r){closeModal();if(r==="done")setTimeout(()=>showReceipt(obj.id),150)}};
 }
 const REV_REASONS=["Billed in error","Wrong amount","Tenant had moved out","Duplicate invoice","Waived by landlord","Other"];
@@ -1246,12 +1246,22 @@ async function restoreInvoice(id){const i=get("invoices",id);if(!i)return;
 const METHODS=["M-Pesa","Bank deposit","Bank transfer","Cash","Cheque","Paid to landlord"];
 function refLabel(m){return m==="M-Pesa"?"M-Pesa code":m.startsWith("Bank")?"Bank reference / slip number":m==="Cheque"?"Cheque number":m==="Paid to landlord"?"Landlord's M-Pesa or bank code":"Reference (optional)"}
 function payMethodFields(method,ref){method=method||"M-Pesa";return `<div class="f"><label for="py-m">Method</label><select id="py-m" name="method">${METHODS.map(m=>`<option ${m===method?"selected":""}>${m}</option>`).join("")}</select><span class="hint">"Paid to landlord" counts as paid and is deducted from the landlord remittance</span></div>
-   <div class="f"><label for="py-r" id="py-rl">${refLabel(method)}</label><input id="py-r" name="ref" value="${esc(ref||"")}" placeholder="${method==="M-Pesa"?"e.g. SKD4H7XQ2P":""}" style="text-transform:uppercase"><span class="hint" id="py-rh">${method==="M-Pesa"?"10 letters and numbers from the M-Pesa message":method.startsWith("Bank")?"Reference on the bank slip or transfer":""}</span></div>`}
+   <div class="f"><label for="py-r" id="py-rl">${refLabel(method)}</label><input id="py-r" name="ref" value="${esc(ref||"")}" placeholder="${method==="M-Pesa"?"e.g. SKD4H7XQ2P":""}" style="text-transform:uppercase"><span class="hint" id="py-rh">${method==="M-Pesa"?"10 letters and numbers from the M-Pesa message":method.startsWith("Bank")?"Reference on the bank slip or transfer":""}</span></div>
+   <div class="f full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="split" ${arguments[2]?"checked":""}> Split: this one payment covers more than one shop or house of the same tenant</label><span class="hint">Only then can the same code be recorded again, once per house, for the same tenant. Each part is highlighted as split.</span></div>`}
 function wireMethod(){const m=document.getElementById("py-m");if(!m)return;m.onchange=()=>{document.getElementById("py-rl").textContent=refLabel(m.value);const r=document.getElementById("py-r");r.placeholder=m.value==="M-Pesa"?"e.g. SKD4H7XQ2P":"";document.getElementById("py-rh").textContent=m.value==="M-Pesa"?"10 letters and numbers from the M-Pesa message":m.value.startsWith("Bank")?"Reference on the bank slip or transfer":""}}
-function refError(method,ref,selfId){
+/* same person renting several houses or shops: same phone number or same name */
+function samePerson(a,b){if(!a||!b)return false;if(a.id===b.id)return true;const pa=smsPhone(a.phone),pb=smsPhone(b.phone);if(pa&&pb)return pa===pb;return (a.name||"").trim().toLowerCase()===(b.name||"").trim().toLowerCase()&&!!(a.name||"").trim()}
+function refUses(ref,selfId){const xs=S.payments.filter(p=>p.id!==selfId&&(p.ref||"").toUpperCase()===ref).map(p=>({tenantId:p.tenantId,amount:+p.amount||0,pending:false}));
+  for(const a of S.approvals||[])if(a.status==="pending")for(const o of a.ops||[])if(o.op==="set"&&o.col==="payments"&&o.obj&&o.obj.id!==selfId&&(o.obj.ref||"").toUpperCase()===ref)xs.push({tenantId:o.obj.tenantId,amount:+o.obj.amount||0,pending:true});return xs}
+function refError(method,ref,selfId,tenantId,split){
   if(method==="M-Pesa"){if(!ref)return "Enter the M-Pesa code from the payment message.";if(!/^[A-Z0-9]{10}$/.test(ref))return "M-Pesa codes are 10 letters and numbers, e.g. SKD4H7XQ2P.";}
   if((method==="Bank deposit"||method==="Bank transfer")&&!ref)return "Enter the bank reference or slip number.";
-  if(ref&&S.payments.some(p=>p.id!==selfId&&(p.ref||"").toUpperCase()===ref))return "A payment with code "+ref+" is already recorded. Check for a duplicate.";
+  if(ref){const xs=refUses(ref,selfId);if(xs.length){
+    const where=xs.map(x=>{const t=get("tenants",x.tenantId)||{};return (t.name||"?")+", "+unitName(get("units",t.unitId))+" KES "+n0(x.amount)+(x.pending?" (waiting for approval)":"")}).join("; ");
+    if(!split)return "Code "+ref+" is already recorded ("+where+"). Duplicate codes are rejected. If this one payment covers more than one shop or house of the same tenant, tick \"Split\" below.";
+    const me=get("tenants",tenantId);
+    if(xs.some(x=>x.tenantId===tenantId))return "Code "+ref+" is already recorded for this same house ("+where+"). One code can be used only once per house.";
+    if(!xs.every(x=>samePerson(get("tenants",x.tenantId),me)))return "Code "+ref+" is used by a different tenant ("+where+"). A split payment must be for houses of the same tenant (same phone number or name).";}}
   return "";
 }
 function formEditPay(id){
@@ -1259,17 +1269,17 @@ function formEditPay(id){
   openModal("Edit payment "+esc(p.receiptNo||""),`<p style="margin:0">${esc(t.name||"")} · ${esc((propOf(get("units",t.unitId))||{}).code||"")} ${esc(unitName(get("units",t.unitId)))}</p><form id="fEP" class="fg">
    <div class="f"><label for="py-a">Amount (KES)</label><input id="py-a" name="amount" type="number" min="1" required value="${esc(p.amount)}"></div>
    <div class="f"><label for="py-d">Date received</label><input id="py-d" name="date" type="date" required value="${esc(p.date)}"></div>
-   ${payMethodFields(p.method,p.ref)}
+   ${payMethodFields(p.method,p.ref,p.split)}
    <div class="f full"><label for="py-n">Note</label><input id="py-n" name="note" value="${esc(p.note||"")}"></div><div class="err full" id="payErr"></div></form>`,
    `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fEP" type="submit">Save payment</button>`);
   wireMethod();
-  document.getElementById("fEP").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));const ref=d.ref.trim().toUpperCase(),er=refError(d.method,ref,p.id);
+  document.getElementById("fEP").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));const ref=d.ref.trim().toUpperCase(),split=d.split==="on",er=refError(d.method,ref,p.id,p.tenantId,split);
     if(er){document.getElementById("payErr").textContent=er;return}
-    if(await submit("payments","Edit payment "+(p.receiptNo||"")+" to "+kes(+d.amount),[{op:"set",col:"payments",obj:{...p,amount:+d.amount,date:d.date,method:d.method,ref,note:d.note.trim()}}],"payments")){closeModal()}};
+    if(await submit("payments","Edit payment "+(p.receiptNo||"")+" to "+kes(+d.amount),[{op:"set",col:"payments",obj:(o=>{if(!split)delete o.split;return o})({...p,amount:+d.amount,date:d.date,method:d.method,ref,split:true,note:d.note.trim()})}],"payments")){closeModal()}};
 }
 function showInvoice(id){
   const i=get("invoices",id);if(!i)return;
-  openModal(CATS[catOf(i)].title+" "+esc(i.no),invoiceHTML(i)+depToggleHTML(i)+lineRevHTML(i),`<a class="btn" href="${waLink((get("tenants",i.tenantId)||{}).phone,invoiceText(i))}" target="_blank" rel="noopener">Send on WhatsApp</a><button class="btn" id="cpTxt">Copy text</button>${downloads?`<button class="btn" id="dlInv">Download for printing</button>`:""}${!can("invoices")?"":i.reversed?`<button class="btn" data-a="restoreInv" data-id="${i.id}">Restore invoice</button>`:`<button class="btn danger" data-a="reverseInv" data-id="${i.id}">Reverse invoice</button>`}${can("payments")?`<button class="btn primary" data-a="pay" data-id="${i.tenantId}">Record payment</button>`:""}`,true);
+  openModal(CATS[catOf(i)].title+" "+esc(i.no),invoiceHTML(i)+depToggleHTML(i)+lineRevHTML(i),`${window.FB_BUILD&&!i.reversed?`<button class="btn" data-a="invSms" data-id="${i.id}">Send SMS</button>${invSmsState(i)}`:""}<a class="btn" href="${waLink((get("tenants",i.tenantId)||{}).phone,invoiceText(i))}" target="_blank" rel="noopener">Send on WhatsApp</a><button class="btn" id="cpTxt">Copy text</button>${downloads?`<button class="btn" id="dlInv">Download for printing</button>`:""}${!can("invoices")?"":i.reversed?`<button class="btn" data-a="restoreInv" data-id="${i.id}">Restore invoice</button>`:`<button class="btn danger" data-a="reverseInv" data-id="${i.id}">Reverse invoice</button>`}${can("payments")?`<button class="btn primary" data-a="pay" data-id="${i.tenantId}">Record payment</button>`:""}`,true);
   document.getElementById("cpTxt").onclick=async()=>{try{await navigator.clipboard.writeText(invoiceText(i));toast("Message copied")}catch(e){toast("Copy was blocked by the browser")}};
   const dl=document.getElementById("dlInv");if(dl)dl.onclick=()=>dlFile(i.no+".html",standalone(i.no,invoiceHTML(i)));
 }
@@ -1550,7 +1560,7 @@ document.getElementById("mnext").onclick=()=>{monthPinned=true;month=monthAdd(mo
 const PERMS=[["payments","Record, edit and delete tenant payments"],["invoices","Generate, reverse and penalise invoices"],["readings","Enter meter readings and meter photos"],["tenants","Add, edit and move out tenants (with move-in bills)"],["providers","Service provider bills and payments"],["props","Properties, houses, rates and setup"],["landlords","Landlord accounts, agreements and remittances"]];
 const PSHORT={payments:"Payments",invoices:"Invoices",readings:"Meter readings",tenants:"Tenants",providers:"Service providers",props:"Properties & setup",landlords:"Landlord accounts"};
 const ROLES={admin:{label:"Administrator (full access)",perms:PERMS.map(p=>p[0])},manager:{label:"Property manager",perms:PERMS.map(p=>p[0])},accountant:{label:"Accountant",perms:["payments","invoices","providers","landlords"]},field:{label:"Field officer / caretaker",perms:["readings","tenants"]},viewer:{label:"View only",perms:[]}};
-const NEED={depLL:"invoices",suspReq:"tenants",endProp:"props",endLl:"landlords",revLine:"invoices",utilSmsAll:"readings",utilSms:"readings",llToggle:"invoices",charge:"invoices",smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
+const NEED={rates:"props",depLL:"invoices",suspReq:"tenants",endProp:"props",endLl:"landlords",revLine:"invoices",utilSmsAll:"readings",utilSms:"readings",llToggle:"invoices",charge:"invoices",smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
 let staffLoaded=false;
 function myStaff(){return ME.id?S.staff.find(s=>s.id===ME.id&&s.active!==false)||null:null}
 function can(p){if(ME.admin)return true;const s=ME.staff;if(!s||readOnly)return false;return !p||(s.perms||[]).includes(p)}
@@ -2544,21 +2554,22 @@ async function shareLandlordPDF(pid){
 /* ---------- render & routing ---------- */
 /* ===== SMS (Mspace) — texts are queued in the "sms" collection; the Berlim Homes Google Apps Script sends them ===== */
 const SMS_DEFAULTS={on:false,payMsg:true,utilMsg:true,llMsg:true,remind:true,remindAt:"5, 1",late:true,auto:true,
-  tplPay:"Dear {name}, we have received KES {amount} for House {house} ({code}). Receipt {receipt}. {balanceText}. Thank you. {company}",
-  tplRemind:"Dear {name}, reminder: your rent for {month} is due on {due}. Amount due KES {balance}. Pay via M-Pesa Paybill {paybill}, Account {account}. {company} {phone}",
-  tplLate:"Dear {name}, your balance of KES {balance} for House {house} ({code}) was due on {due} and is now late. Please pay today via Paybill {paybill}, Account {account}. {company} {phone}"};
-const smsCfg=()=>({...SMS_DEFAULTS,...(S.settings.sms||{})});
+  tplPay:"Dear {name}, we have received KES {amount} for House {house} ({code}). Receipt {receipt}. {balanceText} Thank you. {company}",
+  tplRemind:"Dear {name}, reminder: your {month} bill is due on {due}: {items}. Total due KES {balance}. Pay via M-Pesa Paybill {paybill}, Account {account}. {company} {phone}",
+  tplLate:"Dear {name}, your balance of KES {balance} for House {house} ({code}) was due on {due} and is now late ({items}). Please pay today via Paybill {paybill}, Account {account}. {company} {phone}"};
+const SMS_OLD={tplPay:"Dear {name}, we have received KES {amount} for House {house} ({code}). Receipt {receipt}. {balanceText}. Thank you. {company}",tplRemind:"Dear {name}, reminder: your rent for {month} is due on {due}. Amount due KES {balance}. Pay via M-Pesa Paybill {paybill}, Account {account}. {company} {phone}",tplLate:"Dear {name}, your balance of KES {balance} for House {house} ({code}) was due on {due} and is now late. Please pay today via Paybill {paybill}, Account {account}. {company} {phone}"};
+const smsCfg=()=>{const c={...SMS_DEFAULTS,...(S.settings.sms||{})};for(const k in SMS_OLD)if(c[k]===SMS_OLD[k])c[k]=SMS_DEFAULTS[k];return c};
 const smsReady=()=>!!window.FB_BUILD&&mode==="cloud";
 function smsPhone(ph){const n=waNum(ph);return /^254(7|1)\d{8}$/.test(n)?n:""}
 function smsDueDate(p,m){return m+"-"+String(dueDayOf(p)).padStart(2,"0")}
 function smsVars(t,extra){
   const u=get("units",t.unitId)||{},p=propOf(u)||{},C=compute(),b=C.ten[t.id]?C.ten[t.id].balance:0,s=S.settings,m=todayStr.slice(0,7);
   return {name:(t.name||"").split(" ")[0]||t.name||"",fullname:t.name||"",house:unitName(u),code:p.code||"",property:p.name||"",
-    balance:n0(Math.max(0,b)),balanceText:b>0?"Balance KES "+n0(b):b<0?"In credit KES "+n0(-b):"Your account is clear",
+    balance:n0(Math.max(0,b)),balanceText:b>0?"Balance KES "+n0(b)+".":"",items:typeof itemsFor==="function"?itemsFor(t,m):"",
     month:MN[+m.slice(5)-1]+" "+m.slice(0,4),due:fmtDate(smsDueDate(p,m)),paybill:cfg(p).paybill||s.paybill||"",account:acctFor(u),
     company:"Berlim Homes",phone:(s.phone||"").split("/")[0].trim(),...(extra||{})};
 }
-function smsFill(tpl,v){return String(tpl||"").replace(/\{(\w+)\}/g,(m,k)=>v[k]!=null?String(v[k]):m).replace(/\s+/g," ").trim()}
+function smsFill(tpl,v){return String(tpl||"").replace(/\{(\w+)\}/g,(m,k)=>v[k]!=null?String(v[k]):m).replace(/\(\s*\)/g,"").replace(/:\s*\./g,".").replace(/\s+/g," ").replace(/\s+([.,;])/g,"$1").replace(/\.\s*\./g,".").trim()}
 function smsDoc(id,t,text,kind){return {id,to:smsPhone(t.phone),tenantId:t.id,name:t.name,text,kind,status:"queued",createdAt:new Date().toISOString(),by:ME.id||""}}
 async function smsQueue(docs){let n=0;for(const d of docs){if(!d.to)continue;try{await db.collection("sms").doc(d.id).set(JSON.parse(JSON.stringify(d)));n++}catch(e){}}return n}
 
@@ -2584,13 +2595,13 @@ function smsDueList(kind,force){
       if(force)n=at.findIndex((d,i)=>days<=d&&(i===at.length-1||days>at[i+1]))+1||1;
       else{const i=at.findIndex((d,k)=>days<=d&&(k===at.length-1||days>at[k+1]));if(i<0)continue;n=i+1}
       const id="remind"+n+"-"+dm+"-"+t.id;if(get("sms",id))continue;
-      out.push({t,b:amt,id,n,vars:{balance:n0(amt),due:fmtDate(due),month:MN[+dm.slice(5)-1]+" "+dm.slice(0,4)}});
+      out.push({t,b:amt,id,n,vars:{balance:n0(amt),due:fmtDate(due),month:MN[+dm.slice(5)-1]+" "+dm.slice(0,4),items:itemsFor(t,dm)||("Rent "+n0(+((u||{}).rent)||0))}});
     }else{
       if(b<=0)continue;
       const m=todayStr.slice(0,7),due=smsDueOn(p,m),late=dPlus(due,graceOf(p)+1),since=dDiff(todayStr,late);
       if(!force&&!(since>=0&&since<=5))continue;
       const id="late-"+m+"-"+t.id;if(get("sms",id))continue;
-      out.push({t,b,id,vars:{balance:n0(b),due:fmtDate(due)}});
+      out.push({t,b,id,vars:{balance:n0(b),due:fmtDate(due),items:itemsFor(t,m)}});
     }
   }
   return out;
@@ -2641,7 +2652,7 @@ function smsCard(){
     <div class="f full"><label for="sm-tp">Payment received message</label><textarea id="sm-tp" name="tplPay" rows="2">${esc(c.tplPay)}</textarea></div>
     <div class="f full"><label for="sm-tr">Reminder message</label><textarea id="sm-tr" name="tplRemind" rows="2">${esc(c.tplRemind)}</textarea></div>
     <div class="f full"><label for="sm-tl">Late notice message</label><textarea id="sm-tl" name="tplLate" rows="2">${esc(c.tplLate)}</textarea>
-     <span class="hint">Fill-ins: {name} {fullname} {house} {code} {property} {amount} {receipt} {balance} {balanceText} {month} {due} {paybill} {account} {company} {phone}. One SMS is 160 characters; longer texts cost 2.</span></div>
+     <span class="hint">Fill-ins: {name} {fullname} {house} {code} {property} {amount} {receipt} {balance} {balanceText} {items} (each charge this month: rent, water, electricity, service charge, penalties, balance b/f) {month} {due} {paybill} {account} {company} {phone}. Tenants who have paid ahead are only thanked; their credit is not mentioned. One SMS is 160 characters; longer texts cost 2.</span></div>
     <div class="full row"><button class="btn primary" type="submit">Save SMS settings</button><button class="btn" type="button" data-a="smsNotice">Send a notice</button><button class="btn" type="button" data-a="smsCompose">Custom message</button><button class="btn" type="button" data-a="smsRemindNow">Send reminders now</button><span class="hint" id="smsMsg"></span></div>
    </form></div></div>
    <div class="card"><div class="ch"><h2>Texts sent</h2></div><div class="tw">${log.length?`<table><thead><tr><th>When</th><th>Tenant</th><th>Phone</th><th>Type</th><th>Message</th><th>Status</th></tr></thead><tbody>
@@ -2854,7 +2865,7 @@ function formCharge(tid){
    <div class="f full"><div class="tw"><table class="items"><thead><tr><th>Item</th><th>Description</th><th>Qty</th><th>Unit price (KES)</th><th>On landlord report?</th><th class="num">Amount</th><th></th></tr></thead><tbody id="chItems">${itemRow("damage","",1,"")}</tbody>
     <tfoot><tr><td colspan="5"><button type="button" class="btn sm" id="chAdd">+ Add another item</button></td><td class="num"><strong id="chTot">0</strong></td><td></td></tr></tfoot></table></div></div>
    <div class="f full"><label for="ch-n">Note on the invoice (optional)</label><input id="ch-n" name="note" placeholder="e.g. As agreed at move-out inspection on 30 Oct"></div>
-   ${window.FB_BUILD?`<div class="f full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="sms" ${smsCfg().on?"checked":""}> Text the tenant about this invoice (SMS)</label></div>`:""}
+   ${window.FB_BUILD?`<div class="f full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="sms"> Text the tenant this invoice now (SMS)</label></div>`:""}
    <div class="full"><span class="err" id="chErr"></span></div></form>`,
    `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fCh" type="submit">Create invoice</button>`,true);
   const f=document.getElementById("fCh"),pc=document.getElementById("ch-pc"),sel=document.getElementById("ch-t"),body=document.getElementById("chItems");
@@ -2882,7 +2893,7 @@ function formCharge(tid){
     if(!r)return;closeModal();
     if(r==="done"){
       if(d.sms==="on"&&window.FB_BUILD&&smsPhone(t.phone)&&!t.noSms){const u=get("units",t.unitId),items=[...new Set(lines.map(l=>ITEM_LABEL[l.kind].toLowerCase()))].join(", ");
-        await smsQueue([smsDoc("inv-"+obj.id,t,smsFill("Dear {name}, invoice "+obj.no+" for House {house} ({code}): "+items+", KES "+n0(total)+", due "+fmtDate(obj.dueDate)+". Pay via Paybill {paybill}, Account {account}. {company}",smsVars(t)),"Invoice")]);toast("Invoice created and SMS queued")}
+        await smsQueue([smsDoc("inv-"+obj.id,t,invoiceSmsText(get("invoices",obj.id)||obj),"Invoice")]);toast("Invoice created and SMS queued")}
       else toast("Invoice "+obj.no+" created");
       setTimeout(()=>{if(get("invoices",obj.id))showInvoice(obj.id)},300)}};
 }
@@ -2903,7 +2914,7 @@ function rentCheck(m){
       if(st!==lr)iss.push({k:"stmt",txt:`Statement shows ${n0(st)}, landlord report ${n0(lr)}`});
       if(rentInv.length>1&&rentInv.filter(i=>catOf(i)==="rent").length>1)iss.push({k:"dup",txt:`${rentInv.length} rent invoices this month (${rentInv.map(i=>i.no).join(", ")})`});
       if(otherUnit.length)iss.push({k:"unit",txt:`Rent invoice ${otherUnit.map(i=>i.no).join(", ")} is for House ${otherUnit.map(i=>unitName(get("units",i.unitId))).join(", ")}, but the tenant is now in House ${unitName(u)}`});
-      if(lr>0&&set!==lr&&r.t.active)iss.push({k:"set",txt:`House rent setting is ${n0(set)} but ${monthShort(m)} was charged ${n0(lr)}. New invoices will use ${n0(set)}.`,fix:lr});
+      if(lr>0&&set!==lr&&r.t.active&&!((u.changesDone||[]).some(c=>c.field==="rent"&&c.from>m)||(u.sched||[]).some(c=>c.field==="rent")))iss.push({k:"set",txt:`House rent setting is ${n0(set)} but ${monthShort(m)} was charged ${n0(lr)}. New invoices will use ${n0(set)}.`,fix:lr});
       if(iss.length)out.push({P,u,t:r.t,st,lr,set,iss});
     }
     // statement rent for tenants of this property that the landlord report doesn't show
@@ -3069,7 +3080,7 @@ function utilSmsText(b){
   const t=get("tenants",b.tenantId)||{},u=get("units",b.unitId)||{},v=smsVars(t),parts=[];
   for(const l of b.lines||[]){if(l.rev||!(+l.amount))continue;const nm=l.kind==="water"?"Water":l.kind==="elec"?"Electricity":l.kind==="service"?"Service charge":l.desc;
     parts.push(l.open!=null?`${nm} ${n0(l.open)}-${n0(l.close)} = ${n0(l.units)} units x ${n0(l.rate)} = KES ${n0(l.amount)}`:`${nm} KES ${n0(l.amount)}`)}
-  return smsFill(`Dear {name}, your ${MN[+b.month.slice(5)-1]} utility bill for House {house} ({code}): ${parts.join("; ")}. Total KES ${n0(b.total)}, due ${fmtDate(b.dueDate)}. Pay via Paybill {paybill}, Account {account}. {company}`,v);
+  return invoiceSmsText(b);
 }
 const utilSmsId=b=>"util-"+b.id+"-"+Math.round(+b.total||0);
 async function smsUtilBills(bills,force){
@@ -3263,6 +3274,89 @@ document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.c
   const lines=i.lines.map(l=>l.kind==="deposit"?{...l,toLandlord:to}:l);
   if(await submit("invoices",`${i.no}: deposit ${to?"included on":"excluded from"} the landlord report`,[{op:"set",col:"invoices",obj:{...i,lines}}],"invoices")){toast("Deposit "+(to?"included on":"excluded from")+" the landlord report");setTimeout(()=>showInvoice(i.id),200)}});
 
+
+/* ===== full invoice SMS, send-on-request, and scheduled rent / charge changes ===== */
+const netLines=i=>{const ls=(i.lines||[]).filter(l=>!l.rev).map(l=>({...l,amt:(+l.amount||0)-(+l.reversedAmt||0)}));return ls.filter(l=>l.amt!==0)};
+function lineSms(l){const nm=l.kind==="rent"?"Rent":l.kind==="water"?"Water":l.kind==="elec"?"Electricity":l.kind==="service"?"Service charge":l.kind==="garbage"?"Garbage":l.kind==="deposit"?"Deposit":l.kind==="penalty"?"Late payment penalty":l.kind==="bfadj"?"Balance b/f":(l.desc||"").replace(/,.*$/,"");
+  return nm+(l.open!=null?` (${n0(l.open)}-${n0(l.close)}, ${n0(l.units)} units)`:"")+" "+n0(l.amt??l.amount)}
+function priorBal(t,excludeIds){const C=compute(),b=C.ten[t.id]?C.ten[t.id].balance:0;let cur=0;for(const id of excludeIds){const i=get("invoices",id);if(i&&!i.reversed)cur+=+i.total||0}return Math.max(0,Math.round(b-cur))}
+const tenBal=t=>{const c=compute().ten[t.id];return c?Math.max(0,Math.round(c.balance)):0};
+function invoiceSmsText(i){
+  const t=get("tenants",i.tenantId)||{},items=netLines(i).map(lineSms).join("; "),prior=priorBal(t,[i.id]),due=tenBal(t);
+  return smsFill(`Dear {name}, invoice ${i.no} for House {house} ({code}), ${monthLabel(i.month)}: ${items}.${prior?` Previous balance b/f KES ${n0(prior)}.`:""} ${due>0?`Total due KES ${n0(due)} by ${fmtDate(i.dueDate)}.`:"This is covered by your payments, thank you."} Pay via Paybill {paybill}, Account {account}. {company}`,smsVars(t));
+}
+/* this month's charges for a tenant, item by item, plus anything brought forward: used by {items} in reminders */
+function itemsFor(t,m){const invs=S.invoices.filter(i=>i.tenantId===t.id&&i.month===m&&!i.adj&&!i.reversed);const parts=invs.flatMap(netLines).map(lineSms);
+  const prior=priorBal(t,invs.map(i=>i.id));if(prior)parts.push("Balance b/f "+n0(prior));return parts.join("; ")}
+function invSmsState(i){const xs=S.sms.filter(x=>x.id&&(x.id.startsWith("inv-"+i.id)||x.id.startsWith("util-"+i.id))).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));const x=xs[0];if(!x)return "";
+  return x.status==="sent"?`<span class="pill p-good">SMS sent ${fmtDate((x.sentAt||"").slice(0,10))}</span>`:x.status==="failed"?`<span class="pill p-bad">SMS failed</span>`:`<span class="pill">SMS waiting</span>`}
+function sendInvoiceSms(id){const i=get("invoices",id);if(!i)return;const t=get("tenants",i.tenantId)||{};
+  if(!smsPhone(t.phone)){toast("This tenant has no valid phone number");return}const text=invoiceSmsText(i);
+  openModal("Send "+esc(i.no)+" by SMS",`<p style="margin:0 0 8px">To <strong>${esc(t.name)}</strong> · ${esc(t.phone)}</p><textarea id="isTxt" rows="5" style="width:100%;font:14px var(--body);padding:10px;border:1px solid var(--line);border-radius:10px">${esc(text)}</textarea><p class="hint" id="isLen">${text.length} characters${text.length>160?" ("+Math.ceil(text.length/153)+" SMS)":""}</p>`,
+   `<button class="btn" data-a="close">Cancel</button><button class="btn primary" id="isGo">Send SMS</button>`);
+  const ta=document.getElementById("isTxt");ta.oninput=()=>{const n=ta.value.length;document.getElementById("isLen").textContent=n+" characters"+(n>160?" ("+Math.ceil(n/153)+" SMS)":"")};
+  document.getElementById("isGo").onclick=async()=>{const n=await smsQueue([smsDoc("inv-"+i.id+"-"+Date.now().toString(36),t,ta.value.trim(),"Invoice")]);closeModal();toast(n?"SMS queued; it goes out within a minute":"Couldn't queue the SMS");setTimeout(()=>showInvoice(id),200)}}
+
+/* ---------- scheduled changes to rent, service charge and utilities ---------- */
+const CHG_FIELDS=[["rent","Rent","unit"],["serviceFixed","Service charge (per house)","unit"],["waterFixed","Water, fixed amount (per house)","unit"],["elecFixed","Electricity, fixed amount (per house)","unit"],["garbage","Garbage (whole property)","prop"],["waterFlat","Water flat rate (whole property)","prop"],["waterRate","Water rate per unit (whole property)","prop"],["elecRate","Electricity rate per unit (whole property)","prop"]];
+const CHG_LABEL=Object.fromEntries(CHG_FIELDS.map(([k,l])=>[k,l.replace(/ \(.*\)/,"").toLowerCase()]));
+function valAt(o,f,m){let v=o?o[f]:undefined;const ch=((o&&o.sched)||[]).filter(c=>c.field===f&&c.from<=m).sort((a,b)=>a.from.localeCompare(b.from));if(ch.length)v=ch[ch.length-1].amount;return v}
+function withMonth(o,m){if(!o||!(o.sched||[]).length)return o;const x={...o};for(const c of o.sched)if(c.from<=m)x[c.field]=valAt(o,c.field,m);return x}
+function curVal(u,P,f){const prop=CHG_FIELDS.find(x=>x[0]===f)[2]==="prop";const o=prop?P:u;let v=o?o[f]:"";if(f==="serviceFixed"&&(v===""||v==null))v=cfg(P).serviceCharge;return +v||0}
+function formRates(pid,oneU){
+  const P=get("properties",pid);if(!P)return;const us=S.units.filter(u=>u.propertyId===pid).sort(sortUnits);
+  openModal("Change rent or charges: "+esc(P.code+" "+P.name),`<form id="fRt" class="fg">
+   <div class="f"><label for="rt-f">What changes</label><select id="rt-f" name="field">${CHG_FIELDS.map(([k,l])=>`<option value="${k}">${l}</option>`).join("")}</select></div>
+   <div class="f"><label for="rt-how">How</label><select id="rt-how" name="how"><option value="set">Set a new amount</option><option value="add">Increase by KES</option><option value="pct">Increase by %</option><option value="sub">Reduce by KES</option></select></div>
+   <div class="f"><label for="rt-v">Amount</label><input id="rt-v" name="v" type="number" min="0" step="any" required placeholder="e.g. 500 or 10%"></div>
+   <div class="f"><label for="rt-from">From (first month billed at the new amount)</label><input id="rt-from" name="from" type="month" required value="${monthAdd(todayStr.slice(0,7),1)}"></div>
+   <div class="f full" id="rt-hs"><label>Houses</label><div class="row" style="gap:6px;flex-wrap:wrap">${us.map(u=>{const t=activeTenantOf(u.id);return `<label class="ck" style="border:1px solid var(--line);border-radius:8px;padding:4px 8px"><input type="checkbox" name="u" value="${u.id}" ${!oneU||oneU===u.id?"checked":""}> ${esc(u.label)}${t?` <span class="sub" style="display:inline">${esc(t.name.split(" ")[0])}</span>`:' <span class="sub" style="display:inline">vacant</span>'}</label>`}).join("")}</div>
+    <div class="row" style="margin-top:6px"><button type="button" class="link" id="rtAll">All houses</button> · <button type="button" class="link" id="rtNone">None</button></div></div>
+   <div class="f full"><div class="tw"><table><thead><tr><th>House</th><th>Tenant</th><th class="num">Now</th><th class="num">From <span id="rt-fm"></span></th></tr></thead><tbody id="rtPrev"></tbody></table></div></div>
+   ${window.FB_BUILD?`<div class="f full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="sms" checked> Text the affected tenants about the change</label>
+   <textarea name="tpl" rows="3" style="width:100%;font:14px var(--body);padding:10px;border:1px solid var(--line);border-radius:10px;margin-top:6px">Dear {name}, please note that from {from} your {what} for House {house} ({code}) will change from KES {old} to KES {new}. For any questions call {phone}. {company}</textarea>
+   <span class="hint">Fill-ins: {name} {house} {code} {what} {old} {new} {from} {phone} {company}</span></div>`:""}
+   <div class="err full" id="rtErr"></div></form>`,
+   `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fRt" type="submit">Schedule the change</button>`,true);
+  const f=document.getElementById("fRt");
+  const calc=()=>{const d=new FormData(f),fld=d.get("field"),how=d.get("how"),v=+d.get("v")||0,prop=CHG_FIELDS.find(x=>x[0]===fld)[2]==="prop";
+    document.getElementById("rt-hs").style.display=prop?"none":"";document.getElementById("rt-fm").textContent=d.get("from")?monthShort(d.get("from")):"";
+    const sel=prop?us.map(u=>u.id):d.getAll("u");const rows=us.filter(u=>sel.includes(u.id)).map(u=>{const old=curVal(u,P,fld);let nw=how==="set"?v:how==="add"?old+v:how==="sub"?Math.max(0,old-v):Math.round(old*(1+v/100)/10)*10;return {u,t:activeTenantOf(u.id),old,nw}});
+    document.getElementById("rtPrev").innerHTML=(prop?[{u:{label:"All houses"},t:null,old:curVal(null,P,fld),nw:rows.length?(how==="set"?v:how==="add"?curVal(null,P,fld)+v:how==="sub"?Math.max(0,curVal(null,P,fld)-v):Math.round(curVal(null,P,fld)*(1+v/100)*100)/100):0}]:rows).map(r=>`<tr><td><strong>${esc(r.u.label)}</strong></td><td>${r.t?esc(r.t.name):prop?`${S.tenants.filter(t=>t.active&&us.some(u=>u.id===t.unitId)).length} tenants`:'<span class="sub">vacant</span>'}</td><td class="num">${n0(r.old)}</td><td class="num"><strong>${n0(r.nw)}</strong></td></tr>`).join("")||`<tr><td colspan="4" class="empty">Choose at least one house.</td></tr>`;
+    return {fld,prop,rows,from:d.get("from"),v,how}};
+  f.addEventListener("input",calc);f.addEventListener("change",calc);calc();
+  document.getElementById("rtAll").onclick=()=>{f.querySelectorAll('input[name=u]').forEach(c=>c.checked=true);calc()};document.getElementById("rtNone").onclick=()=>{f.querySelectorAll('input[name=u]').forEach(c=>c.checked=false);calc()};
+  f.onsubmit=async e=>{e.preventDefault();const err=document.getElementById("rtErr");const c=calc(),d=new FormData(f);
+    if(!c.from){err.textContent="Choose the month the change starts.";return}if(c.from<todayStr.slice(0,7)){err.textContent="Choose this month or a later one; months that have ended are not changed.";return}
+    if(!c.v&&d.get("how")!=="set"){err.textContent="Enter the amount.";return}if(!c.prop&&!c.rows.length){err.textContent="Choose at least one house.";return}
+    const stamp={at:new Date().toISOString(),by:ME.id||""},ops=[],notes=[];
+    if(c.prop){const old=curVal(null,P,c.fld),nw=c.how==="set"?c.v:c.how==="add"?old+c.v:c.how==="sub"?Math.max(0,old-c.v):Math.round(old*(1+c.v/100)*100)/100;
+      ops.push({op:"set",col:"properties",obj:{...P,sched:[...(P.sched||[]).filter(x=>!(x.field===c.fld&&x.from===c.from)),{id:uid(),field:c.fld,amount:nw,from:c.from,old,...stamp}]}});
+      S.tenants.filter(t=>t.active&&us.some(u=>u.id===t.unitId)).forEach(t=>notes.push({t,u:get("units",t.unitId),old,nw}))}
+    else for(const r of c.rows){if(r.nw===r.old)continue;ops.push({op:"set",col:"units",obj:{...r.u,sched:[...(r.u.sched||[]).filter(x=>!(x.field===c.fld&&x.from===c.from)),{id:uid(),field:c.fld,amount:r.nw,from:c.from,old:r.old,...stamp}]}});if(r.t)notes.push({t:r.t,u:r.u,old:r.old,nw:r.nw})}
+    if(!ops.length){err.textContent="Nothing changes: the new amounts equal the current ones.";return}
+    const ok=await submit(c.prop?"properties":"units",`${CHG_FIELDS.find(x=>x[0]===c.fld)[1]} change from ${monthLabel(c.from)} (${P.code}, ${ops.length} ${c.prop?"property":"house"+(ops.length>1?"s":"")})`,ops,"props");
+    if(!ok)return;let n=0;
+    if(d.get("sms")==="on"&&window.FB_BUILD){const tpl=String(d.get("tpl")||"");n=await smsQueue(notes.filter(x=>smsPhone(x.t.phone)&&!x.t.noSms).map((x,k)=>smsDoc("chg-"+uid()+"-"+k,x.t,smsFill(tpl,smsVars(x.t,{what:CHG_LABEL[c.fld],old:n0(x.old),new:n0(x.nw),from:"1 "+monthLabel(c.from),house:unitName(x.u)})),"Rent / charge change")))}
+    closeModal();toast(`Change scheduled from ${monthLabel(c.from)}${n?", "+n+" tenant"+(n>1?"s":"")+" texted":""}`)};
+}
+function schedHTML(P){const us=S.units.filter(u=>u.propertyId===P.id),now=todayStr.slice(0,7);
+  const items=[...(P.sched||[]).map(c=>({c,o:P,lab:"All houses"})),...us.flatMap(u=>(u.sched||[]).map(c=>({c,o:u,lab:"House "+u.label})))].filter(x=>x.c.from>=now).sort((a,b)=>a.c.from.localeCompare(b.c.from));
+  if(!items.length)return "";
+  return `<div style="padding:8px 16px;border-top:1px solid var(--line);font-size:13px"><strong>Upcoming changes:</strong> ${items.map(x=>`${esc(x.lab)}: ${esc(CHG_LABEL[x.c.field])} ${n0(x.c.old)} → <strong>${n0(x.c.amount)}</strong> from ${monthShort(x.c.from)}${can("props")?` <button class="link" data-a="schedDel" data-id="${x.o.id}" data-c="${x.c.id}" title="Cancel this change">✕</button>`:""}`).join(" · ")}</div>`}
+/* once a change's month arrives, write it into the house / property so every screen shows the new amount */
+let schedApplied=false;
+async function applyDueChanges(){
+  if(schedApplied||mode!=="cloud"||!(ME.admin||can("props")))return;schedApplied=true;const now=todayStr.slice(0,7);
+  for(const col of ["units","properties"])for(const o of S[col]){const due=(o.sched||[]).filter(c=>c.from<=now);if(!due.length)continue;
+    const x={...o};due.sort((a,b)=>a.from.localeCompare(b.from)).forEach(c=>x[c.field]=c.amount);x.sched=(o.sched||[]).filter(c=>c.from>now);x.changesDone=[...(o.changesDone||[]),...due];
+    await save(col,x)}}
+document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;
+  if(a==="rates"){e.preventDefault();formRates(b.dataset.prop,b.dataset.id)}
+  else if(a==="invSms"){e.preventDefault();sendInvoiceSms(b.dataset.id)}
+  else if(a==="schedDel"){e.preventDefault();const o=get("units",b.dataset.id)||get("properties",b.dataset.id);if(!o)return;const col=get("units",o.id)?"units":"properties";
+    askConfirm("Cancel this scheduled change?","Cancel change",async()=>{await submit(col,"Cancel scheduled change",[{op:"set",col,obj:{...o,sched:(o.sched||[]).filter(c=>c.id!==b.dataset.c)}}],"props")})}});
+
 const VIEWS={mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
 let _rq=null;function queueRender(){if(_rq)return;_rq=setTimeout(()=>{_rq=null;render()},mode==="cloud"?40:0)}
@@ -3329,7 +3423,7 @@ loadImportFile();
   await identify(user);
   const slow=setTimeout(()=>setStatus("demo","Records may be out of date, still connecting"),10000);
   const fresh=new Set();
-  const settle=()=>{if(fresh.size>=COLS.length+1){clearTimeout(slow);setStatus("ok",readOnly?"Saved records, view only":"Saved records, synced");setTimeout(autoHistory,1500);setTimeout(()=>smsAuto().catch(()=>{}),4000)}};
+  const settle=()=>{if(fresh.size>=COLS.length+1){clearTimeout(slow);setStatus("ok",readOnly?"Saved records, view only":"Saved records, synced");setTimeout(autoHistory,1500);setTimeout(()=>smsAuto().catch(()=>{}),4000);setTimeout(()=>applyDueChanges().catch(()=>{}),2500)}};
   COLS.forEach(col=>{db.collection(col).onSnapshot(snap=>{S[col]=snap.docs.map(d=>({...d.data(),id:d.id}));DV++;if(col==="staff")staffLoaded=true;if(!snap.metadata.fromCache){fresh.add(col);settle()}queueRender()},
     err=>{if(col==="staff"){staffLoaded=true;render()}clearTimeout(slow);setStatus("demo","Could not load "+col);fresh.add(col)})});
   if(ME.admin){try{db.collection("expenses").onSnapshot(s=>{S.expenses=s.docs.map(d=>({...d.data(),id:d.id}));DV++;queueRender()},()=>{})}catch(e){}}
