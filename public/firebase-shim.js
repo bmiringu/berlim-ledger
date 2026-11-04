@@ -2,7 +2,7 @@
    It gives the ledger the same small interface it used inside Claude, so the ledger code itself is unchanged. */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, createUserWithEmailAndPassword, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getDoc, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, memoryLocalCache, terminate, clearIndexedDbPersistence, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getDoc, getDocFromCache, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import * as CFG from "./config.js";
 const { FIREBASE_CONFIG, ADMIN_EMAILS, STORAGE_ON } = CFG;
@@ -22,7 +22,10 @@ const app = initializeApp(FIREBASE_CONFIG);
 const auth = getAuth(app);
 /* security: a login lasts only while the browser is open (closing it signs out) */
 const persistReady = setPersistence(auth, browserSessionPersistence).catch(() => {});
-const fs = FIRESTORE_DB === "(default)" ? getFirestore(app) : getFirestore(app, FIRESTORE_DB), st = STORAGE_ON ? getStorage(app) : null;
+/* speed on phones: keep a copy of the records on this device (opens instantly next time, only changes are downloaded)
+   and fall back to a slower but steadier connection on networks that block streaming. The copy is wiped on sign-out. */
+const fsOpts = { experimentalAutoDetectLongPolling: true, localCache: (() => { try { return persistentLocalCache({ tabManager: persistentMultipleTabManager() }); } catch (e) { return memoryLocalCache(); } })() };
+const fs = (() => { try { return FIRESTORE_DB === "(default)" ? initializeFirestore(app, fsOpts) : initializeFirestore(app, fsOpts, FIRESTORE_DB); } catch (e) { return FIRESTORE_DB === "(default)" ? getFirestore(app) : getFirestore(app, FIRESTORE_DB); } })(), st = STORAGE_ON ? getStorage(app) : null;
 const adminList = ADMIN_EMAILS.map(e => e.toLowerCase());
 const mapErr = e => { const c = (e && e.code) || ""; const x = new Error(e && e.message || c); x.code = c === "permission-denied" ? "invalid_argument" : c.includes("quota") || c === "resource-exhausted" ? "quota_exceeded" : c; throw x; };
 const wrapQ = s => ({ docs: s.docs.map(d => ({ id: d.id, data: () => d.data() })), metadata: { fromCache: s.metadata.fromCache } });
@@ -156,6 +159,8 @@ async function secureSignOut(reason) {
   // hide the records at once, then sign out and reload so nothing stays in memory
   document.body.classList.add("fb-locked"); hideWarn();
   try { await signOut(auth); } catch (e) {}
+  // remove the copy of the records kept on this device
+  try { await terminate(fs); await clearIndexedDbPersistence(fs); } catch (e) {}
   location.reload();
 }
 function checkIdle() {
@@ -192,11 +197,14 @@ onAuthStateChanged(auth, async u => {
   const email = (u.email || "").toLowerCase();
   let staff = null;
   const slow = setTimeout(() => { showLogin(true); say("Can't reach the records database. Check your internet, then reload the page.", true); }, 20000);
-  try { const d = await getDoc(doc(fs, "staff", u.uid)); staff = d.exists() ? d.data() : null; } catch (e) { staff = null; }
+  // on a slow phone connection, use this device's saved copy of the team list after 5 seconds instead of waiting
+  const sref = doc(fs, "staff", u.uid);
+  const viaCache = new Promise(res => setTimeout(() => getDocFromCache(sref).then(res, () => {}), 5000));
+  try { const d = await Promise.race([getDoc(sref), viaCache]); staff = d && d.exists() ? d.data() : null; } catch (e) { staff = null; }
   clearTimeout(slow);
   const isAdmin = adminList.includes(email) || (!!staff && staff.active !== false && staff.role === "admin");
   const active = !!staff && staff.active !== false;
-  try { await setDoc(doc(fs, "people", u.uid), { email: u.email, name: (staff && staff.label) || u.displayName || "", lastLogin: new Date().toISOString() }, { merge: true }); } catch (e) {}
+  setDoc(doc(fs, "people", u.uid), { email: u.email, name: (staff && staff.label) || u.displayName || "", lastLogin: new Date().toISOString() }, { merge: true }).catch(() => {});
   watchPeople();
   showLogin(false);
   const bar = $("fbUser"); bar.hidden = false; $("fbWho").textContent = (staff && staff.label) || u.email;

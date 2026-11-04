@@ -170,6 +170,7 @@ table.stmt td{font-size:13px}
 @media (prefers-reduced-motion:no-preference){.toast{animation:up .2s ease-out}@keyframes up{from{transform:translate(-50%,8px)}}}
 .items input,.items select{width:100%;font:14px var(--body);padding:7px 8px;border:1px solid var(--line);border-radius:8px}.items td{vertical-align:middle}.items .it-x{color:var(--bad);font-size:15px}.items .it-k{min-width:150px}.items .it-ll{min-width:150px}.items .it-d{min-width:160px}
 .incgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.inc{background:#F7F3EA;border:1px solid var(--line);border-radius:12px;padding:12px 14px}.inc .k{display:block;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}.inc b{display:block;font:600 22px var(--display);color:var(--navy);margin:4px 0 2px}.inc .s{font-size:12px;color:var(--muted)}.inc.big{background:var(--navy);border-color:var(--navy)}.inc.big .k,.inc.big .s{color:#C9D0DE}.inc.big b{color:#F3E6C6;font-size:26px}
+#readTbl input.cell.ro{background:#F4EFE3;color:#56607A}#readTbl .link[data-a=editOpen]{margin-left:4px;font-size:14px}
 </style>
 <style id="modern">
 /* refreshed look: deeper navy masthead with a gold rule, floating icon tabs, rounded cards with soft shadows */
@@ -584,6 +585,7 @@ const COLS=["properties","units","tenants","readings","invoices","payments","pro
 const DEFAULT_SETTINGS={company:"Berlim Homes Limited",phone:"0791 025 078 / 0731 220 221",email:"info@berlimhomes.com",website:"www.berlimhomes.com",address:"Nairoview Plaza, 1st Floor, Room 205, Ruiru",preparedBy:"",
   paybill:"222111",accPrefix:"2371748#",waterRate:150,elecRate:0,garbage:300,serviceCharge:0,dueDay:5,penaltyPct:10,llPayDay:10,llPayWhen:"same"};
 const S={settings:{...DEFAULT_SETTINGS},properties:[],units:[],tenants:[],readings:[],invoices:[],payments:[],providers:[],pbills:[],ppays:[],approvals:[],staff:[],accessRequests:[],remits:[],ldeds:[],linvoices:[],landlords:[],lreports:[]};
+let DV=0;
 let mode="loading", db=null, downloads=null, mcp=null, readOnly=false, assets=null, USER=null;
 const ME={id:null,admin:true,staff:null,email:"",name:"",ready:false};
 const blobUrl=id=>/^https?:/.test(String(id||""))?String(id):"/_blob/"+id;
@@ -635,11 +637,16 @@ function toast(msg){const t=document.createElement("div");t.className="toast";t.
 
 /* ---------- ledger maths: payments settle the oldest invoice first ---------- */
 const invAmt=i=>i.reversed?0:(+i.total||0);
+let _cmp={k:null,v:null};
 function compute(){
-  const inv={},ten={};
+  const k=[S.invoices,S.payments,S.tenants,S.invoices.length,S.payments.length,S.tenants.length,DV];
+  if(_cmp.k&&k.every((x,i)=>x===_cmp.k[i]))return _cmp.v;
+  const inv={},ten={},byT={},payT={};
+  for(const i of S.invoices)(byT[i.tenantId]||(byT[i.tenantId]=[])).push(i);
+  for(const p of S.payments)payT[p.tenantId]=(payT[p.tenantId]||0)+(+p.amount||0);
   for(const t of S.tenants){
-    const invs=S.invoices.filter(i=>i.tenantId===t.id).sort((a,b)=>a.month.localeCompare(b.month));
-    const paidTotal=S.payments.filter(p=>p.tenantId===t.id).reduce((s,p)=>s+(+p.amount||0),0);
+    const invs=(byT[t.id]||[]).slice().sort((a,b)=>a.month.localeCompare(b.month));
+    const paidTotal=payT[t.id]||0;
     let pool=paidTotal,billed=0;
     for(const i of invs){
       const amt=invAmt(i);billed+=amt;const paid=Math.min(pool,amt);pool-=paid;const bal=amt-paid;
@@ -649,7 +656,7 @@ function compute(){
     }
     ten[t.id]={billed,paid:paidTotal,balance:billed-paidTotal};
   }
-  return {inv,ten};
+  _cmp={k,v:{inv,ten}};return _cmp.v;
 }
 function pill(st){const c={Paid:"p-good",Partial:"p-warn",Unpaid:"p-mute",Overdue:"p-bad",Occupied:"p-good",Vacant:"p-warn","Moved out":"p-mute",Credit:"p-good",Clear:"p-good",Arrears:"p-bad",Reversed:"p-mute"}[st]||"p-mute";return `<span class="pill ${c}">${esc(st)}</span>`}
 
@@ -687,7 +694,7 @@ function makeInvoices(t,m,only){
     const id=m+"_"+t.id+info.suf,ex=get("invoices",id);
     if(ex&&(ex.reversed||ex.locked)){out.push(ex);continue}
     if(ex&&(m<todayStr.slice(0,7)||((lrep(p.id,m)||{}).sentAt))){out.push(ex);continue}
-    const keep=ex&&cat==="rent"?ex.lines.filter(l=>l.kind==="penalty"||l.kind==="manual"):[];
+    const keep=ex?ex.lines.filter(l=>l.rev||(cat==="rent"&&(l.kind==="penalty"||l.kind==="manual"))):[];
     const lines=[...all.filter(l=>(CAT_OF[l.kind]||"rent")===cat),...keep];
     if(!lines.length&&!ex)continue;
     out.push({id,cat,no:ex?ex.no:nextNo(info.pre),tenantId:t.id,unitId:t.unitId,month:m,issueDate:ex?ex.issueDate:(m+"-01"),dueDate:dueDateFor(m,p),lines,total:lines.reduce((s,l)=>s+(+l.amount||0),0)});
@@ -734,6 +741,7 @@ const BASE_LABEL={rent:"rent (capped at amount collected)",billed:"rent and util
 
 /* ---------- storage (db when granted; in-browser demo otherwise) ---------- */
 async function save(col,obj){
+  DV++;
   if(readOnly){toast("You have view-only access to these records.");return false}
   if(mode==="cloud"){
     try{await db.collection(col).doc(obj.id).set(JSON.parse(JSON.stringify(obj)));return true}
@@ -750,6 +758,7 @@ async function saveSettings(obj){
   S.settings=obj;render();return true;
 }
 async function remove(col,id){
+  DV++;
   if(mode==="cloud"){try{await db.collection(col).doc(id).delete();return true}catch(e){toast("Could not delete just now.");return false}}
   S[col]=S[col].filter(x=>x.id!==id);render();return true;
 }
@@ -895,8 +904,9 @@ function vUtilities(){
   const rows=units.map(u=>{const r=reading(month,u.id),rp=reading(prev,u.id),t=activeTenantOf(u.id);
     const wPrev=r&&num(r.wPrev)?r.wPrev:(rp&&num(rp.wCurr)?rp.wCurr:(u.wStart||0)),ePrev=r&&num(r.ePrev)?r.ePrev:(rp&&num(rp.eCurr)?rp.eCurr:(u.eStart||0));
     const inv=get("invoices",month+"_"+t.id+"_U");
-    return {u,t,wPrev,wCurr:r&&num(r.wCurr)?r.wCurr:"",ePrev,eCurr:r&&num(r.eCurr)?r.eCurr:"",inv}});
-  const cell=(v,f,uid,lab)=>`<td class="num"><input class="cell" type="number" min="0" step="any" data-f="${f}" id="${f}-${uid}" aria-label="${lab}" value="${esc(v)}" placeholder="—"></td>`;
+    const wLock=!(r&&r.wPrevManual)&&rp&&num(rp.wCurr),eLock=!(r&&r.ePrevManual)&&rp&&num(rp.eCurr);
+    return {u,t,wPrev,wCurr:r&&num(r.wCurr)?r.wCurr:"",ePrev,eCurr:r&&num(r.eCurr)?r.eCurr:"",inv,wLock,eLock}});
+  const cell=(v,f,uid,lab,lock)=>`<td class="num" style="white-space:nowrap"><input class="cell${lock?" ro":""}" type="number" min="0" step="any" data-f="${f}" id="${f}-${uid}" aria-label="${lab}" value="${esc(v)}" placeholder="—"${lock?" readonly":""}>${lock?`<button type="button" class="link" data-a="editOpen" data-id="${f}-${uid}" title="Correct the opening reading" aria-label="Edit opening reading">✎</button>`:""}</td>`;
   const calc=(o,c,rate)=>num(c)?[Math.max(0,c-o),Math.round(Math.max(0,c-o)*rate)]:["",""];
   return head+`
   <div class="card"><div class="ch"><h2><span class="code">${esc(P.code)}</span> ${esc(P.name)}: rates</h2></div><div class="cb row" style="align-items:flex-end">
@@ -904,16 +914,16 @@ function vUtilities(){
     <div class="f"><label for="rate-e">Electricity rate (KES per unit)</label><input id="rate-e" class="inline" type="number" min="0" step="any" value="${esc(p.elecRate||0)}"></div>
     <button class="btn" data-a="saveRates" data-id="${P.id}">Save rates</button>
     <span class="hint" style="flex:1;min-width:220px">Houses without a reading keep their fixed monthly water or electricity amount, if they have one.</span></div></div>
-  <div class="card"><div class="ch"><h2>Meter readings</h2><button class="btn primary" data-a="saveRead">Save readings and update bills</button></div><div class="tw">${rows.length?`<table id="readTbl" class="read"><thead>
+  <div class="card"><div class="ch"><h2>Meter readings</h2><div class="row">${window.FB_BUILD?`<button class="btn" data-a="utilSmsAll">Text all bills not yet sent</button>`:""}<button class="btn primary" data-a="saveRead">Save readings and update bills</button></div></div><div class="tw">${rows.length?`<table id="readTbl" class="read"><thead>
     <tr><th rowspan="2">House</th><th rowspan="2">Tenant</th><th colspan="5" class="grp-h">Water</th><th colspan="5" class="grp-h">Electricity</th><th rowspan="2">Meter photos</th><th rowspan="2">Utility bill</th><th rowspan="2"></th></tr>
     <tr><th class="num">Opening</th><th class="num">Closing</th><th class="num">Units</th><th class="num">Rate</th><th class="num">Amount</th><th class="num">Opening</th><th class="num">Closing</th><th class="num">Units</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead><tbody>
   ${rows.map(x=>{const [wu,wa]=calc(+x.wPrev,x.wCurr===""?"":+x.wCurr,+p.waterRate||0),[eu,ea]=calc(+x.ePrev,x.eCurr===""?"":+x.eCurr,+p.elecRate||0);
    return `<tr data-unit="${x.u.id}" data-wr="${+p.waterRate||0}" data-er="${+p.elecRate||0}"><td><strong>${esc(x.u.label)}</strong></td><td>${esc(x.t.name)}</td>
-   ${cell(x.wPrev,"wPrev",x.u.id,"Water opening "+x.u.label)}${cell(x.wCurr,"wCurr",x.u.id,"Water closing "+x.u.label)}<td class="num" data-o="wu">${wu===""?"":n0(wu)}</td><td class="num">${n0(p.waterRate||0)}</td><td class="num" data-o="wa">${wa===""?"":n0(wa)}</td>
-   ${cell(x.ePrev,"ePrev",x.u.id,"Electricity opening "+x.u.label)}${cell(x.eCurr,"eCurr",x.u.id,"Electricity closing "+x.u.label)}<td class="num" data-o="eu">${eu===""?"":n0(eu)}</td><td class="num">${n0(p.elecRate||0)}</td><td class="num" data-o="ea">${ea===""?"":n0(ea)}</td>
+   ${cell(x.wPrev,"wPrev",x.u.id,"Water opening "+x.u.label,x.wLock)}${cell(x.wCurr,"wCurr",x.u.id,"Water closing "+x.u.label)}<td class="num" data-o="wu">${wu===""?"":n0(wu)}</td><td class="num">${n0(p.waterRate||0)}</td><td class="num" data-o="wa">${wa===""?"":n0(wa)}</td>
+   ${cell(x.ePrev,"ePrev",x.u.id,"Electricity opening "+x.u.label,x.eLock)}${cell(x.eCurr,"eCurr",x.u.id,"Electricity closing "+x.u.label)}<td class="num" data-o="eu">${eu===""?"":n0(eu)}</td><td class="num">${n0(p.elecRate||0)}</td><td class="num" data-o="ea">${ea===""?"":n0(ea)}</td>
    <td class="ph">${photoCell(x.u.id)}</td>
-   <td>${x.inv?`<button class="link" data-a="inv" data-id="${x.inv.id}">${esc(x.inv.no)}</button><span class="sub">KES ${n0(invAmt(x.inv))}</span>`:`<span class="sub">Not billed yet</span>`}</td>
-   <td class="num"><button class="btn sm" data-a="utilStmt" data-id="${x.t.id}">Utility statement</button></td></tr>`}).join("")}
+   <td>${x.inv?`<button class="link" data-a="inv" data-id="${x.inv.id}">${esc(x.inv.no)}</button><span class="sub">KES ${n0(invAmt(x.inv))}</span>${x.inv.reversed?'<span class="pill p-mute">Reversed</span>':window.FB_BUILD?utilSmsState(x.inv):""}`:`<span class="sub">Not billed yet</span>`}</td>
+   <td class="num" style="white-space:nowrap">${x.inv&&!x.inv.reversed&&window.FB_BUILD?`<button class="btn sm" data-a="utilSms" data-id="${x.inv.id}">Text bill</button> `:""}${x.inv&&can("invoices")?(x.inv.reversed?`<button class="btn sm" data-a="restoreInv" data-id="${x.inv.id}">Restore</button> `:`<button class="btn sm danger" data-a="reverseInv" data-id="${x.inv.id}">Reverse</button> `):""}<button class="btn sm" data-a="utilStmt" data-id="${x.t.id}">Utility statement</button></td></tr>`}).join("")}
   </tbody></table>`:`<div class="empty">No let houses in ${esc(P.code)}.</div>`}</div></div>`;
 }
 async function saveUtilRates(pid){const P=get("properties",pid);if(!P)return;const w=+document.getElementById("rate-w").value||0,e=+document.getElementById("rate-e").value||0;
@@ -949,7 +959,7 @@ function vInvoices(){
   ${codeChips()}
   <div class="card"><div class="tw">${list.length?`<table><thead><tr><th>Invoice no.</th><th>Type</th><th>Code</th><th>House</th><th>Tenant</th><th>Due</th><th class="num">Amount</th><th class="num">Paid</th><th class="num">Balance</th><th>Status</th><th></th></tr></thead><tbody>
   ${list.map(i=>{const t=get("tenants",i.tenantId),u=get("units",i.unitId),c=C.inv[i.id]||{paid:0,bal:i.total,status:"Unpaid"};
-  return `<tr><td><button class="link" data-a="inv" data-id="${i.id}">${esc(i.no)}</button></td><td>${esc(CATS[catOf(i)].short)}</td><td><span class="code">${esc((propOf(u)||{}).code||"")}</span></td><td><strong>${esc(unitName(u))}</strong></td><td>${esc(t?t.name:"?")}</td><td>${fmtDate(i.dueDate)}</td><td class="num">${n0(i.total)}</td><td class="num">${n0(c.paid)}</td><td class="num"><strong>${n0(c.bal)}</strong></td><td>${pill(c.status)}</td><td class="num"><button class="btn sm" data-a="inv" data-id="${i.id}">View</button></td></tr>`}).join("")}
+  return `<tr><td><button class="link" data-a="inv" data-id="${i.id}">${esc(i.no)}</button></td><td>${esc(CATS[catOf(i)].short)}</td><td><span class="code">${esc((propOf(u)||{}).code||"")}</span></td><td><strong>${esc(unitName(u))}</strong></td><td>${esc(t?t.name:"?")}</td><td>${fmtDate(i.dueDate)}</td><td class="num">${n0(i.total)}</td><td class="num">${n0(c.paid)}</td><td class="num"><strong>${n0(c.bal)}</strong></td><td>${pill(c.status)}</td><td class="num" style="white-space:nowrap"><button class="btn sm" data-a="inv" data-id="${i.id}">View</button>${can("invoices")?(i.reversed?` <button class="btn sm" data-a="restoreInv" data-id="${i.id}">Restore</button>`:` <button class="btn sm danger" data-a="reverseInv" data-id="${i.id}">Reverse</button>`):""}</td></tr>`}).join("")}
   </tbody><tfoot><tr><td colspan="6">${list.length} invoices</td><td class="num">${n0(tot)}</td><td class="num">${n0(paid)}</td><td class="num">${n0(tot-paid)}</td><td colspan="2"></td></tr></tfoot></table>`:`<div class="empty">No invoices for ${monthLabel(month)} yet. Press Generate to bill every active tenant.</div>`}</div></div>`;
 }
 
@@ -1256,7 +1266,7 @@ function formEditPay(id){
 }
 function showInvoice(id){
   const i=get("invoices",id);if(!i)return;
-  openModal(CATS[catOf(i)].title+" "+esc(i.no),invoiceHTML(i),`<a class="btn" href="${waLink((get("tenants",i.tenantId)||{}).phone,invoiceText(i))}" target="_blank" rel="noopener">Send on WhatsApp</a><button class="btn" id="cpTxt">Copy text</button>${downloads?`<button class="btn" id="dlInv">Download for printing</button>`:""}${!can("invoices")?"":i.reversed?`<button class="btn" data-a="restoreInv" data-id="${i.id}">Restore invoice</button>`:`<button class="btn danger" data-a="reverseInv" data-id="${i.id}">Reverse invoice</button>`}${can("payments")?`<button class="btn primary" data-a="pay" data-id="${i.tenantId}">Record payment</button>`:""}`,true);
+  openModal(CATS[catOf(i)].title+" "+esc(i.no),invoiceHTML(i)+lineRevHTML(i),`<a class="btn" href="${waLink((get("tenants",i.tenantId)||{}).phone,invoiceText(i))}" target="_blank" rel="noopener">Send on WhatsApp</a><button class="btn" id="cpTxt">Copy text</button>${downloads?`<button class="btn" id="dlInv">Download for printing</button>`:""}${!can("invoices")?"":i.reversed?`<button class="btn" data-a="restoreInv" data-id="${i.id}">Restore invoice</button>`:`<button class="btn danger" data-a="reverseInv" data-id="${i.id}">Reverse invoice</button>`}${can("payments")?`<button class="btn primary" data-a="pay" data-id="${i.tenantId}">Record payment</button>`:""}`,true);
   document.getElementById("cpTxt").onclick=async()=>{try{await navigator.clipboard.writeText(invoiceText(i));toast("Message copied")}catch(e){toast("Copy was blocked by the browser")}};
   const dl=document.getElementById("dlInv");if(dl)dl.onclick=()=>dlFile(i.no+".html",standalone(i.no,invoiceHTML(i)));
 }
@@ -1398,7 +1408,8 @@ async function saveReadings(){
   if(!can("readings")){toast("You don't have permission to enter readings.");return}
   const rows=[...document.querySelectorAll("#readTbl tbody tr")];const objs=[],touched=[];
   for(const tr of rows){const uidv=tr.dataset.unit,v=f=>{const el=tr.querySelector(`[data-f="${f}"]`);return el?(el.value===""?"":+el.value):""};
-    const o0=reading(month,uidv)||{};const o={...o0,id:month+"_"+uidv,month,unitId:uidv,wPrev:v("wPrev"),wCurr:v("wCurr"),ePrev:v("ePrev"),eCurr:v("eCurr")};
+    const o0=reading(month,uidv)||{},man=f=>{const el=tr.querySelector(`[data-f="${f}"]`);return !!(el&&el.dataset.manual==="1")||!!o0[f+"Manual"]};
+    const o={...o0,id:month+"_"+uidv,month,unitId:uidv,wPrev:v("wPrev"),wCurr:v("wCurr"),ePrev:v("ePrev"),eCurr:v("eCurr"),wPrevManual:man("wPrev"),ePrevManual:man("ePrev")};
     if(o.wCurr===""&&o.eCurr==="")continue;
     const lab=unitName(get("units",uidv));
     if(o.wCurr!==""&&o.wCurr<(+o.wPrev||0)){toast("House "+lab+": water closing reading is below opening");return}
@@ -1411,8 +1422,17 @@ async function saveReadings(){
   noReserve={};const bills=[];
   for(const uidv of touched){const t=activeTenantOf(uidv);if(!t)continue;for(const b of makeInvoices(t,month,"util")){const ex=get("invoices",b.id);if(b.reversed)continue;if(!ex||JSON.stringify(ex)!==JSON.stringify(b))bills.push(b)}}
   const nb=bills.length?await saveMany("invoices",bills):0;
+  /* next month's opening reading follows this month's closing (unless someone corrected it by hand) */
+  const nm=monthAdd(month,1),carry=[];
+  for(const o of objs){const nx=reading(nm,o.unitId);if(!nx)continue;const upd={...nx};let ch=false;
+    if(o.wCurr!==""&&!nx.wPrevManual&&+nx.wPrev!==+o.wCurr){upd.wPrev=o.wCurr;ch=true}
+    if(o.eCurr!==""&&!nx.ePrevManual&&+nx.ePrev!==+o.eCurr){upd.ePrev=o.eCurr;ch=true}
+    if(ch)carry.push(upd)}
+  if(carry.length){await saveMany("readings",carry);for(const o of carry){const i=S.readings.findIndex(r=>r.id===o.id);if(i>=0)S.readings[i]=o}
+    const nb2=[];for(const o of carry){const t=activeTenantOf(o.unitId);if(t)for(const b of makeInvoices(t,nm,"util")){const ex=get("invoices",b.id);if(ex&&!b.reversed&&JSON.stringify(ex)!==JSON.stringify(b))nb2.push(b)}}if(nb2.length)await saveMany("invoices",nb2)}
+  const ns=await smsUtilBills(bills).catch(()=>0);
   const P=get("properties",filters.uprop)||{};const warn=(!+cfg(P).waterRate||!+cfg(P).elecRate)?" Check the rates: a rate of 0 bills nothing.":"";
-  toast(`${n} reading${n===1?"":"s"} saved, ${nb} utility bill${nb===1?"":"s"} updated.${warn}`);
+  toast(`${n} reading${n===1?"":"s"} saved, ${nb} utility bill${nb===1?"":"s"} updated${ns?", "+ns+" texted to tenants":""}.${warn}`);
 }
 document.addEventListener("click",async e=>{
   const el=e.target.closest("[data-a]");if(!el)return;const a=el.dataset.a,id=el.dataset.id;
@@ -1527,7 +1547,7 @@ document.getElementById("mnext").onclick=()=>{monthPinned=true;month=monthAdd(mo
 const PERMS=[["payments","Record, edit and delete tenant payments"],["invoices","Generate, reverse and penalise invoices"],["readings","Enter meter readings and meter photos"],["tenants","Add, edit and move out tenants (with move-in bills)"],["providers","Service provider bills and payments"],["props","Properties, houses, rates and setup"],["landlords","Landlord accounts, agreements and remittances"]];
 const PSHORT={payments:"Payments",invoices:"Invoices",readings:"Meter readings",tenants:"Tenants",providers:"Service providers",props:"Properties & setup",landlords:"Landlord accounts"};
 const ROLES={admin:{label:"Administrator (full access)",perms:PERMS.map(p=>p[0])},manager:{label:"Property manager",perms:PERMS.map(p=>p[0])},accountant:{label:"Accountant",perms:["payments","invoices","providers","landlords"]},field:{label:"Field officer / caretaker",perms:["readings","tenants"]},viewer:{label:"View only",perms:[]}};
-const NEED={llToggle:"invoices",charge:"invoices",smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
+const NEED={revLine:"invoices",utilSmsAll:"readings",utilSms:"readings",llToggle:"invoices",charge:"invoices",smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
 let staffLoaded=false;
 function myStaff(){return ME.id?S.staff.find(s=>s.id===ME.id&&s.active!==false)||null:null}
 function can(p){if(ME.admin)return true;const s=ME.staff;if(!s||readOnly)return false;return !p||(s.perms||[]).includes(p)}
@@ -1549,17 +1569,18 @@ async function submit(_col,summary,ops,perm){
   if(await applyOps(ops)){toast("Saved: "+summary);return "done"}return false;
 }
 async function applyOps(ops){
-  noReserve={};const newPays=[];
+  noReserve={};const newPays=[],newRemits=[];
   for(const o of ops){
     if(o.op==="del"){if(!await remove(o.col,o.id))return false;continue}
     const obj={...o.obj};
     if(o.renum){const ex=get(o.col,obj.id);if(!ex){if(o.col==="payments")obj.receiptNo=nextNo("RCPT","payments","receiptNo");else obj.no=nextNo(o.renum)}}
-    const isNewPay=o.col==="payments"&&!get("payments",obj.id);
+    const isNewPay=o.col==="payments"&&!get("payments",obj.id),isNewRemit=o.col==="remits"&&!get("remits",obj.id);
     if(!await save(o.col,obj))return false;
-    if(mode==="cloud"){const arr=S[o.col],i=arr.findIndex(x=>x.id===obj.id);if(i>=0)arr[i]=obj;else arr.push(obj)}
-    if(isNewPay)newPays.push(obj);
+    if(mode==="cloud"){const arr=S[o.col],i=arr.findIndex(x=>x.id===obj.id);if(i>=0)arr[i]=obj;else arr.push(obj);DV++}
+    if(isNewPay)newPays.push(obj);if(isNewRemit)newRemits.push(obj);
   }
   for(const p of newPays){try{await smsOnPayment(p)}catch(e){}}
+  for(const r of newRemits){try{await smsLandlordPaid(r)}catch(e){}}
   return true;
 }
 function applyRoleChrome(){
@@ -2517,7 +2538,7 @@ async function shareLandlordPDF(pid){
 }
 /* ---------- render & routing ---------- */
 /* ===== SMS (Mspace) — texts are queued in the "sms" collection; the Berlim Homes Google Apps Script sends them ===== */
-const SMS_DEFAULTS={on:false,payMsg:true,remind:true,remindAt:"5, 1",late:true,auto:true,
+const SMS_DEFAULTS={on:false,payMsg:true,utilMsg:true,llMsg:true,remind:true,remindAt:"5, 1",late:true,auto:true,
   tplPay:"Dear {name}, we have received KES {amount} for House {house} ({code}). Receipt {receipt}. {balanceText}. Thank you. {company}",
   tplRemind:"Dear {name}, reminder: your rent for {month} is due on {due}. Amount due KES {balance}. Pay via M-Pesa Paybill {paybill}, Account {account}. {company} {phone}",
   tplLate:"Dear {name}, your balance of KES {balance} for House {house} ({code}) was due on {due} and is now late. Please pay today via Paybill {paybill}, Account {account}. {company} {phone}"};
@@ -2606,6 +2627,8 @@ function smsCard(){
    <form id="fSms" class="fg">
     <div class="f full">${chk("on","Send texts to tenants")}</div>
     <div class="f full">${chk("payMsg","Text the tenant each time a payment is recorded")}</div>
+    <div class="f full">${chk("utilMsg","Text the tenant their utility bill (readings and amounts) as soon as readings are saved")}</div>
+    <div class="f full">${chk("llMsg","Text the landlord each time a payment to them is recorded, with the amount, method and reference")}</div>
     <div class="f">${chk("remind","Rent reminders to tenants who haven't paid")}</div>
     <div class="f"><label for="sm-rd">Send reminders this many days before the due day</label><input id="sm-rd" name="remindAt" value="${esc(c.remindAt??"5, 1")}" placeholder="5, 1"><span class="hint">Separate with commas. "5, 1" = two reminders, 5 days and 1 day before. "7, 3, 0" = three, the last on the due day. Each property uses its own due day.</span></div>
     <div class="f full">${chk("late","Late notice the day after the grace period ends (each property's own dates)")}</div>
@@ -2650,7 +2673,7 @@ document.addEventListener("click",async e=>{
 document.addEventListener("submit",async e=>{
   if(e.target.id!=="fSms")return;e.preventDefault();const f=new FormData(e.target),c=smsCfg();
   const sms={...c,remindAt:smsRemindAt({remindAt:f.get("remindAt")}).join(", "),tplPay:String(f.get("tplPay")||"").trim(),tplRemind:String(f.get("tplRemind")||"").trim(),tplLate:String(f.get("tplLate")||"").trim()};
-  ["on","payMsg","remind","late","auto"].forEach(k=>sms[k]=f.get(k)==="on");
+  ["on","payMsg","utilMsg","llMsg","remind","late","auto"].forEach(k=>sms[k]=f.get(k)==="on");
   if(await saveSettings({...S.settings,sms})){document.getElementById("smsMsg").textContent="Saved";toast("SMS settings saved")}
 },true);
 
@@ -3031,8 +3054,64 @@ function vMgmt(){
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b||b.dataset.a!=="mgmtCsv"||!ME.admin)return;e.preventDefault();const D=mgmtData();
   dlFile("management-analysis-"+month+".csv",csv([["PROPERTIES"],["Code","Property","Houses","Vacant","Charged","Collected","Collection %","Arrears","Tenants owing","Income"],...D.props.map(x=>[x.p.code,x.p.name,x.units,x.vac.length,x.charged,x.paid,x.rate,x.arrears,x.owing,(x.income||{}).total||0]),[],["TENANTS OWING"],["Code","House","Tenant","Phone","Balance","Months of rent","Last paid"],...D.tenants.map(x=>[x.p.code,unitName(x.u),x.t.name,x.t.phone,x.b,x.months.toFixed(1),x.last]),[],["VACANT HOUSES"],["Code","House","Rent","Vacant since","Days"],...D.vacant.map(x=>[x.p.code,unitName(x.u),x.u.rent,x.since,x.days])]))});
 
+
+/* ===== utility bills by SMS, landlord payment SMS, single-item reversals ===== */
+function utilSmsText(b){
+  const t=get("tenants",b.tenantId)||{},u=get("units",b.unitId)||{},v=smsVars(t),parts=[];
+  for(const l of b.lines||[]){if(l.rev||!(+l.amount))continue;const nm=l.kind==="water"?"Water":l.kind==="elec"?"Electricity":l.kind==="service"?"Service charge":l.desc;
+    parts.push(l.open!=null?`${nm} ${n0(l.open)}-${n0(l.close)} = ${n0(l.units)} units x ${n0(l.rate)} = KES ${n0(l.amount)}`:`${nm} KES ${n0(l.amount)}`)}
+  return smsFill(`Dear {name}, your ${MN[+b.month.slice(5)-1]} utility bill for House {house} ({code}): ${parts.join("; ")}. Total KES ${n0(b.total)}, due ${fmtDate(b.dueDate)}. Pay via Paybill {paybill}, Account {account}. {company}`,v);
+}
+const utilSmsId=b=>"util-"+b.id+"-"+Math.round(+b.total||0);
+async function smsUtilBills(bills,force){
+  if(!smsReady())return 0;const c=smsCfg();if(!force&&(!c.on||c.utilMsg===false))return 0;
+  const docs=[];for(const b of bills){if(b.reversed||!(+b.total>0))continue;const t=get("tenants",b.tenantId);if(!t||t.noSms||!smsPhone(t.phone))continue;
+    const id=utilSmsId(b)+(force?"-r"+Date.now().toString(36):"");if(!force&&get("sms",id))continue;docs.push(smsDoc(id,t,utilSmsText(b),"Utility bill"))}
+  return docs.length?await smsQueue(docs):0;
+}
+function utilSmsState(inv){if(!inv)return "";const xs=S.sms.filter(x=>x.id&&x.id.startsWith("util-"+inv.id+"-")).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));const x=xs[0];
+  if(!x)return `<span class="sub">Not texted</span>`;const cur=x.id.startsWith(utilSmsId(inv));
+  return (x.status==="sent"?`<span class="pill p-good" title="${esc(x.text||"")}">SMS sent ${fmtDate((x.sentAt||"").slice(0,10))}</span>`:x.status==="failed"?`<span class="pill p-bad" title="${esc(x.error||"")}">SMS failed</span>`:`<span class="pill">SMS waiting</span>`)+(cur?"":`<span class="sub">Bill changed since</span>`)}
+async function smsLandlordPaid(r){
+  if(!smsReady())return;const c=smsCfg();if(!c.on||c.llMsg===false||r.method==="Settled before system")return;
+  const p=get("properties",r.propertyId)||{},L=landlordOf(p.id)||{},ph=L.phone||p.landlordPhone,name=L.name||p.landlord||"Landlord";if(!smsPhone(ph))return;
+  const text=`Dear ${name.split(" ")[0]}, Berlim Homes has paid you KES ${n0(r.amount)} for ${p.name||p.code||""} (${p.code||""}), ${monthLabel(r.month)} rent, on ${fmtDate(r.date)} via ${r.method}${r.ref?", ref "+r.ref:""}${r.paidTo?", to "+r.paidTo:""}. Thank you. Berlim Homes ${(S.settings.phone||"").split("/")[0].trim()}`;
+  await smsQueue([{id:"llpay-"+r.id,to:smsPhone(ph),tenantId:"",landlordId:L.id||"",name,text:text.replace(/\s+/g," "),kind:"Landlord payment",status:"queued",createdAt:new Date().toISOString(),by:ME.id||""}]);
+}
+/* reverse one item (rent, deposit, garbage, water, electricity, penalty...) on an invoice */
+function reverseLine(id,idx){
+  const i=get("invoices",id);if(!i)return;const l=i.lines[idx];if(!l)return;const t=get("tenants",i.tenantId)||{};
+  openModal("Reverse "+esc(l.desc),`<p style="margin:0">This cancels <strong>${esc(l.desc)}</strong> (KES ${n0(l.amount)}) on ${esc(i.no)} for ${esc(t.name||"")}. The rest of the invoice stays. The reversal shows on the tenant's statement and the landlord report.</p>
+   <form id="fRl" class="fg"><div class="f"><label for="rl-r">Reason</label><select id="rl-r" name="reason" required><option value="">Choose a reason</option>${REV_REASONS.map(r=>`<option>${r}</option>`).join("")}</select></div>
+   <div class="f"><label for="rl-a">Amount to reverse (KES)</label><input id="rl-a" name="amount" type="number" min="1" max="${+l.amount}" value="${+l.amount}" required><span class="hint">Lower it to reverse only part of this item</span></div>
+   <div class="f full"><label for="rl-n">Details</label><input id="rl-n" name="note" placeholder="Required when the reason is Other"></div><div class="err full" id="rlErr"></div></form>`,
+   `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fRl" type="submit">Reverse this item</button>`);
+  document.getElementById("fRl").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target)),amt=Math.min(+l.amount,+d.amount||0);
+    if(!d.reason){document.getElementById("rlErr").textContent="Choose a reason.";return}if(d.reason==="Other"&&!d.note.trim()){document.getElementById("rlErr").textContent="Add the details.";return}
+    if(!(amt>0)){document.getElementById("rlErr").textContent="Enter the amount to reverse.";return}
+    const why=d.reason+(d.note.trim()?": "+d.note.trim():"");
+    const lines=[...i.lines.map((x,k)=>k===idx?{...x,reversedAmt:(+x.reversedAmt||0)+amt}:x),{kind:l.kind,desc:"Reversal: "+l.desc+" ("+why+")",qty:1,rate:-amt,amount:-amt,rev:true,revOf:idx,revDate:todayStr,...(l.toLandlord===false?{toLandlord:false}:{})}];
+    const obj={...i,lines,total:lines.reduce((s,x)=>s+(+x.amount||0),0)};
+    if(await submit("invoices",`Reverse ${l.desc} (${kes(amt)}) on ${i.no}: ${why}`,[{op:"set",col:"invoices",obj}],"invoices")){closeModal();toast("Item reversed");setTimeout(()=>showInvoice(id),250)}};
+}
+function lineRevHTML(i){
+  if(!can("invoices")||i.reversed)return "";const ls=(i.lines||[]).map((l,k)=>({l,k})).filter(x=>!x.l.rev&&(+x.l.amount>0)&&(+x.l.reversedAmt||0)<+x.l.amount);
+  if(!ls.length)return "";
+  return `<div class="card" style="margin-top:12px"><div class="ch"><h2>Reverse one item</h2><span style="color:var(--muted);font-size:13px">Cancel a single charge (for example the deposit or the water) and keep the rest of the invoice</span></div><div class="cb row" style="gap:8px;flex-wrap:wrap">
+   ${ls.map(x=>`<button class="btn sm danger" data-a="revLine" data-id="${i.id}" data-k="${x.k}">Reverse ${esc(ITEM_LABEL&&ITEM_LABEL[x.l.kind]||x.l.desc)} · KES ${n0(+x.l.amount-(+x.l.reversedAmt||0))}</button>`).join("")}
+   <button class="btn sm danger" data-a="reverseInv" data-id="${i.id}">Reverse the whole invoice</button></div></div>`;
+}
+document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;
+  if(a==="revLine"){e.preventDefault();reverseLine(b.dataset.id,+b.dataset.k)}
+  else if(a==="utilSms"){e.preventDefault();const i=get("invoices",b.dataset.id);if(!i)return;const n=await smsUtilBills([i],true);toast(n?"Utility bill SMS queued":"Couldn't text: check the tenant's phone and that SMS is set up")}
+  else if(a==="utilSmsAll"){e.preventDefault();const P=get("properties",filters.uprop);if(!P)return;const bills=S.invoices.filter(i=>i.month===month&&catOf(i)==="util"&&!i.reversed&&(get("units",i.unitId)||{}).propertyId===P.id&&+i.total>0&&!S.sms.some(x=>x.id&&x.id.startsWith(utilSmsId(i))));
+    if(!bills.length){toast("Every utility bill here has already been texted");return}
+    askConfirm(`Text ${bills.length} tenant${bills.length>1?"s":""} in ${esc(P.code)} their ${monthLabel(month)} utility bill?`,"Send SMS",async()=>{const n=await smsUtilBills(bills,true);toast(n+" utility bill SMS queued")})}
+  else if(a==="editOpen"){e.preventDefault();const inp=document.getElementById(b.dataset.id);if(inp){inp.readOnly=false;inp.dataset.manual="1";inp.classList.remove("ro");inp.focus();inp.select();b.remove()}}});
+
 const VIEWS={mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:vApprovals,setup:vSetup,admin:vAdmin};
 let pendingRender=false;
+let _rq=null;function queueRender(){if(_rq)return;_rq=setTimeout(()=>{_rq=null;render()},mode==="cloud"?40:0)}
 function render(){
   if(mode==="loading")return;
   const m=document.getElementById("main");
@@ -3097,9 +3176,9 @@ loadImportFile();
   const slow=setTimeout(()=>setStatus("demo","Records may be out of date, still connecting"),10000);
   const fresh=new Set();
   const settle=()=>{if(fresh.size>=COLS.length+1){clearTimeout(slow);setStatus("ok",readOnly?"Saved records, view only":"Saved records, synced");setTimeout(autoHistory,1500);setTimeout(()=>smsAuto().catch(()=>{}),4000)}};
-  COLS.forEach(col=>{db.collection(col).onSnapshot(snap=>{S[col]=snap.docs.map(d=>({...d.data(),id:d.id}));if(col==="staff")staffLoaded=true;if(!snap.metadata.fromCache){fresh.add(col);settle()}render()},
+  COLS.forEach(col=>{db.collection(col).onSnapshot(snap=>{S[col]=snap.docs.map(d=>({...d.data(),id:d.id}));DV++;if(col==="staff")staffLoaded=true;if(!snap.metadata.fromCache){fresh.add(col);settle()}queueRender()},
     err=>{if(col==="staff"){staffLoaded=true;render()}clearTimeout(slow);setStatus("demo","Could not load "+col);fresh.add(col)})});
-  db.doc("settings/config").onSnapshot(d=>{S.settings=d.exists?{...DEFAULT_SETTINGS,...d.data()}:{...DEFAULT_SETTINGS};if(!d.metadata.fromCache){fresh.add("settings");settle()}render()},()=>{fresh.add("settings")});
+  db.doc("settings/config").onSnapshot(d=>{S.settings=d.exists?{...DEFAULT_SETTINGS,...d.data()}:{...DEFAULT_SETTINGS};DV++;if(!d.metadata.fromCache){fresh.add("settings");settle()}queueRender()},()=>{fresh.add("settings")});
   render();
 })();
 </script>
