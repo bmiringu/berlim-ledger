@@ -183,6 +183,7 @@ header.mast::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2
 .monthpick input{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:7px 10px}
 .monthpick button{border-radius:10px;border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.05);transition:background .15s}
 .monthpick button:hover{background:rgba(184,154,94,.25)}
+.monthpick button:disabled{opacity:.3;cursor:not-allowed;background:transparent}
 .status{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);padding:5px 10px;border-radius:999px}
 nav.tabs{position:sticky;top:0;z-index:14;background:rgba(255,255,255,.78);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid rgba(231,225,211,.9);padding:10px 20px;gap:6px;justify-content:center;box-shadow:0 8px 20px -16px rgba(15,30,58,.4)}
 nav.tabs a{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:10px;border:none;color:#56607A;transition:background .15s,color .15s}
@@ -1552,9 +1553,22 @@ document.addEventListener("submit",async e=>{
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();if(e.key==="Enter"&&e.target.classList&&e.target.classList.contains("clickrow"))e.target.click()});
 const mi=document.getElementById("month");mi.value=month;
-mi.addEventListener("change",()=>{if(mi.value){month=mi.value;monthPinned=true;render()}});
-document.getElementById("mprev").onclick=()=>{monthPinned=true;month=monthAdd(month,-1);mi.value=month;render()};
-document.getElementById("mnext").onclick=()=>{monthPinned=true;month=monthAdd(month,1);mi.value=month;render()};
+/* the billing month can't go past the current month, nor before the first month with records (for the property being viewed) */
+let firstMonthMemo={dv:-1,map:null};
+function firstMonthOf(pid){if(firstMonthMemo.dv!==DV){const map={},put=(k,m)=>{if(m&&(!map[k]||m<map[k]))map[k]=m};
+    for(const i of S.invoices){const u=get("units",i.unitId||(get("tenants",i.tenantId)||{}).unitId);put("all",i.month);if(u)put(u.propertyId,i.month)}
+    for(const x of S.payments){const t=get("tenants",x.tenantId),u=t&&get("units",t.unitId);const m=(x.date||"").slice(0,7);put("all",m);if(u)put(u.propertyId,m)}
+    for(const r of S.readings||[]){const u=get("units",r.unitId);if(u&&r.month)put(u.propertyId,r.month)}
+    firstMonthMemo={dv:DV,map}}
+  return firstMonthMemo.map[pid]||firstMonthMemo.map.all||todayStr.slice(0,7)}
+function viewProp(){const v=(location.hash||"#dashboard").slice(1);const f=v==="landlords"?filters.llProp:v==="utilities"?filters.uprop:filters.code;return f&&f!=="all"&&get("properties",f)?f:"all"}
+function monthBounds(){const max=todayStr.slice(0,7);let min=firstMonthOf(viewProp());if(min>max)min=max;return {min,max}}
+function clampMonth(){const {min,max}=monthBounds();if(month>max)month=max;if(month<min)month=min;mi.min=min;mi.max=max;mi.value=month;
+  const pv=document.getElementById("mprev"),nx=document.getElementById("mnext");pv.disabled=month<=min;nx.disabled=month>=max;
+  pv.title=month<=min?"No records before "+monthLabel(min):"Previous month";nx.title=month>=max?"You can't go past the current month":"Next month"}
+mi.addEventListener("change",()=>{if(mi.value){const {min,max}=monthBounds();if(mi.value>max)toast("You can't open a month we are not yet in");else if(mi.value<min)toast("No records before "+monthLabel(min));month=mi.value;monthPinned=true;render()}});
+document.getElementById("mprev").onclick=()=>{const {min}=monthBounds();if(month<=min){toast("No records before "+monthLabel(min));return}monthPinned=true;month=monthAdd(month,-1);render()};
+document.getElementById("mnext").onclick=()=>{const {max}=monthBounds();if(month>=max){toast("You can't go past the current month");return}monthPinned=true;month=monthAdd(month,1);render()};
 
 /* ================= v3: access, approvals, providers, ex-tenants, photos, move-in billing ================= */
 const PERMS=[["payments","Record, edit and delete tenant payments"],["invoices","Generate, reverse and penalise invoices"],["readings","Enter meter readings and meter photos"],["tenants","Add, edit and move out tenants (with move-in bills)"],["providers","Service provider bills and payments"],["props","Properties, houses, rates and setup"],["landlords","Landlord accounts, agreements and remittances"]];
@@ -3457,7 +3471,7 @@ const VIEWS={mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utili
 let pendingRender=false;
 let _rq=null;function queueRender(){if(_rq)return;_rq=setTimeout(()=>{_rq=null;render()},mode==="cloud"?40:0)}
 function render(){
-  if(mode==="loading")return;
+  if(mode==="loading")return;try{clampMonth()}catch(e){}
   const m=document.getElementById("main");
   // keep in-progress meter entries from being wiped by a live update
   if(view==="utilities"&&document.activeElement&&document.activeElement.closest&&document.activeElement.closest("#readTbl")){pendingRender=true;return}
