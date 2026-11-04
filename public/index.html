@@ -3110,13 +3110,17 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
 
 
 /* ===== utility bills by SMS, landlord payment SMS, single-item reversals ===== */
+function smsLines(rows,v){return rows.filter(Boolean).map(r=>String(r).replace(/\{(\w+)\}/g,(m,k)=>v[k]!=null?String(v[k]):m).replace(/[ \t]+/g," ").trim()).filter(Boolean).join("\n")}
+const SMS_NM={rent:"Rent",water:"Water",elec:"Electricity",service:"Service charge",garbage:"Garbage",deposit:"Deposit",penalty:"Late payment penalty",bfadj:"Previous balance"};
 function utilSmsText(b){
-  const t=get("tenants",b.tenantId)||{},u=get("units",b.unitId)||{},v=smsVars(t),parts=[];
-  for(const l of b.lines||[]){if(l.rev||!(+l.amount))continue;const nm=l.kind==="water"?"Water":l.kind==="elec"?"Electricity":l.kind==="service"?"Service charge":l.desc;
-    const net=(+l.amount||0)-(+l.reversedAmt||0);if(!net)continue;
-    parts.push(l.open!=null?`${nm} ${n0(l.open)}-${n0(l.close)} = ${n0(l.units)} units x ${n0(l.rate)} = KES ${n0(net)}`:`${nm} KES ${n0(net)}`)}
-  const tot=(b.lines||[]).reduce((s,l)=>s+(+l.amount||0),0);
-  return smsFill(`Dear {name}, your ${monthLabel(b.month)} utility bill for House {house} ({code}): ${parts.join("; ")}. Total KES ${n0(tot)}, due ${fmtDate(b.dueDate)}. Pay via Paybill {paybill}, Account {account}. {company}`,v);
+  const t=get("tenants",b.tenantId)||{},u=get("units",b.unitId)||{},P=propOf(u)||{},v=smsVars(t),rows=[`Dear ${/^name not/i.test(t.name||"")||!t.name?"Tenant":String(t.name).split(/[ /]/)[0]},`,`${P.code||""} House ${unitName(u)}, ${monthLabel(b.month)} utility bill`];
+  let tot=0;const ls=(b.lines||[]).filter(l=>!l.rev&&(+l.amount||0)-(+l.reversedAmt||0)>0);
+  for(const l of ls){const net=(+l.amount||0)-(+l.reversedAmt||0),nm=SMS_NM[l.kind]||String(l.desc||"").replace(/,.*$/,"");tot+=net;
+    if(l.open!=null){if(ls.length>1)rows.push("",nm+":");rows.push(`Previous reading: ${n0(l.open)}`,`Current reading: ${n0(l.close)}`,`Units used: ${n0(l.units)}`,`Rate per unit: KES ${n0(l.rate)}`,`${nm} bill: KES ${n0(net)}`)}
+    else rows.push(`${nm}: KES ${n0(net)}`)}
+  if(ls.length>1)rows.push("",`Total: KES ${n0(tot)}`);
+  rows.push("",`Pay by ${fmtDate(b.dueDate)}`,`Paybill {paybill}, Account {account}`,"{company}");
+  return smsLines(rows,v);
 }
 const utilSmsId=b=>"util-"+b.id+"-"+Math.round(+b.total||0);
 async function smsUtilBills(bills,force){
@@ -3318,14 +3322,21 @@ document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.c
 /* ===== full invoice SMS, send-on-request, and scheduled rent / charge changes ===== */
 const netLines=i=>{const ls=(i.lines||[]).filter(l=>!l.rev).map(l=>({...l,amt:(+l.amount||0)-(+l.reversedAmt||0)}));return ls.filter(l=>l.amt!==0)};
 function lineSms(l){const nm=l.kind==="rent"?"Rent":l.kind==="water"?"Water":l.kind==="elec"?"Electricity":l.kind==="service"?"Service charge":l.kind==="garbage"?"Garbage":l.kind==="deposit"?"Deposit":l.kind==="penalty"?"Late payment penalty":l.kind==="bfadj"?"Balance b/f":(l.desc||"").replace(/,.*$/,"");
-  return nm+(l.open!=null?` (${n0(l.open)}-${n0(l.close)}, ${n0(l.units)} units)`:"")+" "+n0(l.amt??l.amount)}
+  return nm+" KES "+n0(l.amt??l.amount)}
 function priorBal(t,excludeIds){const C=compute(),b=C.ten[t.id]?C.ten[t.id].balance:0;let cur=0;for(const id of excludeIds){const i=get("invoices",id);if(i&&!i.reversed)cur+=+i.total||0}return Math.max(0,Math.round(b-cur))}
 const tenBal=t=>{const c=compute().ten[t.id];return c?Math.max(0,Math.round(c.balance)):0};
 function invoiceSmsText(i){
   if(catOf(i)==="util"&&typeof utilSmsText==="function")return utilSmsText(i);
-  const t=get("tenants",i.tenantId)||{},items=netLines(i).map(lineSms).join("; "),prior=priorBal(t,[i.id]),due=tenBal(t);
-  return smsFill(`Dear {name}, invoice ${i.no} for House {house} ({code}), ${monthLabel(i.month)}: ${items}.${prior?` Previous balance b/f KES ${n0(prior)}.`:""} ${due>0?`Total due KES ${n0(due)} by ${fmtDate(i.dueDate)}.`:"This is covered by your payments, thank you."} Pay via Paybill {paybill}, Account {account}. {company}`,smsVars(t));
+  const t=get("tenants",i.tenantId)||{},u=get("units",i.unitId||t.unitId)||{},P=propOf(u)||{},prior=priorBal(t,[i.id]),due=tenBal(t);
+  const rows=[`Dear ${/^name not/i.test(t.name||"")||!t.name?"Tenant":String(t.name).split(/[ /]/)[0]},`,`${P.code||""} House ${unitName(u)}, ${monthLabel(i.month)} bill`];
+  for(const l of netLines(i))rows.push(`${SMS_NM[l.kind]||String(l.desc||"").replace(/,.*$/,"")}: KES ${n0(l.amt)}`);
+  if(prior)rows.push(`Previous balance: KES ${n0(prior)}`);
+  rows.push(due>0?`Total due: KES ${n0(due)}`:"Already covered by your payments. Thank you.");
+  if(due>0)rows.push("",`Pay by ${fmtDate(i.dueDate)}`,`Paybill {paybill}, Account {account}`);
+  rows.push("{company}");
+  return smsLines(rows,smsVars(t));
 }
+
 /* this month's charges for a tenant, item by item, plus anything brought forward: used by {items} in reminders */
 function itemsFor(t,m){const invs=S.invoices.filter(i=>i.tenantId===t.id&&i.month===m&&!i.adj&&!i.reversed);const parts=invs.flatMap(netLines).map(lineSms);
   const prior=priorBal(t,invs.map(i=>i.id));if(prior)parts.push("Balance b/f "+n0(prior));return parts.join("; ")}
