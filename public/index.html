@@ -1200,11 +1200,12 @@ function formUnit(id,propId){
 }
 function formPay(tid){
   const C=compute();
-  const ts=S.tenants.filter(t=>t.active||(C.ten[t.id]&&C.ten[t.id].balance>0)||t.id===tid).sort((a,b)=>sortUnits(get("units",a.unitId)||{label:""},get("units",b.unitId)||{label:""}));
+  const ts=S.tenants.filter(t=>t.active||t.unitId).sort((a,b)=>sortUnits(get("units",a.unitId)||{label:""},get("units",b.unitId)||{label:""}));
   if(!ts.length){openModal("No tenants yet","<p style='margin:0'>Add a tenant before recording payments.</p>",`<button class="btn" data-a="close">Close</button>`);return}
   openModal("Record payment",`<form id="fPay" class="fg">
    <div class="f"><label for="py-pc">Property code</label><input id="py-pc" list="pyCodes" autocomplete="off" placeholder="Type the code, e.g. T3" style="text-transform:uppercase" value="${esc(tid?((propOf(get("units",(get("tenants",tid)||{}).unitId))||{}).code||""):(filters.code!=="all"?((get("properties",filters.code)||{}).code||""):""))}"><datalist id="pyCodes">${sortedProps().map(p=>`<option value="${esc(p.code)}">${esc(p.name)}</option>`).join("")}</datalist><span class="hint" id="py-pn"></span></div>
-   <div class="f"><label for="py-t">House number</label><select id="py-t" name="tenantId" required></select></div>
+   <div class="f full"><div class="seg" role="tablist" style="display:inline-flex;gap:6px"><button type="button" class="btn sm primary" id="pyCur">Current tenants</button><button type="button" class="btn sm" id="pyEx">Ex-tenants</button></div></div>
+   <div class="f"><label for="py-t" id="py-tl">House number</label><select id="py-t" name="tenantId" required></select></div>
    <div class="full paywho" id="py-who"></div>
    <div class="f"><label for="py-a">Amount (KES)</label><input id="py-a" name="amount" type="number" min="1" required></div>
    <div class="f"><label for="py-d">Date received</label><input id="py-d" name="date" type="date" value="${todayStr}" required></div>
@@ -1214,13 +1215,16 @@ function formPay(tid){
   const am=document.getElementById("py-a"),sel=document.getElementById("py-t"),pc=document.getElementById("py-pc"),who=document.getElementById("py-who"),pn=document.getElementById("py-pn");
   const fill=()=>{const t=get("tenants",sel.value);if(!t){who.innerHTML="";am.placeholder="";return}const b=C.ten[t.id]?C.ten[t.id].balance:0,u=get("units",t.unitId);
     am.placeholder=b>0?"Balance "+n0(b):"0";who.innerHTML=`<strong>${esc(t.name)}</strong>${t.active?"":" <span class=\"pill p-mute\">Moved out</span>"} · House ${esc(unitName(u))} · ${t.phone?esc(t.phone)+" · ":""}<span class="${b>0?"neg":""}">${b>0?"Owes KES "+n0(b):b<0?"In credit KES "+n0(-b):"Account clear"}</span><span class="sub">M-Pesa account ${esc(acctFor(u))}</span>`};
+  let exMode=!!(tid&&get("tenants",tid)&&!get("tenants",tid).active);
+  const setMode=x=>{exMode=x;document.getElementById("pyCur").className="btn sm"+(x?"":" primary");document.getElementById("pyEx").className="btn sm"+(x?" primary":"");document.getElementById("py-tl").textContent=x?"Ex-tenant (moved out)":"House number";sel.value="";houses()};
+  document.getElementById("pyCur").onclick=()=>setMode(false);document.getElementById("pyEx").onclick=()=>setMode(true);
   const houses=()=>{const code=pc.value.trim().toUpperCase(),P=S.properties.find(p=>(p.code||"").toUpperCase()===code);
     if(!P){sel.innerHTML=`<option value="">${code?"No property with code "+esc(code):"Enter the property code first"}</option>`;sel.disabled=true;pn.textContent=code?"Codes: "+sortedProps().map(p=>p.code).join(", "):"";fill();return}
     pn.textContent=P.name;sel.disabled=false;const prev=sel.value||tid;
-    const list=ts.filter(t=>(get("units",t.unitId)||{}).propertyId===P.id);
-    sel.innerHTML=list.length?`<option value="">Choose the house</option>`+list.map(t=>{const b=C.ten[t.id]?C.ten[t.id].balance:0;return `<option value="${t.id}" ${t.id===prev?"selected":""}>${esc(unitName(get("units",t.unitId)))} · ${esc(t.name)}${t.active?"":" (moved out)"}${b>0?" · owes "+n0(b):""}</option>`}).join(""):`<option value="">No tenants in ${esc(P.code)}</option>`;
+    const list=ts.filter(t=>(get("units",t.unitId)||{}).propertyId===P.id&&(exMode?!t.active:t.active));
+    sel.innerHTML=list.length?`<option value="">Choose the house</option>`+list.map(t=>{const b=C.ten[t.id]?C.ten[t.id].balance:0;return `<option value="${t.id}" ${t.id===prev?"selected":""}>${esc(unitName(get("units",t.unitId)))} · ${esc(t.name)}${t.active?"":" (moved out"+(t.moveOut?" "+fmtDate(t.moveOut):"")+")"}${b>0?" · owes "+n0(b):""}</option>`}).join(""):`<option value="">${exMode?"No ex-tenants with a balance in "+esc(P.code):"No current tenants in "+esc(P.code)}</option>`;
     if(list.length===1)sel.value=list[0].id;fill()};
-  pc.addEventListener("input",houses);sel.onchange=fill;houses();if(!pc.value)pc.focus();else if(!sel.value)sel.focus();wireMethod();
+  pc.addEventListener("input",houses);sel.onchange=fill;if(exMode){const k=sel.value;setMode(true);if(tid)sel.value=tid;fill()}else houses();if(!pc.value)pc.focus();else if(!sel.value)sel.focus();wireMethod();
   document.getElementById("fPay").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));
     const ref=d.ref.trim().toUpperCase(),split=d.split==="on",er=refError(d.method,ref,null,d.tenantId,split);
     if(er){document.getElementById("payErr").textContent=er;return}
