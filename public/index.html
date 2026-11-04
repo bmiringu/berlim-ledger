@@ -1295,7 +1295,7 @@ function statementData(tid){
   const CO={rent:0,garbage:1,util:2},rows=[];
   for(const i of S.invoices.filter(x=>x.tenantId===tid)){
     if(i.adj){rows.push({d:i.issueDate,o:0,ref:"Adjustment",desc:(i.lines[0]||{}).desc||"Balance adjustment",dr:i.total>0?i.total:0,cr:i.total<0?-i.total:0});continue}
-    i.lines.forEach((l,k)=>{const amt=+l.amount||0;rows.push({d:i.issueDate,o:1+CO[catOf(i)]*0.1+k*0.001,ref:i.no,desc:(l.kind==="rent"?l.desc:`${l.desc}, ${monthLabel(i.month)}`)+(l.open!=null?` (${meterTxt(l)})`:""),dr:amt>0?amt:0,cr:amt<0?-amt:0})});
+    i.lines.forEach((l,k)=>{const amt=+l.amount||0;rows.push({d:i.issueDate,o:1+CO[catOf(i)]*0.1+k*0.001,ref:i.no,desc:(l.kind==="rent"?l.desc:`${l.desc}, ${monthLabel(i.month)}`),dr:amt>0?amt:0,cr:amt<0?-amt:0})});
     if(i.reversed)rows.push({d:i.reversedAt||i.issueDate,o:1.5,ref:i.no,desc:`Reversal of ${CATS[catOf(i)].title.toLowerCase()}: ${i.reverseReason||""}`,dr:0,cr:+i.total||0});
   }
   for(const x of S.payments.filter(x=>x.tenantId===tid))rows.push({d:x.date,o:2,ref:x.ref||x.receiptNo||"",desc:`Payment received, ${x.method}${x.ref?"":" (no code recorded)"}, receipt ${x.receiptNo||""}`,dr:0,cr:+x.amount||0});
@@ -3113,8 +3113,10 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
 function utilSmsText(b){
   const t=get("tenants",b.tenantId)||{},u=get("units",b.unitId)||{},v=smsVars(t),parts=[];
   for(const l of b.lines||[]){if(l.rev||!(+l.amount))continue;const nm=l.kind==="water"?"Water":l.kind==="elec"?"Electricity":l.kind==="service"?"Service charge":l.desc;
-    parts.push(l.open!=null?`${nm} ${n0(l.open)}-${n0(l.close)} = ${n0(l.units)} units x ${n0(l.rate)} = KES ${n0(l.amount)}`:`${nm} KES ${n0(l.amount)}`)}
-  return invoiceSmsText(b);
+    const net=(+l.amount||0)-(+l.reversedAmt||0);if(!net)continue;
+    parts.push(l.open!=null?`${nm} ${n0(l.open)}-${n0(l.close)} = ${n0(l.units)} units x ${n0(l.rate)} = KES ${n0(net)}`:`${nm} KES ${n0(net)}`)}
+  const tot=(b.lines||[]).reduce((s,l)=>s+(+l.amount||0),0);
+  return smsFill(`Dear {name}, your ${monthLabel(b.month)} utility bill for House {house} ({code}): ${parts.join("; ")}. Total KES ${n0(tot)}, due ${fmtDate(b.dueDate)}. Pay via Paybill {paybill}, Account {account}. {company}`,v);
 }
 const utilSmsId=b=>"util-"+b.id+"-"+Math.round(+b.total||0);
 async function smsUtilBills(bills,force){
@@ -3320,6 +3322,7 @@ function lineSms(l){const nm=l.kind==="rent"?"Rent":l.kind==="water"?"Water":l.k
 function priorBal(t,excludeIds){const C=compute(),b=C.ten[t.id]?C.ten[t.id].balance:0;let cur=0;for(const id of excludeIds){const i=get("invoices",id);if(i&&!i.reversed)cur+=+i.total||0}return Math.max(0,Math.round(b-cur))}
 const tenBal=t=>{const c=compute().ten[t.id];return c?Math.max(0,Math.round(c.balance)):0};
 function invoiceSmsText(i){
+  if(catOf(i)==="util"&&typeof utilSmsText==="function")return utilSmsText(i);
   const t=get("tenants",i.tenantId)||{},items=netLines(i).map(lineSms).join("; "),prior=priorBal(t,[i.id]),due=tenBal(t);
   return smsFill(`Dear {name}, invoice ${i.no} for House {house} ({code}), ${monthLabel(i.month)}: ${items}.${prior?` Previous balance b/f KES ${n0(prior)}.`:""} ${due>0?`Total due KES ${n0(due)} by ${fmtDate(i.dueDate)}.`:"This is covered by your payments, thank you."} Pay via Paybill {paybill}, Account {account}. {company}`,smsVars(t));
 }
