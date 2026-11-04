@@ -609,6 +609,7 @@ function monthLabel(m){const [y,mo]=m.split("-");return MN[+mo-1]+" "+y}
 function monthShort(m){const [y,mo]=m.split("-");return MN[+mo-1].slice(0,3)+" "+y.slice(2)}
 function fmtDate(d){if(!d)return "";const [y,m,dd]=d.split("-");return +dd+" "+MN[+m-1].slice(0,3)+" "+y}
 function dueDayOf(p){const d=+((p||{}).dueDay)||0;return d>=1&&d<=28?d:(+S.settings.dueDay||5)}
+const pForT=(t,p)=>t&&+t.dueDay>=1&&+t.dueDay<=28?{...(p||{}),dueDay:+t.dueDay}:p;
 function dueDateFor(m,p){return m+"-"+String(dueDayOf(p)).padStart(2,"0")}
 function graceOf(p){return Math.max(0,+((p||{}).graceDays)||0)}
 /* landlords are paid on their own date, separate from the tenants' rent due day */
@@ -699,7 +700,7 @@ function makeInvoices(t,m,only){
     const off=new Set(ex?ex.lines.filter(l=>!l.rev&&l.toLandlord===false).map(l=>l.kind):[]);
     const lines=[...all.filter(l=>(CAT_OF[l.kind]||"rent")===cat).map(l=>off.has(l.kind)?{...l,toLandlord:false}:l),...keep];
     if(!lines.length&&!ex)continue;
-    out.push({id,cat,no:ex?ex.no:nextNo(info.pre),tenantId:t.id,unitId:t.unitId,month:m,issueDate:ex?ex.issueDate:(m+"-01"),dueDate:dueDateFor(m,p),lines,total:lines.reduce((s,l)=>s+(+l.amount||0),0)});
+    out.push({id,cat,no:ex?ex.no:nextNo(info.pre),tenantId:t.id,unitId:t.unitId,month:m,issueDate:ex?ex.issueDate:(m+"-01"),dueDate:dueDateFor(m,pForT(t,p)),lines,total:lines.reduce((s,l)=>s+(+l.amount||0),0)});
   }
   return out;
 }
@@ -1060,7 +1061,7 @@ function invoiceHTML(i){
    return `<table><thead><tr>${head}</tr></thead><tbody>${i.lines.map(row).join("")}</tbody><tfoot>${f("Invoice total",n0(i.total))}${c.paid?f("Less payments received","("+n0(c.paid)+")"):""}${f("Balance on this invoice",n0(c.bal))}${prior>0?f("Arrears from earlier months",n0(prior))+f("Total now due",n0(c.bal+prior)):""}</tfoot></table>`})()}
   ${i.note?`<p style="margin:10px 0 0"><strong>Note:</strong> ${esc(i.note)}</p>`:""}
   ${catOf(i)==="util"?meterPhotosHTML(i.month,i.unitId):""}
-  <div class="pay"><strong>How to pay:</strong> M-Pesa → Lipa na M-Pesa → Paybill <strong>${esc(s.paybill)}</strong>, Account <strong>${esc(acctFor(u))}</strong>. Rent is due by the ${ord(dueDayOf(p))}; a late payment penalty of ${+cfg(p).penaltyFlat>0?"KES "+n0(cfg(p).penaltyFlat):(cfg(p).penaltyPct!==""?cfg(p).penaltyPct:s.penaltyPct)+"% of rent"} applies ${graceOf(p)?graceOf(p)+" days after":"after"} that date.</div>
+  <div class="pay"><strong>How to pay:</strong> M-Pesa → Lipa na M-Pesa → Paybill <strong>${esc(s.paybill)}</strong>, Account <strong>${esc(acctFor(u))}</strong>. Rent is due by the ${ord(+String(i.dueDate||"").slice(8,10)||dueDayOf(p))}; a late payment penalty of ${+cfg(p).penaltyFlat>0?"KES "+n0(cfg(p).penaltyFlat):(cfg(p).penaltyPct!==""?cfg(p).penaltyPct:s.penaltyPct)+"% of rent"} applies ${graceOf(p)?graceOf(p)+" days after":"after"} that date.</div>
   <div class="foot">${esc(s.company)} acts as managing agent on behalf of the landlord. Where your dream resides.</div></div>`;
 }
 function invoiceText(i){
@@ -1096,6 +1097,7 @@ function formTenant(id,unitId){
   openModal(t?"Edit tenant":"Add tenant",`<form id="fT" class="fg">
    <div class="f full"><label for="t-name">Full name</label><input id="t-name" name="name" required value="${esc(t?t.name:"")}"></div>
    <div class="f"><label for="t-phone">Phone</label><input id="t-phone" name="phone" value="${esc(t?t.phone:"")}" placeholder="07XX XXX XXX"></div>
+   <div class="f"><label for="t-due">Rent due day (this tenant only)</label><input id="t-due" name="dueDay" type="number" min="1" max="28" value="${esc(t&&t.dueDay?t.dueDay:"")}" placeholder="Same as property"><span class="hint">Leave blank to use the property's due day</span></div>
    <div class="f"><label for="t-email">Email</label><input id="t-email" name="email" type="email" value="${esc(t?t.email:"")}"></div>
    <div class="f"><label for="t-idno">ID number</label><input id="t-idno" name="idNo" value="${esc(t?t.idNo||"":"")}"><span class="hint">Goes on the tenancy agreement</span></div>
    <div class="f"><label for="t-unit">House</label><select id="t-unit" name="unitId">${vac.map(u=>`<option value="${u.id}" ${u.id===sel?"selected":""}>${esc((propOf(u)||{}).code||"")} ${esc((propOf(u)||{}).name||"")} · House ${esc(u.label)} · KES ${n0(u.rent)}</option>`).join("")}</select></div>
@@ -1109,7 +1111,11 @@ function formTenant(id,unitId){
   if(!t)wireMoveInBill();
   document.getElementById("fT").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));
     const obj={...(t||{id:uid(),active:true}),name:d.name.trim(),phone:d.phone.trim(),email:d.email.trim(),idNo:(d.idNo||"").trim(),unitId:d.unitId,moveIn:d.moveIn,deposit:+d.deposit||0,note:d.note.trim(),noLetting:d.noLetting==="on",noSms:d.noSms==="on"};
-    if(t){if(await submit("tenants","Edit tenant "+obj.name,[{op:"set",col:"tenants",obj}],"tenants"))closeModal();return}
+    const dd=String(d.dueDay||"").trim();if(dd!==""&&(+dd<1||+dd>28)){toast("Due day must be between 1 and 28");return}if(dd==="")delete obj.dueDay;else obj.dueDay=+dd;
+    if(t){const ops=[{op:"set",col:"tenants",obj}];
+      if((+t.dueDay||0)!==(+obj.dueDay||0)){const P=pForT(obj,propOf(get("units",obj.unitId))),cur=todayStr.slice(0,7);
+        for(const i of S.invoices.filter(x=>x.tenantId===t.id&&x.month>=cur&&!x.reversed&&!x.adj&&catOf(x)!=="misc")){const nd=dueDateFor(i.month,P);if(i.dueDate!==nd)ops.push({op:"set",col:"invoices",obj:{...i,dueDate:nd}})}}
+      if(await submit("tenants","Edit tenant "+obj.name+((+t.dueDay||0)!==(+obj.dueDay||0)?`, rent due day ${obj.dueDay?ord(obj.dueDay):"same as property"}`:""),ops,"tenants"))closeModal();return}
     const bills=moveInInvoices(obj);if(bills===null)return;
     const tot=bills.reduce((s,b)=>s+b.total,0);
     const r=await submit("tenants","New tenant "+obj.name+(bills.length?", "+bills.length+" move-in bill"+(bills.length>1?"s":"")+" "+kes(tot):""),[{op:"set",col:"tenants",obj},...bills.map(b=>({op:"set",col:"invoices",obj:b,renum:b.no.slice(0,4)}))],"tenants");
@@ -2620,7 +2626,7 @@ function smsVars(t,extra){
   const u=get("units",t.unitId)||{},p=propOf(u)||{},C=compute(),b=C.ten[t.id]?C.ten[t.id].balance:0,s=S.settings,m=todayStr.slice(0,7);
   return {name:(t.name||"").split(" ")[0]||t.name||"",fullname:t.name||"",house:unitName(u),code:p.code||"",property:p.name||"",
     balance:n0(Math.max(0,b)),balanceText:b>0?"Balance: KES "+n0(b):"",items:typeof itemsFor==="function"?itemsFor(t,m):"",
-    month:MN[+m.slice(5)-1]+" "+m.slice(0,4),due:fmtDate(smsDueDate(p,m)),paybill:cfg(p).paybill||s.paybill||"",account:acctFor(u),
+    month:MN[+m.slice(5)-1]+" "+m.slice(0,4),due:fmtDate(smsDueDate(pForT(t,p),m)),paybill:cfg(p).paybill||s.paybill||"",account:acctFor(u),
     company:"Berlim Homes Ltd",phone:(s.phone||"").split("/")[0].trim(),...(extra||{})};
 }
 function smsFill(tpl,v){const out=[];for(const raw of String(tpl||"").replace(/\r/g,"").split("\n")){if(!raw.trim()){out.push("");continue}
@@ -2643,7 +2649,7 @@ function smsDueList(kind,force){
   const c=smsCfg(),C=compute(),out=[],at=smsRemindAt(c);
   for(const t of S.tenants){
     if(!t.active||t.noSms||suspOn(t)||!smsPhone(t.phone))continue;
-    const u=get("units",t.unitId),p=propOf(u);if(!p||propEnded(p,todayStr.slice(0,7)))continue;
+    const u=get("units",t.unitId),p0=propOf(u);if(!p0||propEnded(p0,todayStr.slice(0,7)))continue;const p=pForT(t,p0);
     const b=C.ten[t.id]?C.ten[t.id].balance:0;
     if(kind==="remind"){
       const due=smsNextDue(p),dm=due.slice(0,7),days=dDiff(due,todayStr);
