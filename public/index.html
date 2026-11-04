@@ -2600,22 +2600,23 @@ async function shareLandlordPDF(pid){
 /* ---------- render & routing ---------- */
 /* ===== SMS (Mspace) — texts are queued in the "sms" collection; the Berlim Homes Google Apps Script sends them ===== */
 const SMS_DEFAULTS={on:false,payMsg:true,utilMsg:true,llMsg:true,remind:true,remindAt:"5, 1",late:true,auto:true,
-  tplPay:"Dear {name}, we have received KES {amount} for House {house} ({code}). Receipt {receipt}. {balanceText} Thank you. {company}",
-  tplRemind:"Dear {name}, reminder: your {month} bill is due on {due}: {items}. Total due KES {balance}. Pay via M-Pesa Paybill {paybill}, Account {account}. {company} {phone}",
-  tplLate:"Dear {name}, your balance of KES {balance} for House {house} ({code}) was due on {due} and is now late ({items}). Please pay today via Paybill {paybill}, Account {account}. {company} {phone}"};
+  tplPay:"Dear {name},\nPayment received: KES {amount}\nHouse {house} ({code})\nReceipt: {receipt}\n{balanceText}\nThank you.\n{company}",
+  tplRemind:"Dear {name},\nReminder: your {month} bill is due on {due}.\n{items}\nTotal due: KES {balance}\nPaybill {paybill}, Account {account}\n{company} {phone}",
+  tplLate:"Dear {name},\nYour balance of KES {balance} for House {house} ({code}) was due on {due}.\nPlease pay today.\nPaybill {paybill}, Account {account}\n{company} {phone}"};
 const SMS_OLD={tplPay:"Dear {name}, we have received KES {amount} for House {house} ({code}). Receipt {receipt}. {balanceText}. Thank you. {company}",tplRemind:"Dear {name}, reminder: your rent for {month} is due on {due}. Amount due KES {balance}. Pay via M-Pesa Paybill {paybill}, Account {account}. {company} {phone}",tplLate:"Dear {name}, your balance of KES {balance} for House {house} ({code}) was due on {due} and is now late. Please pay today via Paybill {paybill}, Account {account}. {company} {phone}"};
-const smsCfg=()=>{const c={...SMS_DEFAULTS,...(S.settings.sms||{})};for(const k in SMS_OLD)if(c[k]===SMS_OLD[k])c[k]=SMS_DEFAULTS[k];return c};
+const SMS_OLD2={tplPay:"Dear {name}, we have received KES {amount} for House {house} ({code}). Receipt {receipt}. {balanceText} Thank you. {company}",tplRemind:"Dear {name}, reminder: your {month} bill is due on {due}: {items}. Total due KES {balance}. Pay via M-Pesa Paybill {paybill}, Account {account}. {company} {phone}",tplLate:"Dear {name}, your balance of KES {balance} for House {house} ({code}) was due on {due} and is now late ({items}). Please pay today via Paybill {paybill}, Account {account}. {company} {phone}"};
+const smsCfg=()=>{const c={...SMS_DEFAULTS,...(S.settings.sms||{})};for(const k in SMS_OLD)if(c[k]===SMS_OLD[k]||c[k]===SMS_OLD2[k])c[k]=SMS_DEFAULTS[k];return c};
 const smsReady=()=>!!window.FB_BUILD&&mode==="cloud";
 function smsPhone(ph){const n=waNum(ph);return /^254(7|1)\d{8}$/.test(n)?n:""}
 function smsDueDate(p,m){return m+"-"+String(dueDayOf(p)).padStart(2,"0")}
 function smsVars(t,extra){
   const u=get("units",t.unitId)||{},p=propOf(u)||{},C=compute(),b=C.ten[t.id]?C.ten[t.id].balance:0,s=S.settings,m=todayStr.slice(0,7);
   return {name:(t.name||"").split(" ")[0]||t.name||"",fullname:t.name||"",house:unitName(u),code:p.code||"",property:p.name||"",
-    balance:n0(Math.max(0,b)),balanceText:b>0?"Balance KES "+n0(b)+".":"",items:typeof itemsFor==="function"?itemsFor(t,m):"",
+    balance:n0(Math.max(0,b)),balanceText:b>0?"Balance: KES "+n0(b):"",items:typeof itemsFor==="function"?itemsFor(t,m):"",
     month:MN[+m.slice(5)-1]+" "+m.slice(0,4),due:fmtDate(smsDueDate(p,m)),paybill:cfg(p).paybill||s.paybill||"",account:acctFor(u),
     company:"Berlim Homes",phone:(s.phone||"").split("/")[0].trim(),...(extra||{})};
 }
-function smsFill(tpl,v){return String(tpl||"").replace(/\{(\w+)\}/g,(m,k)=>v[k]!=null?String(v[k]):m).replace(/\(\s*\)/g,"").replace(/:\s*\./g,".").replace(/\s+/g," ").replace(/\s+([.,;])/g,"$1").replace(/\.\s*\./g,".").trim()}
+function smsFill(tpl,v){return String(tpl||"").replace(/\r/g,"").replace(/\{(\w+)\}/g,(m,k)=>v[k]!=null?String(v[k]):m).split("\n").map(l=>l.replace(/\(\s*\)/g,"").replace(/:\s*\./g,".").replace(/[ \t]+/g," ").replace(/\s+([.,;])/g,"$1").replace(/\.\s*\./g,".").trim()).filter(l=>l&&l!==".").join("\n").trim()}
 function smsDoc(id,t,text,kind){return {id,to:smsPhone(t.phone),tenantId:t.id,name:t.name,text,kind,status:"queued",createdAt:new Date().toISOString(),by:ME.id||""}}
 async function smsQueue(docs){let n=0;for(const d of docs){if(!d.to)continue;try{await db.collection("sms").doc(d.id).set(JSON.parse(JSON.stringify(d)));n++}catch(e){}}return n}
 
@@ -2641,7 +2642,7 @@ function smsDueList(kind,force){
       if(force)n=at.findIndex((d,i)=>days<=d&&(i===at.length-1||days>at[i+1]))+1||1;
       else{const i=at.findIndex((d,k)=>days<=d&&(k===at.length-1||days>at[k+1]));if(i<0)continue;n=i+1}
       const id="remind"+n+"-"+dm+"-"+t.id;if(get("sms",id))continue;
-      out.push({t,b:amt,id,n,vars:{balance:n0(amt),due:fmtDate(due),month:MN[+dm.slice(5)-1]+" "+dm.slice(0,4),items:itemsFor(t,dm)||("Rent "+n0(+((u||{}).rent)||0))}});
+      out.push({t,b:amt,id,n,vars:{balance:n0(amt),due:fmtDate(due),month:MN[+dm.slice(5)-1]+" "+dm.slice(0,4),items:itemsFor(t,dm)||("Rent: KES "+n0(+((u||{}).rent)||0))}});
     }else{
       if(b<=0)continue;
       const m=todayStr.slice(0,7),due=smsDueOn(p,m),late=dPlus(due,graceOf(p)+1),since=dDiff(todayStr,late);
@@ -2695,9 +2696,9 @@ function smsCard(){
     <div class="f"><label for="sm-rd">Send reminders this many days before the due day</label><input id="sm-rd" name="remindAt" value="${esc(c.remindAt??"5, 1")}" placeholder="5, 1"><span class="hint">Separate with commas. "5, 1" = two reminders, 5 days and 1 day before. "7, 3, 0" = three, the last on the due day. Each property uses its own due day.</span></div>
     <div class="f full">${chk("late","Late notice the day after the grace period ends (each property's own dates)")}</div>
     <div class="f full">${chk("auto","Send reminders and late notices automatically when the ledger is opened (once per tenant per month)")}</div>
-    <div class="f full"><label for="sm-tp">Payment received message</label><textarea id="sm-tp" name="tplPay" rows="2">${esc(c.tplPay)}</textarea></div>
-    <div class="f full"><label for="sm-tr">Reminder message</label><textarea id="sm-tr" name="tplRemind" rows="2">${esc(c.tplRemind)}</textarea></div>
-    <div class="f full"><label for="sm-tl">Late notice message</label><textarea id="sm-tl" name="tplLate" rows="2">${esc(c.tplLate)}</textarea>
+    <div class="f full"><label for="sm-tp">Payment received message</label><textarea id="sm-tp" name="tplPay" rows="7">${esc(c.tplPay)}</textarea></div>
+    <div class="f full"><label for="sm-tr">Reminder message</label><textarea id="sm-tr" name="tplRemind" rows="7">${esc(c.tplRemind)}</textarea></div>
+    <div class="f full"><label for="sm-tl">Late notice message</label><textarea id="sm-tl" name="tplLate" rows="7">${esc(c.tplLate)}</textarea>
      <span class="hint">Fill-ins: {name} {fullname} {house} {code} {property} {amount} {receipt} {balance} {balanceText} {items} (each charge this month: rent, water, electricity, service charge, penalties, balance b/f) {month} {due} {paybill} {account} {company} {phone}. Tenants who have paid ahead are only thanked; their credit is not mentioned. One SMS is 160 characters; longer texts cost 2.</span></div>
     <div class="full row"><button class="btn primary" type="submit">Save SMS settings</button><button class="btn" type="button" data-a="smsNotice">Send a notice</button><button class="btn" type="button" data-a="smsCompose">Custom message</button><button class="btn" type="button" data-a="smsRemindNow">Send reminders now</button><span class="hint" id="smsMsg"></span></div>
    </form></div></div>
@@ -2712,7 +2713,7 @@ function smsCompose(){
    <div class="f"><label for="sn-w">Send to</label><select id="sn-w" name="who"><option value="owing">Tenants with a balance</option><option value="all">All current tenants</option><option value="paid">Tenants who are fully paid</option><option value="one">One tenant</option></select></div>
    <div class="f"><label for="sn-p">Property</label><select id="sn-p" name="prop"><option value="all">All properties</option>${props.map(p=>`<option value="${p.id}">${esc(p.code||"")} ${esc(p.name||"")}</option>`).join("")}</select></div>
    <div class="f full" id="sn-onew" hidden><label for="sn-t">Tenant</label><select id="sn-t" name="tid">${S.tenants.filter(t=>t.active).map(t=>{const u=get("units",t.unitId);return `<option value="${t.id}">${esc((propOf(u)||{}).code||"")} ${esc(unitName(u))} · ${esc(t.name)}</option>`}).join("")}</select></div>
-   <div class="f full"><label for="sn-m">Message</label><textarea id="sn-m" name="text" rows="4" required placeholder="Dear {name}, ...">Dear {name}, </textarea><span class="hint">Fill-ins: {name} {house} {code} {balance} {balanceText} {paybill} {account} {company} {phone}</span></div>
+   <div class="f full"><label for="sn-m">Message</label><textarea id="sn-m" name="text" rows="7" required placeholder="Dear {name},&#10;...">Dear {name}, </textarea><span class="hint">Fill-ins: {name} {house} {code} {balance} {balanceText} {paybill} {account} {company} {phone}</span></div>
    <div class="full"><span class="hint" id="sn-c"></span><span class="err" id="sn-e"></span></div></form>`,
    `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fSmsNew" type="submit">Send</button>`);
   const f=document.getElementById("fSmsNew");
@@ -2831,16 +2832,16 @@ function showLease(tid){
 
 /* ===== Notices to tenants by SMS (and a printable copy for the notice board) ===== */
 const NOTICE_TPL=[
- ["General notice","Dear {name}, NOTICE: {details} {company} {phone}"],
- ["Water interruption","Dear {name}, no water at {property} on {when} due to {details}. Please store enough water. Sorry for the inconvenience. {company}"],
- ["Electricity interruption","Dear {name}, electricity at {property} will be off on {when} for {details}. Sorry for the inconvenience. {company}"],
- ["Maintenance / repairs","Dear {name}, maintenance work ({details}) will take place at {property} on {when}. Kindly allow access where needed. {company}"],
- ["House inspection","Dear {name}, we will inspect House {house} at {property} on {when}. Kindly be available or leave access. {company} {phone}"],
- ["Tenants' meeting","Dear {name}, there will be a tenants' meeting at {property} on {when}. Agenda: {details}. Your attendance is important. {company}"],
- ["Rent review","Dear {name}, this is notice that rent for House {house} at {property} will change to KES {details} from {when}. Contact us with any questions. {company} {phone}"],
- ["Rent arrears","Dear {name}, your rent balance for House {house} is KES {balance}. Kindly clear it by {when} via Paybill {paybill}, Account {account} to avoid penalties. {company} {phone}"],
- ["Garbage collection","Dear {name}, garbage at {property} will be collected on {when}. Please have it ready, bagged, by the gate. {company}"],
- ["Security alert","Dear {name}, SECURITY NOTICE for {property}: {details} Please keep gates locked and report anything suspicious. {company} {phone}"]];
+ ["General notice","Dear {name},\nNOTICE: {details}\n{company} {phone}"],
+ ["Water interruption","Dear {name},\nNo water at {property} on {when}.\nReason: {details}\nPlease store enough water.\n{company}"],
+ ["Electricity interruption","Dear {name},\nElectricity at {property} will be off on {when}.\nReason: {details}\n{company}"],
+ ["Maintenance / repairs","Dear {name},\nMaintenance at {property} on {when}:\n{details}\nKindly allow access where needed.\n{company}"],
+ ["House inspection","Dear {name},\nWe will inspect House {house} at {property} on {when}.\nKindly be available or leave access.\n{company} {phone}"],
+ ["Tenants' meeting","Dear {name},\nTenants' meeting at {property} on {when}.\nAgenda: {details}\nYour attendance is important.\n{company}"],
+ ["Rent review","Dear {name},\nRent for House {house} at {property} will be KES {details} from {when}.\nQuestions? Call {phone}\n{company}"],
+ ["Rent arrears","Dear {name},\nYour rent balance for House {house} is KES {balance}.\nPlease clear it by {when}.\nPaybill {paybill}, Account {account}\n{company} {phone}"],
+ ["Garbage collection","Dear {name},\nGarbage at {property} will be collected on {when}.\nPlease have it bagged by the gate.\n{company}"],
+ ["Security alert","Dear {name},\nSECURITY NOTICE, {property}:\n{details}\nKeep gates locked and report anything suspicious.\n{company} {phone}"]];
 function smsNotice(opts){
   opts=opts||{};
   if(!window.FB_BUILD){toast("SMS notices work on the Berlim Homes website (berlim-homes-ltd.web.app).");return}
@@ -2852,7 +2853,7 @@ function smsNotice(opts){
    <div class="f" id="no-onew" hidden><label for="no-t">Tenant</label><select id="no-t" name="tid">${S.tenants.filter(t=>t.active).sort((a,b)=>sortUnits(get("units",a.unitId)||{label:""},get("units",b.unitId)||{label:""})).map(t=>{const u=get("units",t.unitId);return `<option value="${t.id}" ${opts.tid===t.id?"selected":""}>${esc((propOf(u)||{}).code||"")} ${esc(unitName(u))} · ${esc(t.name)}</option>`}).join("")}</select></div>
    <div class="f"><label for="no-when">When / date</label><input id="no-when" name="when" placeholder="e.g. Friday 7 Nov, 9am to 4pm"></div>
    <div class="f"><label for="no-d">Details</label><input id="no-d" name="details" placeholder="e.g. tank cleaning"></div>
-   <div class="f full"><label for="no-m">Message</label><textarea id="no-m" name="text" rows="4" required></textarea><span class="hint">Edit freely. {name} {house} {property} {code} {balance} {paybill} {account} are filled in for each tenant.</span></div>
+   <div class="f full"><label for="no-m">Message</label><textarea id="no-m" name="text" rows="7" required></textarea><span class="hint">Edit freely. {name} {house} {property} {code} {balance} {paybill} {account} are filled in for each tenant.</span></div>
    <div class="full"><div class="hint" id="no-c"></div><div style="margin-top:6px;padding:10px 12px;background:#F4EEDF;border-radius:10px;font-size:13.5px" id="no-s"></div><span class="err" id="no-e"></span></div></form>`,
    `<button class="btn" data-a="close">Cancel</button><button class="btn" id="noPrint">Print for notice board</button><button class="btn primary" form="fNo" type="submit">Send SMS</button>`,true);
   const f=document.getElementById("fNo"),txt=document.getElementById("no-m");let touched=false;
@@ -3147,8 +3148,8 @@ function utilSmsState(inv){if(!inv)return "";const xs=S.sms.filter(x=>x.id&&x.id
 async function smsLandlordPaid(r){
   if(!smsReady())return;const c=smsCfg();if(!c.on||c.llMsg===false||r.method==="Settled before system")return;
   const p=get("properties",r.propertyId)||{},U=r.part==="util"&&p.utilLandlord,L=U?{}:(landlordOf(p.id)||{}),ph=U?p.utilLandlordPhone:(L.phone||p.landlordPhone),name=U?p.utilLandlord:(L.name||p.landlord||"Landlord");if(!smsPhone(ph))return;
-  const text=`Dear ${name.split(" ")[0]}, Berlim Homes has paid you KES ${n0(r.amount)} for ${p.name||p.code||""} (${p.code||""}), ${monthLabel(r.month)} ${U?"water and electricity":"rent"}, on ${fmtDate(r.date)} via ${r.method}${r.ref?", ref "+r.ref:""}${r.paidTo?", to "+r.paidTo:""}. Thank you. Berlim Homes ${(S.settings.phone||"").split("/")[0].trim()}`;
-  await smsQueue([{id:"llpay-"+r.id,to:smsPhone(ph),tenantId:"",landlordId:L.id||"",name,text:text.replace(/\s+/g," "),kind:"Landlord payment",status:"queued",createdAt:new Date().toISOString(),by:ME.id||""}]);
+  const text=[`Dear ${name.split(" ")[0]},`,`Berlim Homes has paid you KES ${n0(r.amount)}`,`For: ${p.code||""} ${p.name||""}, ${monthLabel(r.month)} ${U?"water and electricity":"rent"}`,`Date: ${fmtDate(r.date)}`,`Via: ${r.method}${r.ref?", ref "+r.ref:""}`,r.paidTo?`To: ${r.paidTo}`:"","Thank you.",`Berlim Homes ${(S.settings.phone||"").split("/")[0].trim()}`].filter(Boolean).join("\n");
+  await smsQueue([{id:"llpay-"+r.id,to:smsPhone(ph),tenantId:"",landlordId:L.id||"",name,text,kind:"Landlord payment",status:"queued",createdAt:new Date().toISOString(),by:ME.id||""}]);
 }
 /* reverse one item (rent, deposit, garbage, water, electricity, penalty...) on an invoice */
 function reverseLine(id,idx){
@@ -3334,7 +3335,7 @@ document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.c
 /* ===== full invoice SMS, send-on-request, and scheduled rent / charge changes ===== */
 const netLines=i=>{const ls=(i.lines||[]).filter(l=>!l.rev).map(l=>({...l,amt:(+l.amount||0)-(+l.reversedAmt||0)}));return ls.filter(l=>l.amt!==0)};
 function lineSms(l){const nm=l.kind==="rent"?"Rent":l.kind==="water"?"Water":l.kind==="elec"?"Electricity":l.kind==="service"?"Service charge":l.kind==="garbage"?"Garbage":l.kind==="deposit"?"Deposit":l.kind==="penalty"?"Late payment penalty":l.kind==="bfadj"?"Balance b/f":(l.desc||"").replace(/,.*$/,"");
-  return nm+" KES "+n0(l.amt??l.amount)}
+  return nm+": KES "+n0(l.amt??l.amount)}
 function priorBal(t,excludeIds){const C=compute(),b=C.ten[t.id]?C.ten[t.id].balance:0;let cur=0;for(const id of excludeIds){const i=get("invoices",id);if(i&&!i.reversed)cur+=+i.total||0}return Math.max(0,Math.round(b-cur))}
 const tenBal=t=>{const c=compute().ten[t.id];return c?Math.max(0,Math.round(c.balance)):0};
 function invoiceSmsText(i){
@@ -3351,12 +3352,12 @@ function invoiceSmsText(i){
 
 /* this month's charges for a tenant, item by item, plus anything brought forward: used by {items} in reminders */
 function itemsFor(t,m){const invs=S.invoices.filter(i=>i.tenantId===t.id&&i.month===m&&!i.adj&&!i.reversed);const parts=invs.flatMap(netLines).map(lineSms);
-  const prior=priorBal(t,invs.map(i=>i.id));if(prior)parts.push("Balance b/f "+n0(prior));return parts.join("; ")}
+  const prior=priorBal(t,invs.map(i=>i.id));if(prior)parts.push("Previous balance: KES "+n0(prior));return parts.join("\n")}
 function invSmsState(i){const xs=S.sms.filter(x=>x.id&&(x.id.startsWith("inv-"+i.id)||x.id.startsWith("util-"+i.id))).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));const x=xs[0];if(!x)return "";
   return x.status==="sent"?`<span class="pill p-good">SMS sent ${fmtDate((x.sentAt||"").slice(0,10))}</span>`:x.status==="failed"?`<span class="pill p-bad">SMS failed</span>`:`<span class="pill">SMS waiting</span>`}
 function sendInvoiceSms(id){const i=get("invoices",id);if(!i)return;const t=get("tenants",i.tenantId)||{};
   if(!smsPhone(t.phone)){toast("This tenant has no valid phone number");return}const text=invoiceSmsText(i);
-  openModal("Send "+esc(i.no)+" by SMS",`<p style="margin:0 0 8px">To <strong>${esc(t.name)}</strong> · ${esc(t.phone)}</p><textarea id="isTxt" rows="5" style="width:100%;font:14px var(--body);padding:10px;border:1px solid var(--line);border-radius:10px">${esc(text)}</textarea><p class="hint" id="isLen">${text.length} characters${text.length>160?" ("+Math.ceil(text.length/153)+" SMS)":""}</p>`,
+  openModal("Send "+esc(i.no)+" by SMS",`<p style="margin:0 0 8px">To <strong>${esc(t.name)}</strong> · ${esc(t.phone)}</p><textarea id="isTxt" rows="10" style="width:100%;font:14px var(--body);padding:10px;border:1px solid var(--line);border-radius:10px">${esc(text)}</textarea><p class="hint" id="isLen">${text.length} characters${text.length>160?" ("+Math.ceil(text.length/153)+" SMS)":""}</p>`,
    `<button class="btn" data-a="close">Cancel</button><button class="btn primary" id="isGo">Send SMS</button>`);
   const ta=document.getElementById("isTxt");ta.oninput=()=>{const n=ta.value.length;document.getElementById("isLen").textContent=n+" characters"+(n>160?" ("+Math.ceil(n/153)+" SMS)":"")};
   document.getElementById("isGo").onclick=async()=>{const n=await smsQueue([smsDoc("inv-"+i.id+"-"+Date.now().toString(36),t,ta.value.trim(),"Invoice")]);closeModal();toast(n?"SMS queued; it goes out within a minute":"Couldn't queue the SMS");setTimeout(()=>showInvoice(id),200)}}
@@ -3378,7 +3379,12 @@ function formRates(pid,oneU){
     <div class="row" style="margin-top:6px"><button type="button" class="link" id="rtAll">All houses</button> · <button type="button" class="link" id="rtNone">None</button></div></div>
    <div class="f full"><div class="tw"><table><thead><tr><th>House</th><th>Tenant</th><th class="num">Now</th><th class="num">From <span id="rt-fm"></span></th></tr></thead><tbody id="rtPrev"></tbody></table></div></div>
    ${window.FB_BUILD?`<div class="f full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="sms" checked> Text the affected tenants about the change</label>
-   <textarea name="tpl" rows="3" style="width:100%;font:14px var(--body);padding:10px;border:1px solid var(--line);border-radius:10px;margin-top:6px">Dear {name}, please note that from {from} your {what} for House {house} ({code}) will change from KES {old} to KES {new}. For any questions call {phone}. {company}</textarea>
+   <textarea name="tpl" rows="7" style="width:100%;font:14px var(--body);padding:10px;border:1px solid var(--line);border-radius:10px;margin-top:6px">Dear {name},
+From {from}, your {what} for House {house} ({code}) changes:
+Now: KES {old}
+New: KES {new}
+Questions? Call {phone}
+{company}</textarea>
    <span class="hint">Fill-ins: {name} {house} {code} {what} {old} {new} {from} {phone} {company}</span></div>`:""}
    <div class="err full" id="rtErr"></div></form>`,
    `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fRt" type="submit">Schedule the change</button>`,true);
