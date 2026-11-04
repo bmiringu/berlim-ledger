@@ -627,7 +627,7 @@ const propOf=u=>u?get("properties",u.propertyId):null;
 const activeTenantOf=unitId=>S.tenants.find(t=>t.active&&t.unitId===unitId);
 const reading=(m,unitId)=>S.readings.find(r=>r.id===m+"_"+unitId);
 function sortUnits(a,b){const pa=(propOf(a)||{}).code||(propOf(a)||{}).name||"",pb=(propOf(b)||{}).code||(propOf(b)||{}).name||"";return pa.localeCompare(pb,undefined,{numeric:true})||String(a.label).localeCompare(String(b.label),undefined,{numeric:true})}
-const PROP_DEFAULTS={llPayDay:"",llPayWhen:"",lettingPct:0,caretakerFee:0,caretakerName:"",fixedDeds:[],dueDay:"",graceDays:0,penaltyPct:"",lrNo:"",elecMeter:"",elecAccount:"",waterMeter:"",waterAccount:"",code:"",elecRate:0,utilCommissionPct:0,garbage:0,waterMode:"none",waterFlat:0,waterRate:0,serviceCharge:0,penaltyFlat:0,commissionPct:10,commissionBase:"rent",vatPct:0,landlordPay:""};
+const PROP_DEFAULTS={depositCommPct:"",depositsToLandlord:"yes",llPayDay:"",llPayWhen:"",lettingPct:0,caretakerFee:0,caretakerName:"",fixedDeds:[],dueDay:"",graceDays:0,penaltyPct:"",lrNo:"",elecMeter:"",elecAccount:"",waterMeter:"",waterAccount:"",code:"",elecRate:0,utilCommissionPct:0,garbage:0,waterMode:"none",waterFlat:0,waterRate:0,serviceCharge:0,penaltyFlat:0,commissionPct:10,commissionBase:"rent",vatPct:0,landlordPay:""};
 const cfg=p=>({...PROP_DEFAULTS,...(p||{})});
 const sortedProps=()=>[...S.properties].filter(p=>!(p.ended&&p.ended.status==="approved"&&(p.ended.date||"").slice(0,7)<month)).sort((a,b)=>(a.code||a.name).localeCompare(b.code||b.name,undefined,{numeric:true}));
 const propTag=p=>p?`<span class="code">${esc(p.code||"—")}</span> ${esc(p.name)}`:"";
@@ -1154,6 +1154,8 @@ function formProp(id){
    <h3 class="full fsec">Commission</h3>
    ${I("lettingPct","Letting fee on new tenants (% of first month's rent)","number","Deducted in the landlord report the month a new tenant moves in. 0 if none")}
    ${I("commissionPct","Management commission (%)","number")}
+   ${I("depositCommPct","Commission on deposits (%)","number","Agreed with the landlord. Blank = same as management commission ("+(+p.commissionPct||0)+"%). Charged on deposits that go on the landlord report")}
+   <div class="f"><label for="p-depositsToLandlord">New deposits on the landlord report</label><select id="p-depositsToLandlord" name="depositsToLandlord"><option value="yes" ${p.depositsToLandlord!=="no"?"selected":""}>Include (landlord receives them, less commission)</option><option value="no" ${p.depositsToLandlord==="no"?"selected":""}>Exclude (Berlim Homes holds them)</option></select><span class="hint">The default; you can change it on each invoice</span></div>
    <div class="f"><label for="p-commissionBase">Commission calculated on</label><select id="p-commissionBase" name="commissionBase">${[["rent","Rent billed"],["billed","Rent and utilities billed"],["collected","Total collected"]].map(([v,l])=>`<option value="${v}" ${p.commissionBase===v?"selected":""}>${l}</option>`).join("")}</select></div>
    ${I("utilCommissionPct","Commission on utility bills (%)","number","Charged separately on water and electricity billed. 0 if none")}
    ${I("vatPct","VAT on commission (%)","number","0 if not charged")}</form>`,
@@ -1163,7 +1165,7 @@ function formProp(id){
     d.fixedDeds=[0,1,2].map(k=>({desc:String(d["fd_desc_"+k]||"").trim(),amount:+d["fd_amt_"+k]||0})).filter(x=>x.desc&&x.amount);[0,1,2].forEach(k=>{delete d["fd_desc_"+k];delete d["fd_amt_"+k]});
     const fdP=new FormData(e.target),LL={name:String(fdP.get("pl_name")||"").trim(),idNo:String(fdP.get("pl_idNo")||"").trim(),phone:String(fdP.get("pl_phone")||"").trim(),email:String(fdP.get("pl_email")||"").trim(),...readPay(fdP,"pl_")};
     Object.keys(d).filter(k=>k.startsWith("pl_")).forEach(k=>delete d[k]);d.landlord=LL.name;d.landlordPhone=LL.phone;d.landlordEmail=LL.email;d.landlordPay=bankLine(LL);
-    ["dueDay","penaltyPct","llPayDay"].forEach(k=>d[k]=String(d[k]??"").trim()===""?"":+d[k]);if(d.llPayDay!==""&&(d.llPayDay<1||d.llPayDay>28)){toast("Landlord payment day must be between 1 and 28");return}
+    d.depositCommPct=String(d.depositCommPct??"").trim()===""?"":+d.depositCommPct;["dueDay","penaltyPct","llPayDay"].forEach(k=>d[k]=String(d[k]??"").trim()===""?"":+d[k]);if(d.llPayDay!==""&&(d.llPayDay<1||d.llPayDay>28)){toast("Landlord payment day must be between 1 and 28");return}
     if(d.dueDay!==""&&(d.dueDay<1||d.dueDay>28)){toast("Due day must be between 1 and 28");return}
     d.holdDeposits=d.holdDeposits==="on";d.garbageToLandlord=d.garbageToLandlord==="on";
     ["landlordPhone","landlordEmail","code","name","location","landlord","landlordPay","lrNo","elecMeter","elecAccount","waterMeter","waterAccount"].forEach(k=>d[k]=(d[k]||"").trim());d.code=d.code.toUpperCase();
@@ -1267,7 +1269,7 @@ function formEditPay(id){
 }
 function showInvoice(id){
   const i=get("invoices",id);if(!i)return;
-  openModal(CATS[catOf(i)].title+" "+esc(i.no),invoiceHTML(i)+lineRevHTML(i),`<a class="btn" href="${waLink((get("tenants",i.tenantId)||{}).phone,invoiceText(i))}" target="_blank" rel="noopener">Send on WhatsApp</a><button class="btn" id="cpTxt">Copy text</button>${downloads?`<button class="btn" id="dlInv">Download for printing</button>`:""}${!can("invoices")?"":i.reversed?`<button class="btn" data-a="restoreInv" data-id="${i.id}">Restore invoice</button>`:`<button class="btn danger" data-a="reverseInv" data-id="${i.id}">Reverse invoice</button>`}${can("payments")?`<button class="btn primary" data-a="pay" data-id="${i.tenantId}">Record payment</button>`:""}`,true);
+  openModal(CATS[catOf(i)].title+" "+esc(i.no),invoiceHTML(i)+depToggleHTML(i)+lineRevHTML(i),`<a class="btn" href="${waLink((get("tenants",i.tenantId)||{}).phone,invoiceText(i))}" target="_blank" rel="noopener">Send on WhatsApp</a><button class="btn" id="cpTxt">Copy text</button>${downloads?`<button class="btn" id="dlInv">Download for printing</button>`:""}${!can("invoices")?"":i.reversed?`<button class="btn" data-a="restoreInv" data-id="${i.id}">Restore invoice</button>`:`<button class="btn danger" data-a="reverseInv" data-id="${i.id}">Reverse invoice</button>`}${can("payments")?`<button class="btn primary" data-a="pay" data-id="${i.tenantId}">Record payment</button>`:""}`,true);
   document.getElementById("cpTxt").onclick=async()=>{try{await navigator.clipboard.writeText(invoiceText(i));toast("Message copied")}catch(e){toast("Copy was blocked by the browser")}};
   const dl=document.getElementById("dlInv");if(dl)dl.onclick=()=>dlFile(i.no+".html",standalone(i.no,invoiceHTML(i)));
 }
@@ -1548,7 +1550,7 @@ document.getElementById("mnext").onclick=()=>{monthPinned=true;month=monthAdd(mo
 const PERMS=[["payments","Record, edit and delete tenant payments"],["invoices","Generate, reverse and penalise invoices"],["readings","Enter meter readings and meter photos"],["tenants","Add, edit and move out tenants (with move-in bills)"],["providers","Service provider bills and payments"],["props","Properties, houses, rates and setup"],["landlords","Landlord accounts, agreements and remittances"]];
 const PSHORT={payments:"Payments",invoices:"Invoices",readings:"Meter readings",tenants:"Tenants",providers:"Service providers",props:"Properties & setup",landlords:"Landlord accounts"};
 const ROLES={admin:{label:"Administrator (full access)",perms:PERMS.map(p=>p[0])},manager:{label:"Property manager",perms:PERMS.map(p=>p[0])},accountant:{label:"Accountant",perms:["payments","invoices","providers","landlords"]},field:{label:"Field officer / caretaker",perms:["readings","tenants"]},viewer:{label:"View only",perms:[]}};
-const NEED={suspReq:"tenants",endProp:"props",endLl:"landlords",revLine:"invoices",utilSmsAll:"readings",utilSms:"readings",llToggle:"invoices",charge:"invoices",smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
+const NEED={depLL:"invoices",suspReq:"tenants",endProp:"props",endLl:"landlords",revLine:"invoices",utilSmsAll:"readings",utilSms:"readings",llToggle:"invoices",charge:"invoices",smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
 let staffLoaded=false;
 function myStaff(){return ME.id?S.staff.find(s=>s.id===ME.id&&s.active!==false)||null:null}
 function can(p){if(ME.admin)return true;const s=ME.staff;if(!s||readOnly)return false;return !p||(s.perms||[]).includes(p)}
@@ -2005,7 +2007,7 @@ function wireMoveInBill(){
       <td>${k==="other"?`<input class="desc mv-d" placeholder="Other charge, e.g. Agreement fee">`:`<span>${esc(lab)}</span><span class="sub">${CATS[CAT_OF[k]].title}</span>`}</td>
       <td class="num"><input type="number" min="0" step="any" class="mv-a" value="${amt||""}" placeholder="0" aria-label="Amount"></td></tr>`).join("")}
       <tr><td></td><td><strong>Total to invoice</strong></td><td class="num tot" id="mv-t">0</td></tr></tbody></table>
-     <div class="opts"><label class="ck"><input type="checkbox" id="mv-pr"> Prorate rent from the move-in date</label><label class="ck">Due date <input type="date" id="mv-due" class="inline" value="${due}"></label>
+     <div class="opts"><label class="ck">Deposit on landlord report <select id="mv-dll" class="inline"><option value="yes" ${depDefaultLL(p)?"selected":""}>Include (commission ${depPct(p)}%)</option><option value="no" ${depDefaultLL(p)?"":"selected"}>Exclude (Berlim Homes holds it)</option></select></label><label class="ck"><input type="checkbox" id="mv-pr"> Prorate rent from the move-in date</label><label class="ck">Due date <input type="date" id="mv-due" class="inline" value="${due}"></label>
       <span class="sub" style="flex-basis:100%">Deposit and rent go on the rent invoice, garbage on its own invoice, water, electricity and service charge on the utility bill. Monthly billing continues from ${monthLabel(monthAdd(m,1))}.</span></div></div>`;
     sum()};
   const sum=()=>{let t=0;box.querySelectorAll("#mvTbl tr[data-k]").forEach(tr=>{const c=tr.querySelector(".mv-c"),a=+tr.querySelector(".mv-a").value||0;if(c.checked)t+=a});const el=document.getElementById("mv-t");if(el)el.textContent="KES "+n0(t)};
@@ -2025,7 +2027,7 @@ function moveInInvoices(t){
   for(const tr of box.querySelectorAll("#mvTbl tr[data-k]")){const k=tr.dataset.k,c=tr.querySelector(".mv-c"),a=+tr.querySelector(".mv-a").value||0;if(!c.checked||a<=0)continue;
     let desc=k==="other"?(tr.querySelector(".mv-d").value||"").trim():tr.querySelector("span").textContent.replace(/ \(metered.*\)$/,"");
     if(k==="other"&&!desc){toast("Describe the other charge, or untick it");return null}
-    const cat=CAT_OF[k]||"rent";(by[cat]=by[cat]||[]).push({desc,qty:1,rate:a,amount:Math.round(a),kind:k})}
+    const cat=CAT_OF[k]||"rent",ln={desc,qty:1,rate:a,amount:Math.round(a),kind:k};if(k==="deposit"){const dl=document.getElementById("mv-dll");ln.toLandlord=!dl||dl.value==="yes"}(by[cat]=by[cat]||[]).push(ln)}
   noReserve={};const out=[];
   for(const [cat,info] of Object.entries(CATS)){const lines=by[cat];if(!lines)continue;
     out.push({id:m+"_"+t.id+info.suf,cat,no:nextNo(info.pre),tenantId:t.id,unitId:t.unitId,month:m,issueDate:t.moveIn||todayStr,dueDate:due,lines,total:lines.reduce((s,l)=>s+l.amount,0),locked:true,moveInBill:true})}
@@ -2389,10 +2391,11 @@ function landlordMonth(pid,m){
   const total=Math.round(rows.reduce((s,r)=>s+r.ltot,0));
   const rent=T.rent||0,util=(T.water||0)+(T.elec||0);
   const base=p.commissionBase==="collected"||p.commissionBase==="billed"?total-(T.deposit||0):rent;
-  const commission=Math.round(base*(+p.commissionPct||0)/100),utilComm=Math.round(util*(+p.utilCommissionPct||0)/100),vat=Math.round((commission+utilComm)*(+p.vatPct||0)/100);
+  const commission=Math.round(base*(+p.commissionPct||0)/100),utilComm=Math.round(util*(+p.utilCommissionPct||0)/100),depComm=Math.round((T.deposit||0)*depPct(p)/100),vat=Math.round((commission+utilComm+depComm)*(+p.vatPct||0)/100);
   const ded=[];
   if(commission)ded.push({desc:`Management commission ${p.commissionPct}%`,amount:commission,fee:1});
   if(utilComm)ded.push({desc:`Commission on water and electricity ${p.utilCommissionPct}%`,amount:utilComm,fee:1});
+  if(depComm)ded.push({desc:`Commission on deposits ${depPct(p)}%`,amount:depComm,fee:1});
   if(vat)ded.push({desc:`${p.vatPct}% VAT on management fee`,amount:vat,fee:1});
   if(+p.lettingPct)S.tenants.filter(t=>{const u=get("units",t.unitId);return u&&u.propertyId===pid&&t.moveIn&&t.moveIn.slice(0,7)===m&&!t.noLetting&&!/^t-/.test(t.id)}).forEach(t=>{const u=get("units",t.unitId),amt=Math.round((+u.rent||0)*(+p.lettingPct)/100);if(amt)ded.push({desc:`Letting fee, new tenant House ${u.label} (${p.lettingPct}% of rent)`,amount:amt,fee:1})});
   if(total>0&&+p.caretakerFee)ded.push({desc:`Caretaker fee${p.caretakerName?" ("+p.caretakerName+")":""}`,amount:+p.caretakerFee});
@@ -2861,7 +2864,7 @@ function formCharge(tid){
   pc.addEventListener("input",houses);houses();
   const calc=()=>{let tot=0;body.querySelectorAll(".itr").forEach(r=>{const a=Math.round((+r.querySelector(".it-q").value||0)*(+r.querySelector(".it-p").value||0));r.querySelector(".it-a").textContent=n0(a);tot+=a});document.getElementById("chTot").textContent="KES "+n0(tot);return tot};
   body.addEventListener("input",calc);
-  body.addEventListener("change",e=>{if(e.target.classList.contains("it-ll"))e.target.style.borderColor="";if(e.target.classList.contains("it-k")){const r=e.target.closest(".itr"),k=e.target.value,t=get("tenants",sel.value),u=t&&get("units",t.unitId);r.querySelector(".it-ll").value=LL_DEFAULT_YES.includes(k)?"yes":"";
+  body.addEventListener("change",e=>{if(e.target.classList.contains("it-ll"))e.target.style.borderColor="";if(e.target.classList.contains("it-k")){const r=e.target.closest(".itr"),k=e.target.value,t=get("tenants",sel.value),u=t&&get("units",t.unitId);r.querySelector(".it-ll").value=k==="deposit"?(t&&!depDefaultLL(propOf(u))?"no":"yes"):LL_DEFAULT_YES.includes(k)?"yes":"";
     if(k==="rent"&&u&&!r.querySelector(".it-p").value){r.querySelector(".it-p").value=u.rent||"";if(!r.querySelector(".it-d").value)r.querySelector(".it-d").value="Rent "+monthLabel(f.month.value)}calc()}});
   body.addEventListener("click",e=>{if(e.target.classList.contains("it-x")){if(body.querySelectorAll(".itr").length>1)e.target.closest(".itr").remove();calc()}});
   document.getElementById("chAdd").onclick=()=>{body.insertAdjacentHTML("beforeend",itemRow("other","",1,""));calc()};
@@ -2961,13 +2964,13 @@ function mgmtIncome(m){const k=incKey(),c=_incMemo[m];if(c&&c.k===k)return c.v;c
 function mgmtIncome0(m){
   const rows=sortedProps().map(p=>{const L=landlordMonth(p.id,m),c=cfg(p);
     const sum=re=>L.ded.filter(d=>d.fee&&re.test(d.desc)).reduce((s,d)=>s+d.amount,0);
-    const comm=sum(/^Management commission/),util=sum(/^Commission on water/),letting=sum(/^Letting fee/),vat=sum(/VAT/);
+    const comm=sum(/^Management commission/),util=sum(/^Commission on water/),dep=sum(/^Commission on deposits/),letting=sum(/^Letting fee/),vat=sum(/VAT/);
     const pen=(collections(p.id,m).penalty)||0;
     // tenant charges left off the landlord report (e.g. damages, repairs kept by Berlim Homes), billed this month
     const kept=S.invoices.filter(i=>i.month===m&&!i.adj&&!i.reversed&&(get("units",i.unitId)||{}).propertyId===p.id).reduce((s,i)=>s+(i.lines||[]).filter(l=>l.toLandlord===false).reduce((a,l)=>a+(+l.amount||0),0),0);
-    const total=comm+util+letting+pen;
-    return {p,comm,util,letting,pen,kept,vat,total}});
-  const T={};["comm","util","letting","pen","kept","vat","total"].forEach(k=>T[k]=rows.reduce((s,r)=>s+r[k],0));
+    const total=comm+util+dep+letting+pen;
+    return {p,comm,util,dep,letting,pen,kept,vat,total}});
+  const T={};["comm","util","dep","letting","pen","kept","vat","total"].forEach(k=>T[k]=rows.reduce((s,r)=>s+r[k],0));
   return {rows,T};
 }
 function incomeCard(){
@@ -2982,6 +2985,7 @@ function incomeCard(){
     <div class="inc big"><span class="k">Total earned</span><b>KES ${n0(T.total)}</b><span class="s">${yr} to date: KES ${n0(ytd)}</span></div>
     ${pill("Management commission",T.comm,"On rent, per each property's %")}
     ${T.util?pill("Commission on utilities",T.util,"Water and electricity"):""}
+    ${T.dep?pill("Commission on deposits",T.dep,"Deposits passed to landlords"):""}
     ${pill("Letting fees",T.letting,"New tenants this month")}
     ${pill("Late penalties kept",T.pen,"Penalties tenants paid this month")}
     ${T.kept?pill("Tenant charges kept",T.kept,"Billed items not on landlord reports (not in total)"):""}
@@ -2989,9 +2993,9 @@ function incomeCard(){
    </div>
    <div class="bars" style="height:110px;margin-top:14px">${hist.map(h=>`<div class="grp"><div class="pair"><div class="b coll" style="height:${h.v/max*100}%" title="${monthLabel(h.m)}: KES ${n0(h.v)}"></div></div></div>`).join("")}</div>
    <div class="row" style="justify-content:space-around">${hist.map(h=>`<span style="font-size:12px;color:var(--muted);flex:1;text-align:center">${monthShort(h.m)}<br><b style="color:var(--ink)">${n0(h.v)}</b></span>`).join("")}</div>
-   <div class="tw" style="margin-top:14px"><table><thead><tr><th>Code</th><th>Property</th><th class="num">Commission</th><th class="num">Utility commission</th><th class="num">Letting fees</th><th class="num">Penalties kept</th><th class="num">Total</th><th class="num">VAT</th></tr></thead><tbody>
-    ${I.rows.filter(r=>r.total||r.vat||r.kept).map(r=>`<tr><td><span class="code">${esc(r.p.code)}</span></td><td>${esc(r.p.name)}</td><td class="num">${n0(r.comm)}</td><td class="num">${n0(r.util)}</td><td class="num">${n0(r.letting)}</td><td class="num">${n0(r.pen)}</td><td class="num"><strong>${n0(r.total)}</strong></td><td class="num">${n0(r.vat)}</td></tr>`).join("")||`<tr><td colspan="8" class="empty">No management income recorded for ${monthLabel(month)}.</td></tr>`}
-   </tbody><tfoot><tr><td colspan="2">TOTAL</td><td class="num">${n0(T.comm)}</td><td class="num">${n0(T.util)}</td><td class="num">${n0(T.letting)}</td><td class="num">${n0(T.pen)}</td><td class="num">${n0(T.total)}</td><td class="num">${n0(T.vat)}</td></tr></tfoot></table></div>
+   <div class="tw" style="margin-top:14px"><table><thead><tr><th>Code</th><th>Property</th><th class="num">Commission</th><th class="num">Utility commission</th><th class="num">Deposit commission</th><th class="num">Letting fees</th><th class="num">Penalties kept</th><th class="num">Total</th><th class="num">VAT</th></tr></thead><tbody>
+    ${I.rows.filter(r=>r.total||r.vat||r.kept).map(r=>`<tr><td><span class="code">${esc(r.p.code)}</span></td><td>${esc(r.p.name)}</td><td class="num">${n0(r.comm)}</td><td class="num">${n0(r.util)}</td><td class="num">${n0(r.dep)}</td><td class="num">${n0(r.letting)}</td><td class="num">${n0(r.pen)}</td><td class="num"><strong>${n0(r.total)}</strong></td><td class="num">${n0(r.vat)}</td></tr>`).join("")||`<tr><td colspan="9" class="empty">No management income recorded for ${monthLabel(month)}.</td></tr>`}
+   </tbody><tfoot><tr><td colspan="2">TOTAL</td><td class="num">${n0(T.comm)}</td><td class="num">${n0(T.util)}</td><td class="num">${n0(T.dep)}</td><td class="num">${n0(T.letting)}</td><td class="num">${n0(T.pen)}</td><td class="num">${n0(T.total)}</td><td class="num">${n0(T.vat)}</td></tr></tfoot></table></div>
    ${downloads?`<div class="row" style="margin-top:10px"><button class="btn sm" data-a="incCsv">Export income to Excel</button></div>`:""}
   </div></div>`;
 }
@@ -3242,6 +3246,22 @@ document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.c
   else if(a==="endUndo"){e.preventDefault();if(ME.admin)reactivate(id)}
   else if(a==="expNew"||a==="expEdit"){e.preventDefault();if(ME.admin)formExpense(a==="expEdit"?id:null)}
   else if(a==="expDel"){e.preventDefault();const x=get("expenses",id);if(x&&ME.admin)askConfirm(`Delete this expense of ${kes(x.amount)}?`,"Delete",async()=>{if(await remove("expenses",id)){S.expenses=S.expenses.filter(y=>y.id!==id);render()}})}});
+
+
+/* ===== deposits: commission at the agreed rate, and a choice to include or exclude them on the landlord report ===== */
+const depPct=p=>{p=cfg(p);return p.depositCommPct!==""&&p.depositCommPct!=null?+p.depositCommPct:(+p.commissionPct||0)};
+const depDefaultLL=p=>cfg(p).depositsToLandlord!=="no";
+function depToggleHTML(i){
+  if(!can("invoices")||i.reversed)return "";const ds=(i.lines||[]).filter(l=>l.kind==="deposit"&&!l.rev&&+l.amount>0);if(!ds.length)return "";
+  const on=ds.every(l=>l.toLandlord!==false),p=propOf(get("units",i.unitId))||{},amt=ds.reduce((s,l)=>s+(+l.amount||0),0);
+  return `<div class="card" style="margin-top:12px"><div class="cb row" style="gap:10px;align-items:center;flex-wrap:wrap"><strong>Deposit KES ${n0(amt)}</strong>
+   ${on?`<span class="pill p-good">On the landlord report</span><span class="sub">Commission ${depPct(p)}% = KES ${n0(Math.round(amt*depPct(p)/100))} is deducted for Berlim Homes</span>`:`<span class="pill p-mute">Kept off the landlord report</span><span class="sub">Held by Berlim Homes; no commission</span>`}
+   <button class="btn sm" data-a="depLL" data-id="${i.id}" data-v="${on?"no":"yes"}">${on?"Exclude from landlord report":"Include on landlord report"}</button></div></div>`;
+}
+document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b||b.dataset.a!=="depLL")return;e.preventDefault();
+  const i=get("invoices",b.dataset.id);if(!i)return;const to=b.dataset.v==="yes";
+  const lines=i.lines.map(l=>l.kind==="deposit"?{...l,toLandlord:to}:l);
+  if(await submit("invoices",`${i.no}: deposit ${to?"included on":"excluded from"} the landlord report`,[{op:"set",col:"invoices",obj:{...i,lines}}],"invoices")){toast("Deposit "+(to?"included on":"excluded from")+" the landlord report");setTimeout(()=>showInvoice(i.id),200)}});
 
 const VIEWS={mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
