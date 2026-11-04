@@ -696,7 +696,8 @@ function makeInvoices(t,m,only){
     if(ex&&(ex.reversed||ex.locked)){out.push(ex);continue}
     if(ex&&(m<todayStr.slice(0,7)||((lrep(p.id,m)||{}).sentAt))){out.push(ex);continue}
     const keep=ex?ex.lines.filter(l=>l.rev||(cat==="rent"&&(l.kind==="penalty"||l.kind==="manual"))):[];
-    const lines=[...all.filter(l=>(CAT_OF[l.kind]||"rent")===cat),...keep];
+    const off=new Set(ex?ex.lines.filter(l=>!l.rev&&l.toLandlord===false).map(l=>l.kind):[]);
+    const lines=[...all.filter(l=>(CAT_OF[l.kind]||"rent")===cat).map(l=>off.has(l.kind)?{...l,toLandlord:false}:l),...keep];
     if(!lines.length&&!ex)continue;
     out.push({id,cat,no:ex?ex.no:nextNo(info.pre),tenantId:t.id,unitId:t.unitId,month:m,issueDate:ex?ex.issueDate:(m+"-01"),dueDate:dueDateFor(m,p),lines,total:lines.reduce((s,l)=>s+(+l.amount||0),0)});
   }
@@ -1280,7 +1281,7 @@ function formEditPay(id){
 }
 function showInvoice(id){
   const i=get("invoices",id);if(!i)return;
-  openModal(CATS[catOf(i)].title+" "+esc(i.no),invoiceHTML(i)+depToggleHTML(i)+lineRevHTML(i),`${window.FB_BUILD&&!i.reversed?`<button class="btn" data-a="invSms" data-id="${i.id}">Send SMS</button>${invSmsState(i)}`:""}<a class="btn" href="${waLink((get("tenants",i.tenantId)||{}).phone,invoiceText(i))}" target="_blank" rel="noopener">Send on WhatsApp</a><button class="btn" id="cpTxt">Copy text</button>${downloads?`<button class="btn" id="dlInv">Download for printing</button>`:""}${!can("invoices")?"":i.reversed?`<button class="btn" data-a="restoreInv" data-id="${i.id}">Restore invoice</button>`:`<button class="btn danger" data-a="reverseInv" data-id="${i.id}">Reverse invoice</button>`}${can("payments")?`<button class="btn primary" data-a="pay" data-id="${i.tenantId}">Record payment</button>`:""}`,true);
+  openModal(CATS[catOf(i)].title+" "+esc(i.no),invoiceHTML(i)+llLinesHTML(i)+lineRevHTML(i),`${window.FB_BUILD&&!i.reversed?`<button class="btn" data-a="invSms" data-id="${i.id}">Send SMS</button>${invSmsState(i)}`:""}<a class="btn" href="${waLink((get("tenants",i.tenantId)||{}).phone,invoiceText(i))}" target="_blank" rel="noopener">Send on WhatsApp</a><button class="btn" id="cpTxt">Copy text</button>${downloads?`<button class="btn" id="dlInv">Download for printing</button>`:""}${!can("invoices")?"":i.reversed?`<button class="btn" data-a="restoreInv" data-id="${i.id}">Restore invoice</button>`:`<button class="btn danger" data-a="reverseInv" data-id="${i.id}">Reverse invoice</button>`}${can("payments")?`<button class="btn primary" data-a="pay" data-id="${i.tenantId}">Record payment</button>`:""}`,true);
   document.getElementById("cpTxt").onclick=async()=>{try{await navigator.clipboard.writeText(invoiceText(i));toast("Message copied")}catch(e){toast("Copy was blocked by the browser")}};
   const dl=document.getElementById("dlInv");if(dl)dl.onclick=()=>dlFile(i.no+".html",standalone(i.no,invoiceHTML(i)));
 }
@@ -1574,7 +1575,7 @@ document.getElementById("mnext").onclick=()=>{const {max}=monthBounds();if(month
 const PERMS=[["payments","Record, edit and delete tenant payments"],["invoices","Generate, reverse and penalise invoices"],["readings","Enter meter readings and meter photos"],["tenants","Add, edit and move out tenants (with move-in bills)"],["providers","Service provider bills and payments"],["props","Properties, houses, rates and setup"],["landlords","Landlord accounts, agreements and remittances"]];
 const PSHORT={payments:"Payments",invoices:"Invoices",readings:"Meter readings",tenants:"Tenants",providers:"Service providers",props:"Properties & setup",landlords:"Landlord accounts"};
 const ROLES={admin:{label:"Administrator (full access)",perms:PERMS.map(p=>p[0])},manager:{label:"Property manager",perms:PERMS.map(p=>p[0])},accountant:{label:"Accountant",perms:["payments","invoices","providers","landlords"]},field:{label:"Field officer / caretaker",perms:["readings","tenants"]},viewer:{label:"View only",perms:[]}};
-const NEED={chgLine:"invoices",dedEdit:"landlords",dedReset:"landlords",rates:"props",depLL:"invoices",suspReq:"tenants",endProp:"props",endLl:"landlords",revLine:"invoices",utilSmsAll:"readings",utilSms:"readings",llToggle:"invoices",charge:"invoices",smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
+const NEED={llLine:"invoices",llAll:"invoices",chgLine:"invoices",dedEdit:"landlords",dedReset:"landlords",rates:"props",depLL:"invoices",suspReq:"tenants",endProp:"props",endLl:"landlords",revLine:"invoices",utilSmsAll:"readings",utilSms:"readings",llToggle:"invoices",charge:"invoices",smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
 let staffLoaded=false;
 function myStaff(){return ME.id?S.staff.find(s=>s.id===ME.id&&s.active!==false)||null:null}
 function can(p){if(ME.admin)return true;const s=ME.staff;if(!s||readOnly)return false;return !p||(s.perms||[]).includes(p)}
@@ -2979,7 +2980,7 @@ document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.c
 const LL_DEFAULT_YES=["rent","bfadj","water","elec","garbage","service","deposit"];
 function invOnLL(i){const ls=i.lines||[];if(!ls.length)return "yes";const n=ls.filter(l=>l.toLandlord===false).length;return n===0?"yes":n===ls.length?"no":"part"}
 function invActions(i){const C=compute(),c=C.inv[i.id]||{};
-  return `<button class="btn sm" data-a="inv" data-id="${i.id}">Open</button>${can("invoices")?(i.reversed?` <button class="btn sm" data-a="restoreInv" data-id="${i.id}">Restore</button>`:` <button class="btn sm danger" data-a="reverseInv" data-id="${i.id}">Reverse</button>`)+(catOf(i)==="misc"?` <button class="btn sm" data-a="llToggle" data-id="${i.id}">${invOnLL(i)==="no"?"Add to landlord report":"Remove from landlord report"}</button>`:""):""}`}
+  return `<button class="btn sm" data-a="inv" data-id="${i.id}">Open</button>${can("invoices")?(i.reversed?` <button class="btn sm" data-a="restoreInv" data-id="${i.id}">Restore</button>`:` <button class="btn sm danger" data-a="reverseInv" data-id="${i.id}">Reverse</button>`)+` <button class="btn sm" data-a="llToggle" data-id="${i.id}">${invOnLL(i)==="no"?"Add to landlord report":"Remove from landlord report"}</button>`:""}`}
 function invRowsHTML(list,showTenant){
   const C=compute();
   return list.length?`<table><thead><tr><th>Invoice</th><th>Month</th><th>Type</th>${showTenant?"<th>House / tenant</th>":""}<th>Items</th><th class="num">Amount</th><th>Status</th><th>Landlord report</th><th></th></tr></thead><tbody>
@@ -3466,6 +3467,24 @@ function changeLine(id,idx){
     const r=await submitAdmin(`Change ${l.desc} for ${t.name} (${P.code} ${unitName(u)}) from ${kes(old)} to ${kes(amt)}${n>1?" on "+n+" invoices":""}${d.unit==="on"?", and house rent":""}: ${why}`,ops,"invoices");
     if(r){closeModal();if(r==="done")setTimeout(()=>showInvoice(id),250)}};
 }
+
+
+/* ===== landlord report: include / leave out any invoice or single item ===== */
+function llLinesHTML(i){const p=propOf(get("units",i.unitId))||{},sent=!!(lrep(p.id,i.month)||{}).sentAt,ed=can("invoices")&&!i.reversed;
+  const ls=(i.lines||[]).map((l,k)=>({l,k})).filter(x=>!x.l.rev),ll=invOnLL(i);if(!ls.length)return "";
+  return `<div class="card" style="margin-top:12px"><div class="ch"><h2>Landlord report</h2><span style="color:var(--muted);font-size:13px">${i.reversed?"Reversed: not on the landlord report":`${esc(p.code||"")} ${monthLabel(i.month)} · ${ll==="yes"?"whole invoice included":ll==="no"?"left out":"partly included"}${sent?" · report already sent":""}`}</span>
+   ${ed&&ls.length>1?`<button class="btn sm ${ll==="no"?"gold":""}" data-a="llAll" data-id="${i.id}" data-v="${ll==="no"?"yes":"no"}">${ll==="no"?"Include whole invoice":"Leave whole invoice out"}</button>`:""}</div>
+   <div class="tw"><table><tbody>${ls.map(({l,k})=>{const on=l.toLandlord!==false;return `<tr><td>${esc(l.desc)}${l.kind==="deposit"&&on?`<span class="sub">Deposit commission ${depPct(p)}% = KES ${n0(Math.round((+l.amount||0)*depPct(p)/100))} deducted for Berlim Homes</span>`:""}${l.kind==="penalty"?'<span class="sub">Late penalties stay with Berlim Homes on the report</span>':""}</td><td class="num">${n0(l.amount)}</td>
+    <td>${on?'<span class="pill p-good">Included</span>':'<span class="pill p-mute">Not included</span>'}</td><td class="num">${ed?`<button class="btn sm" data-a="llLine" data-id="${i.id}" data-k="${k}">${on?"Leave out":"Include"}</button>`:""}</td></tr>`}).join("")}</tbody></table></div></div>`}
+async function setLL(i,idxs,to){const p=propOf(get("units",i.unitId))||{};
+  const lines=i.lines.map((l,k)=>{if(!(idxs.includes(k)||(l.rev&&idxs.includes(l.revOf))))return l;const x={...l};if(to)delete x.toLandlord;else x.toLandlord=false;return x});
+  const what=idxs.length===i.lines.filter(l=>!l.rev).length?"invoice "+i.no:idxs.map(k=>i.lines[k].desc).join(", ")+" on "+i.no;
+  const go=async()=>{if(await submit("invoices",`${what} ${to?"included on":"left out of"} the ${p.code||""} ${monthShort(i.month)} landlord report`,[{op:"set",col:"invoices",obj:{...i,lines}}],"invoices"))setTimeout(()=>showInvoice(i.id),200)};
+  if((lrep(p.id,i.month)||{}).sentAt)askConfirm(`The ${esc(p.code||"")} ${monthLabel(i.month)} landlord report was already sent. ${to?"Include":"Leave out"} anyway? The report and amount to forward will change.`,to?"Include":"Leave out",go);else await go()}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;if(a!=="llLine"&&a!=="llAll")return;e.preventDefault();
+  const i=get("invoices",b.dataset.id);if(!i)return;
+  if(a==="llLine"){const k=+b.dataset.k;setLL(i,[k],i.lines[k].toLandlord===false)}
+  else setLL(i,i.lines.map((l,k)=>l.rev?-1:k).filter(k=>k>=0),b.dataset.v==="yes")});
 
 const VIEWS={mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
