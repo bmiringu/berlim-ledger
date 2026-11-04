@@ -20,9 +20,11 @@ service cloud.firestore {
     // Sign-in log: each person adds their own entries; nobody can change or delete them; only admins read them.
     match /logins/{id} { allow create: if signedIn() && request.resource.data.uid == request.auth.uid; allow read: if isAdmin(); allow update, delete: if false; }
     match /accessRequests/{uid} { allow read: if isAdmin() || (signedIn() && request.auth.uid == uid); allow write: if isAdmin() || (signedIn() && request.auth.uid == uid); }
+    // Office expenses and profit/loss: administrators only.
+    match /expenses/{id} { allow read, write: if isAdmin(); }
     // All business records (properties, tenants, invoices, payments, landlords, providers, approvals, settings...).
     match /{col}/{id} {
-      allow read, write: if member() && !(col in ['staff', 'people', 'accessRequests', 'logins']);
+      allow read, write: if member() && !(col in ['staff', 'people', 'accessRequests', 'logins', 'expenses']);
     }
   }
 }
