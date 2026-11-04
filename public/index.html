@@ -1560,7 +1560,7 @@ document.getElementById("mnext").onclick=()=>{monthPinned=true;month=monthAdd(mo
 const PERMS=[["payments","Record, edit and delete tenant payments"],["invoices","Generate, reverse and penalise invoices"],["readings","Enter meter readings and meter photos"],["tenants","Add, edit and move out tenants (with move-in bills)"],["providers","Service provider bills and payments"],["props","Properties, houses, rates and setup"],["landlords","Landlord accounts, agreements and remittances"]];
 const PSHORT={payments:"Payments",invoices:"Invoices",readings:"Meter readings",tenants:"Tenants",providers:"Service providers",props:"Properties & setup",landlords:"Landlord accounts"};
 const ROLES={admin:{label:"Administrator (full access)",perms:PERMS.map(p=>p[0])},manager:{label:"Property manager",perms:PERMS.map(p=>p[0])},accountant:{label:"Accountant",perms:["payments","invoices","providers","landlords"]},field:{label:"Field officer / caretaker",perms:["readings","tenants"]},viewer:{label:"View only",perms:[]}};
-const NEED={rates:"props",depLL:"invoices",suspReq:"tenants",endProp:"props",endLl:"landlords",revLine:"invoices",utilSmsAll:"readings",utilSms:"readings",llToggle:"invoices",charge:"invoices",smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
+const NEED={dedEdit:"landlords",dedReset:"landlords",rates:"props",depLL:"invoices",suspReq:"tenants",endProp:"props",endLl:"landlords",revLine:"invoices",utilSmsAll:"readings",utilSms:"readings",llToggle:"invoices",charge:"invoices",smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
 let staffLoaded=false;
 function myStaff(){return ME.id?S.staff.find(s=>s.id===ME.id&&s.active!==false)||null:null}
 function can(p){if(ME.admin)return true;const s=ME.staff;if(!s||readOnly)return false;return !p||(s.perms||[]).includes(p)}
@@ -2337,6 +2337,7 @@ function vLandlordAccount(pid){
    <div class="tile ${L.outstanding>0?"alert":""}"><span class="k">Not yet forwarded</span><span class="v">${n0(Math.max(0,L.outstanding))}</span><span class="s">For ${monthShort(month)} · pay by ${fmtDate(llDueDate(p,month))}</span></div></div>
   <p style="margin:0 0 12px">Landlord is paid by the <b>${llDueLabel(p)}</b> ${llDuePill(p,month,L)} · tenants pay by the <b>${ord(dueDayOf(p))}</b>. <button class="link" data-a="prop" data-id="${pid}">Change dates</button></p>
   <div class="card"><div class="cb">${llStatementHTML(pid,month)}</div></div>
+  ${llDedCard(pid,month)}
   ${llInvoicesCard(pid,month)}
   <div class="card"><div class="ch"><h2>Monthly reports</h2><span style="color:var(--muted);font-size:13px">Each month on its own; click a month to open its report</span></div><div class="tw"><table><thead><tr><th>Month</th><th class="num">Total collection</th><th class="num">Deductions</th><th class="num">To forward</th><th class="num">Forwarded</th><th>Status</th></tr></thead><tbody>
    ${hist.map(({m,H})=>`<tr><td><button class="link" data-a="llMonth" data-id="${m}">${monthLabel(m)}</button></td><td class="num">${n0(H.total)}</td><td class="num">${n0(H.totalDed)}</td><td class="num"><strong>${n0(H.forward)}</strong></td><td class="num">${n0(H.forwarded)}</td><td>${H.forward<=0?pill("Clear"):H.forwarded>=H.forward?pill("Paid"):H.forwarded>0?pill("Partial"):`<span class="pill p-warn">To forward</span>`} ${H.rep.sentAt?`<span class="pill p-info">Sent</span>`:""}</td></tr>`).join("")}
@@ -2418,18 +2419,21 @@ function landlordMonth(pid,m){
   const base=p.commissionBase==="collected"||p.commissionBase==="billed"?total-(T.deposit||0):rent;
   const commission=Math.round(base*(+p.commissionPct||0)/100),utilComm=Math.round(util*(+p.utilCommissionPct||0)/100),depComm=Math.round((T.deposit||0)*depPct(p)/100),vat=Math.round((commission+utilComm+depComm)*(+p.vatPct||0)/100);
   const ded=[];
-  if(commission)ded.push({desc:`Management commission ${p.commissionPct}%`,amount:commission,fee:1});
-  if(utilComm)ded.push({desc:`Commission on water and electricity ${p.utilCommissionPct}%`,amount:utilComm,fee:1});
-  if(depComm)ded.push({desc:`Commission on deposits ${depPct(p)}%`,amount:depComm,fee:1});
-  if(vat)ded.push({desc:`${p.vatPct}% VAT on management fee`,amount:vat,fee:1});
-  if(+p.lettingPct)S.tenants.filter(t=>{const u=get("units",t.unitId);return u&&u.propertyId===pid&&t.moveIn&&t.moveIn.slice(0,7)===m&&!t.noLetting&&!/^t-/.test(t.id)}).forEach(t=>{const u=get("units",t.unitId),amt=Math.round((+u.rent||0)*(+p.lettingPct)/100);if(amt)ded.push({desc:`Letting fee, new tenant House ${u.label} (${p.lettingPct}% of rent)`,amount:amt,fee:1})});
-  if(total>0&&+p.caretakerFee)ded.push({desc:`Caretaker fee${p.caretakerName?" ("+p.caretakerName+")":""}`,amount:+p.caretakerFee});
-  if(total>0)(p.fixedDeds||[]).forEach(x=>{if(+x.amount)ded.push({desc:x.desc,amount:+x.amount})});
-  if(T.service)ded.push({desc:"Service charge",amount:T.service});
-  S.ppays.filter(x=>x.propertyId===pid&&(x.date||"").slice(0,7)===m&&x.deduct).forEach(x=>{const v=get("providers",x.providerId)||{};const b=get("pbills",x.billId);ded.push({desc:`${v.service||v.name||"Service provider"}${b?" bill "+monthLabel(b.month):""}${v.name&&v.service?" ("+v.name+")":""}`,amount:+x.amount||0})});
+  if(commission)ded.push({desc:`Management commission ${p.commissionPct}%`,amount:commission,fee:1,key:"comm"});
+  if(utilComm)ded.push({desc:`Commission on water and electricity ${p.utilCommissionPct}%`,amount:utilComm,fee:1,key:"ucomm"});
+  if(depComm)ded.push({desc:`Commission on deposits ${depPct(p)}%`,amount:depComm,fee:1,key:"dcomm"});
+  if(vat)ded.push({desc:`${p.vatPct}% VAT on management fee`,amount:vat,fee:1,key:"vat"});
+  if(+p.lettingPct)S.tenants.filter(t=>{const u=get("units",t.unitId);return u&&u.propertyId===pid&&t.moveIn&&t.moveIn.slice(0,7)===m&&!t.noLetting&&!/^t-/.test(t.id)}).forEach(t=>{const u=get("units",t.unitId),amt=Math.round((+u.rent||0)*(+p.lettingPct)/100);if(amt)ded.push({desc:`Letting fee, new tenant House ${u.label} (${p.lettingPct}% of rent)`,amount:amt,fee:1,key:"let_"+t.id,tid:t.id})});
+  if(total>0&&+p.caretakerFee)ded.push({desc:`Caretaker fee${p.caretakerName?" ("+p.caretakerName+")":""}`,amount:+p.caretakerFee,key:"caretaker"});
+  if(total>0)(p.fixedDeds||[]).forEach((x,k)=>{if(+x.amount)ded.push({desc:x.desc,amount:+x.amount,key:"fixed_"+k})});
+  if(T.service)ded.push({desc:"Service charge",amount:T.service,key:"service"});
+  S.ppays.filter(x=>x.propertyId===pid&&(x.date||"").slice(0,7)===m&&x.deduct).forEach(x=>{const v=get("providers",x.providerId)||{};const b=get("pbills",x.billId);ded.push({desc:`${v.service||v.name||"Service provider"}${b?" bill "+monthLabel(b.month):""}${v.name&&v.service?" ("+v.name+")":""}`,amount:+x.amount||0,ppay:x.id})});
   S.ldeds.filter(d=>d.propertyId===pid&&d.month===m).forEach(d=>ded.push({desc:d.desc,amount:+d.amount||0,id:d.id}));
-  if(p.holdDeposits&&T.deposit)ded.push({desc:"Deposits held in trust by Berlim Homes",amount:T.deposit});
-  rows.filter(r=>r.t&&r.direct).forEach(r=>ded.push({desc:`House ${r.u.label} (paid landlord directly)`,amount:r.direct}));
+  if(p.holdDeposits&&T.deposit)ded.push({desc:"Deposits held in trust by Berlim Homes",amount:T.deposit,key:"held"});
+  rows.filter(r=>r.t&&r.direct).forEach(r=>ded.push({desc:`House ${r.u.label} (paid landlord directly)`,amount:r.direct,key:"direct_"+r.u.id}));
+  const over=rep.over||{};for(const d of ded)if(d.key&&over[d.key]!=null){d.calc=d.amount;d.amount=+over[d.key];d.edited=1;if(over[d.key+"_desc"])d.desc=over[d.key+"_desc"]}
+  for(const k of Object.keys(over))if(k.startsWith("add_")&&!k.endsWith("_desc")&&!ded.some(d=>d.key===k))ded.push({desc:over[k+"_desc"]||"Deduction",amount:+over[k],key:k,edited:1});
+  for(let k=ded.length-1;k>=0;k--)if(ded[k].edited&&!ded[k].amount)ded.splice(k,1);
   const totalDed=Math.round(ded.reduce((s,d)=>s+d.amount,0)),forward=total-totalDed;
   const rems=remitsFor(pid,m),forwarded=rems.reduce((s,r)=>s+(+r.amount||0),0);
   return {R,p,rows,cols,T,total,ded,totalDed,forward,rems,forwarded,outstanding:forward-forwarded,inv,rep,fees:ded.filter(d=>d.fee).reduce((s,d)=>s+d.amount,0)};
@@ -3387,6 +3391,31 @@ let moFixed=false;
 async function fixMovedOut(){if(moFixed||mode!=="cloud"||!ME.admin)return;moFixed=true;const ops=[];
   for(const t of S.tenants.filter(x=>!x.active&&x.moveOut)){for(const i of moveOutInvs(t,t.moveOut.slice(0,7),false))ops.push({op:"set",col:"invoices",obj:{...i,reversed:true,reversedAt:todayStr,reverseReason:"Tenant had moved out ("+fmtDate(t.moveOut)+")"}})}
   if(ops.length&&await applyOps(ops))toast(ops.length+" invoice"+(ops.length>1?"s":"")+" billed after a move-out cancelled")}
+
+
+/* ===== every landlord deduction editable for the month ===== */
+function llDedCard(pid,m){const L=landlordMonth(pid,m),sent=!!L.rep.sentAt,ok=can("landlords"),over=L.rep.over||{};
+  const removed=Object.keys(over).filter(k=>!k.endsWith("_desc")&&!k.startsWith("add_")&&+over[k]===0);
+  const row=d=>{const act=!ok?"":d.id?`<button class="btn sm" data-a="lded" data-id="${d.id}">Edit</button> <button class="btn sm danger" data-a="delLded" data-id="${d.id}">Delete</button>`:d.ppay?`<button class="btn sm" data-a="ppay" data-id="${d.ppay}">Edit payment</button>`:d.key?`<button class="btn sm" data-a="dedEdit" data-id="${pid}" data-k="${d.key}">Edit</button>`:"";
+    return `<tr><td>${esc(d.desc)}${d.edited?` <span class="pill p-warn">Edited</span><span class="sub">Calculated ${n0(d.calc||0)}</span>`:""}${d.fee?'<span class="sub">Management fee</span>':""}</td><td class="num">${n0(d.amount)}</td><td class="num" style="white-space:nowrap">${act}</td></tr>`};
+  return `<div class="card"><div class="ch"><h2>Deductions for ${monthLabel(m)}</h2><span style="color:var(--muted);font-size:13px">${sent?"Report already sent: changes will alter a sent report":"Edit any line; changes apply to this month only"}</span>${ok?`<button class="btn sm" data-a="lded" data-prop="${pid}">Add deduction</button>`:""}</div>
+   <div class="tw"><table><thead><tr><th>Deduction</th><th class="num">Amount</th><th></th></tr></thead><tbody>${L.ded.map(row).join("")||`<tr><td colspan="3" class="empty">No deductions this month.</td></tr>`}
+   ${removed.map(k=>`<tr style="opacity:.6"><td>${esc(DED_NAMES(k))} <span class="pill p-mute">Removed this month</span></td><td class="num">0</td><td class="num">${ok?`<button class="btn sm" data-a="dedReset" data-id="${pid}" data-k="${k}">Restore</button>`:""}</td></tr>`).join("")}</tbody>
+   <tfoot><tr><td><strong>Total deductions</strong></td><td class="num"><strong>${n0(L.totalDed)}</strong></td><td></td></tr></tfoot></table></div></div>`}
+const DED_NAMES=k=>({comm:"Management commission",ucomm:"Commission on water and electricity",dcomm:"Commission on deposits",vat:"VAT on management fee",caretaker:"Caretaker fee",service:"Service charge",held:"Deposits held in trust"})[k]||(k.startsWith("let_")?"Letting fee":k.startsWith("fixed_")?"Fixed deduction":k.startsWith("direct_")?"Paid landlord directly":"Deduction");
+function formDedEdit(pid,key){const m=month,L=landlordMonth(pid,m),d=L.ded.find(x=>x.key===key);if(!d)return;const P=get("properties",pid),calc=d.edited?d.calc:d.amount,sent=!!L.rep.sentAt;
+  const rateHint=/comm|vat|caretaker|fixed_|let_/.test(key)?`<p class="hint" style="margin:8px 0 0">To change it for every month, <button type="button" class="link" data-a="prop" data-id="${pid}">edit the property's rates</button>.</p>`:key==="service"?`<p class="hint" style="margin:8px 0 0">Service charge comes from what tenants were billed; change it for future months with "Change rent / charges" on the property.</p>`:"";
+  openModal("Edit deduction: "+esc(P.code)+" "+monthShort(m),`${sent?`<div class="banner" style="margin:0 0 10px">This month's report was already sent to the landlord.</div>`:""}<form id="fDE" class="fg">
+   <div class="f full"><label for="de-d">Description</label><input id="de-d" name="desc" value="${esc(d.desc)}" required></div>
+   <div class="f"><label for="de-a">Amount for ${monthLabel(m)} (KES)</label><input id="de-a" name="amount" type="number" min="0" step="any" required value="${esc(d.amount)}"><span class="hint">Calculated by the system: KES ${n0(calc)}. Enter 0 to remove it for this month.</span></div></form>${rateHint}`,
+   `<button class="btn" data-a="close">Cancel</button>${d.edited?`<button class="btn" data-a="dedReset" data-id="${pid}" data-k="${key}">Use calculated amount</button>`:""}<button class="btn primary" form="fDE" type="submit">Save</button>`);
+  document.getElementById("fDE").onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target)),r0=lrep(pid,m)||{id:m+"_"+pid,propertyId:pid,month:m},over={...(r0.over||{})};
+    over[key]=+f.amount;const ds=f.desc.trim();if(ds&&ds!==d.desc.replace(/^$/,""))over[key+"_desc"]=ds;
+    if(await submit("lreports",`${P.code} ${monthShort(m)}: deduction "${ds}" set to ${kes(+f.amount)} (calculated ${kes(calc)})`,[{op:"set",col:"lreports",obj:{...r0,over}}],"landlords"))closeModal()}}
+async function dedReset(pid,key){const m=month,r0=lrep(pid,m);if(!r0||!r0.over)return;const over={...r0.over};delete over[key];delete over[key+"_desc"];
+  if(await submit("lreports",`${(get("properties",pid)||{}).code} ${monthShort(m)}: deduction back to calculated amount`,[{op:"set",col:"lreports",obj:{...r0,over}}],"landlords"))closeModal()}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;
+  if(b.dataset.a==="dedEdit"){e.preventDefault();formDedEdit(b.dataset.id,b.dataset.k)}else if(b.dataset.a==="dedReset"){e.preventDefault();dedReset(b.dataset.id,b.dataset.k)}});
 
 const VIEWS={mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
