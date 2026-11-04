@@ -1213,10 +1213,11 @@ function formPay(tid){
    <div class="f"><label for="py-a">Amount (KES)</label><input id="py-a" name="amount" type="number" min="1" required></div>
    <div class="f"><label for="py-d">Date received</label><input id="py-d" name="date" type="date" value="${todayStr}" required></div>
    ${payMethodFields("","")}
-   <div class="f full"><label for="py-n">Note</label><input id="py-n" name="note"></div><div class="err full" id="payErr"></div></form>`,
+   <div class="f full"><label for="py-n">Note</label><input id="py-n" name="note"></div>
+   ${smsReady()&&smsCfg().on?smsBox("pySms",smsCfg().payMsg!==false,"Text the tenant a payment receipt (SMS)"):""}<div class="err full" id="payErr"></div></form>`,
    `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fPay" type="submit">Save payment</button>`);
   const am=document.getElementById("py-a"),sel=document.getElementById("py-t"),pc=document.getElementById("py-pc"),who=document.getElementById("py-who"),pn=document.getElementById("py-pn");
-  const fill=()=>{const t=get("tenants",sel.value);if(!t){who.innerHTML="";am.placeholder="";return}const b=C.ten[t.id]?C.ten[t.id].balance:0,u=get("units",t.unitId);
+  let pySms=null;const fill=()=>{if(pySms)pySms.refresh();const t=get("tenants",sel.value);if(!t){who.innerHTML="";am.placeholder="";return}const b=C.ten[t.id]?C.ten[t.id].balance:0,u=get("units",t.unitId);
     am.placeholder=b>0?"Balance "+n0(b):"0";who.innerHTML=`<strong>${esc(t.name)}</strong>${t.active?"":" <span class=\"pill p-mute\">Moved out</span>"} · House ${esc(unitName(u))} · ${t.phone?esc(t.phone)+" · ":""}<span class="${b>0?"neg":""}">${b>0?"Owes KES "+n0(b):b<0?"In credit KES "+n0(-b):"Account clear"}</span><span class="sub">M-Pesa account ${esc(acctFor(u))}</span>`};
   let exMode=!!(tid&&get("tenants",tid)&&!get("tenants",tid).active);
   const setMode=x=>{exMode=x;document.getElementById("pyCur").className="btn sm"+(x?"":" primary");document.getElementById("pyEx").className="btn sm"+(x?" primary":"");document.getElementById("py-tl").textContent=x?"Ex-tenant (moved out)":"House number";sel.value="";houses()};
@@ -1227,11 +1228,13 @@ function formPay(tid){
     const list=ts.filter(t=>(get("units",t.unitId)||{}).propertyId===P.id&&(exMode?!t.active:t.active));
     sel.innerHTML=list.length?`<option value="">Choose the house</option>`+list.map(t=>{const b=C.ten[t.id]?C.ten[t.id].balance:0;return `<option value="${t.id}" ${t.id===prev?"selected":""}>${esc(unitName(get("units",t.unitId)))} · ${esc(t.name)}${t.active?"":" (moved out"+(t.moveOut?" "+fmtDate(t.moveOut):"")+")"}${b>0?" · owes "+n0(b):""}</option>`}).join(""):`<option value="">${exMode?"No ex-tenants with a balance in "+esc(P.code):"No current tenants in "+esc(P.code)}</option>`;
     if(list.length===1)sel.value=list[0].id;fill()};
+  pySms=wireSmsBox("pySms",()=>{const t=get("tenants",sel.value);if(!t||!smsPhone(t.phone)||t.noSms)return null;return payReceiptText(t,am.value,"(receipt no.)")});am.addEventListener("input",()=>pySms.refresh());
   pc.addEventListener("input",houses);sel.onchange=fill;if(exMode){const k=sel.value;setMode(true);if(tid)sel.value=tid;fill()}else houses();if(!pc.value)pc.focus();else if(!sel.value)sel.focus();wireMethod();
   document.getElementById("fPay").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));
     const ref=d.ref.trim().toUpperCase(),split=d.split==="on",er=refError(d.method,ref,null,d.tenantId,split);
     if(er){document.getElementById("payErr").textContent=er;return}
-    const obj={id:uid(),tenantId:d.tenantId,amount:+d.amount,date:d.date,method:d.method,ref,...(split?{split:true}:{}),note:d.note.trim(),receiptNo:(noReserve={},nextNo("RCPT","payments","receiptNo"))};
+    const smsTxt=pySms?pySms.get():null;
+    const obj={id:uid(),tenantId:d.tenantId,amount:+d.amount,date:d.date,method:d.method,ref,...(split?{split:true}:{}),...(smsTxt===""?{smsOff:true}:smsTxt?{smsText:smsTxt.replace("(receipt no.)","{receipt}")}:{}),note:d.note.trim(),receiptNo:(noReserve={},nextNo("RCPT","payments","receiptNo"))};
     const tt=get("tenants",d.tenantId)||{};
     const r=await submit("payments","Payment "+kes(obj.amount)+" from "+(tt.name||"tenant")+(ref?" ("+ref+(split?", split":"")+")":""),[{op:"set",col:"payments",obj,renum:"RCPT"}],"payments");
     if(r){closeModal();if(r==="done")setTimeout(()=>showReceipt(obj.id),150)}};
@@ -1452,9 +1455,9 @@ async function saveReadings(){
     if(ch)carry.push(upd)}
   if(carry.length){await saveMany("readings",carry);for(const o of carry){const i=S.readings.findIndex(r=>r.id===o.id);if(i>=0)S.readings[i]=o}
     const nb2=[];for(const o of carry){const t=activeTenantOf(o.unitId);if(t)for(const b of makeInvoices(t,nm,"util")){const ex=get("invoices",b.id);if(ex&&!b.reversed&&JSON.stringify(ex)!==JSON.stringify(b))nb2.push(b)}}if(nb2.length)await saveMany("invoices",nb2)}
-  const ns=await smsUtilBills(bills).catch(()=>0);
   const P=get("properties",filters.uprop)||{};const warn=(!+cfg(P).waterRate||!+cfg(P).elecRate)?" Check the rates: a rate of 0 bills nothing.":"";
-  toast(`${n} reading${n===1?"":"s"} saved, ${nb} utility bill${nb===1?"":"s"} updated${ns?", "+ns+" texted to tenants":""}.${warn}`);
+  toast(`${n} reading${n===1?"":"s"} saved, ${nb} utility bill${nb===1?"":"s"} updated.${warn}`);
+  setTimeout(()=>smsUtilBills(bills,false,true).catch(()=>0),400);
 }
 document.addEventListener("click",async e=>{
   const el=e.target.closest("[data-a]");if(!el)return;const a=el.dataset.a,id=el.dataset.id;
@@ -2119,12 +2122,15 @@ function formRemit(id,pid){
    <div class="f"><label for="rm-me">Paid by</label><select id="rm-me" name="method">${methodOptions([...PMETHODS,"Settled before system"],r?r.method:"Bank transfer")}</select></div>
    <div class="f"><label for="rm-r" id="rm-rl">Reference</label><input id="rm-r" name="ref" value="${esc(r?r.ref||"":"")}" style="text-transform:uppercase"><span class="hint">Required. It appears on the landlord report.</span></div>
    <div class="f full"><label for="rm-to">Paid to (landlord's account)</label><input id="rm-to" name="paidTo" value="${esc(r?r.paidTo||"":(pt0==="util"?(get("properties",pid)||{}).utilLandlordPay:(get("properties",pid)||{}).landlordPay)||"")}"></div>
-   <div class="f"><label for="rm-n">Note</label><input id="rm-n" name="note" value="${esc(r?r.note||"":"")}"></div><div class="err full" id="rmErr"></div></form>`,
+   <div class="f"><label for="rm-n">Note</label><input id="rm-n" name="note" value="${esc(r?r.note||"":"")}"></div>
+   ${!r&&smsReady()&&smsCfg().on?smsBox("rmSms",smsCfg().llMsg!==false,"Text the landlord that they have been paid (SMS)"):""}<div class="err full" id="rmErr"></div></form>`,
    `<button class="btn" data-a="close">Cancel</button><button class="btn primary" type="submit" form="fRm">Save payment</button>`);wireRefLabel("rm-me","rm-rl");
+  const fRm=document.getElementById("fRm"),rmSms=wireSmsBox("rmSms",()=>{const d=Object.fromEntries(new FormData(fRm)),m=llPaidMsg({propertyId:pid,month:d.month,amount:+d.amount||0,date:d.date,method:d.method,ref:(d.ref||"").toUpperCase(),paidTo:d.paidTo,part:d.part});return smsPhone(m.ph)?m.text:null});
+  fRm.addEventListener("input",()=>rmSms.refresh());fRm.addEventListener("change",()=>rmSms.refresh());
   document.getElementById("fRm").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target)),ref=(d.ref||"").trim().toUpperCase();
     {const er=payRefError(d.method,ref);if(er){document.getElementById("rmErr").textContent=er;return}}
     if(ref&&S.remits.some(x=>(x.ref||"").toUpperCase()===ref&&(!r||x.id!==r.id))){document.getElementById("rmErr").textContent="Reference "+ref+" is already recorded.";return}
-    const obj={...(r||{id:uid()}),propertyId:pid,month:d.month,amount:+d.amount,date:d.date,method:d.method,ref,paidTo:(d.paidTo||"").trim(),note:d.note.trim()};if(LM.split)obj.part=d.part==="util"?"util":"rent";
+    const obj={...(r||{id:uid()}),propertyId:pid,month:d.month,amount:+d.amount,date:d.date,method:d.method,ref,paidTo:(d.paidTo||"").trim(),note:d.note.trim()};if(!r){const st=rmSms.get();if(st==="")obj.smsOff=true;else if(st)obj.smsText=st}if(LM.split)obj.part=d.part==="util"?"util":"rent";
     if(await submit("remits",`Remit ${kes(obj.amount)} to ${(get("properties",pid)||{}).landlord||"landlord"} (${(get("properties",pid)||{}).code||""}, ${monthShort(obj.month)})`,[{op:"set",col:"remits",obj}],"landlords"))closeModal()}}
 const LD_SUGG=["Cleaner","Caretaker","Security","Water bill","Electricity bill","Repairs and maintenance","Plumbing","Painting","Soakpit / exhauster","Materials","Advertising vacant house","Letting commission","Legal fees","Land rates","Insurance","Paid landlord cash"];
 function formLded(id,pid){
@@ -2666,7 +2672,8 @@ async function smsAuto(){
 async function smsOnPayment(p){
   if(!smsReady())return;const c=smsCfg();if(!c.on||!c.payMsg||p.method==="Settled before system")return;
   const t=get("tenants",p.tenantId);if(!t||t.noSms||!smsPhone(t.phone))return;
-  await smsQueue([smsDoc("pay-"+p.id,t,smsFill(c.tplPay,smsVars(t,{amount:n0(p.amount),receipt:p.receiptNo||"",date:fmtDate(p.date)})),"Payment received")]);
+  if(p.smsOff)return;
+  await smsQueue([smsDoc("pay-"+p.id,t,p.smsText?String(p.smsText).replace(/\{receipt\}/g,p.receiptNo||""):smsFill(c.tplPay,smsVars(t,{amount:n0(p.amount),receipt:p.receiptNo||"",date:fmtDate(p.date)})),"Payment received")]);
 }
 
 const SMS_KIND_PILL={"Payment received":"p-good","Late notice":"p-bad"};
@@ -2723,14 +2730,14 @@ function smsCompose(){
     document.getElementById("sn-c").textContent=ok.length+" tenant"+(ok.length===1?"":"s")+" will get this"+(list.length>ok.length?" ("+(list.length-ok.length)+" skipped: no valid phone)":"")+(sample?" · "+sample.length+" characters, e.g. “"+sample.slice(0,90)+(sample.length>90?"…":"")+"”":"");return ok};
   f.addEventListener("input",pick);f.addEventListener("change",pick);pick();
   f.onsubmit=async e=>{e.preventDefault();const ok=pick(),txt=new FormData(f).get("text");if(!ok.length){document.getElementById("sn-e").textContent="No one to send to.";return}
-    const batch="msg-"+uid();const n=await smsQueue(ok.map((t,i)=>smsDoc(batch+"-"+i,t,smsFill(txt,smsVars(t)),"Message")));closeModal();toast(n+" text"+(n===1?"":"s")+" queued")};
+    const batch="msg-"+uid();smsReview(ok.map((t,i)=>smsDoc(batch+"-"+i,t,smsFill(txt,smsVars(t)),"Message")),"Preview messages","Messages")};
 }
 document.addEventListener("click",async e=>{
   const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;
   if(a==="smsCompose"){e.preventDefault();smsCompose()}
   else if(a==="smsRemindNow"){e.preventDefault();const c=smsCfg(),list=smsDueList("remind",true);
     if(!list.length){toast("Everyone with a balance has already had this month's reminder, or no one owes.");return}
-    askConfirm(`Send a rent reminder now to ${list.length} tenant${list.length>1?"s":""} who owe for their next due date? A tenant never gets the same reminder twice.`,"Send reminders",async()=>{const n=await smsQueue(list.map(r=>smsDoc(r.id,r.t,smsFill(c.tplRemind,smsVars(r.t,r.vars)),"Reminder "+r.n)));toast(n+" reminder"+(n===1?"":"s")+" queued")})}
+    smsReview(list.map(r=>smsDoc(r.id,r.t,smsFill(c.tplRemind,smsVars(r.t,r.vars)),"Reminder "+r.n)),"Rent reminders","Reminders")}
   else if(a==="smsRetry"){e.preventDefault();const x=get("sms",b.dataset.id);if(x){try{await db.collection("sms").doc(x.id).set({...x,status:"queued",error:"",tries:0});toast("Will try again")}catch(err){toast("Could not retry just now")}}}
 });
 document.addEventListener("submit",async e=>{
@@ -2869,7 +2876,7 @@ function smsNotice(opts){
   f.addEventListener("input",pick);f.addEventListener("change",pick);pick();
   f.onsubmit=async e=>{e.preventDefault();const {ok,d,left}=pick();if(!ok.length||left)return;
     const kind="Notice: "+NOTICE_TPL[+d.kind][0],batch="ntc-"+uid();
-    askConfirm(`Send this notice by SMS to <strong>${ok.length}</strong> tenant${ok.length>1?"s":""}?`,"Send",async()=>{const n=await smsQueue(ok.map((t,i)=>smsDoc(batch+"-"+i,t,fillW(d.text,t,d),kind)));toast(n+" notice"+(n===1?"":"s")+" queued; they go out within a minute")})};
+    smsReview(ok.map((t,i)=>smsDoc(batch+"-"+i,t,fillW(d.text,t,d),kind)),"Preview notice","Notices")};
   document.getElementById("noPrint").onclick=()=>{const {d}=pick(),P=d.prop!=="all"?get("properties",d.prop):null;
     const body=(d.text||"").replace(/\{when\}/g,d.when||"").replace(/\{details\}/g,d.details||"").replace(/Dear \{name\},?\s*/i,"").replace(/\{property\}/g,P?P.name:"the property").replace(/\{company\}/g,"").replace(/\{phone\}/g,"").replace(/House \{house\}/g,"your house").replace(/\{\w+\}/g,"").replace(/\s+/g," ").trim().replace(/^./,c=>c.toUpperCase());
     const html=`<div class="doc">${docHead("Notice",fmtDate(todayStr))}<h2 style="text-align:center;font-size:30px;margin:18px 0 6px">NOTICE</h2><h3 style="text-align:center;margin:0 0 22px">${esc(NOTICE_TPL[+d.kind][0].toUpperCase())}${P?" · "+esc((P.name||"").toUpperCase()):""}</h3><p style="font-size:19px;line-height:1.6">To all tenants${P?" of "+esc(P.name):""},</p><p style="font-size:19px;line-height:1.6">${esc(body)}</p><p style="margin-top:40px">Management<br><strong>${esc(S.settings.company)}</strong><br>${esc(S.settings.phone||"")}</p></div>`;
@@ -2940,7 +2947,7 @@ function formCharge(tid){
     if(!r)return;closeModal();
     if(r==="done"){
       if(d.sms==="on"&&window.FB_BUILD&&smsPhone(t.phone)&&!t.noSms){const u=get("units",t.unitId),items=[...new Set(lines.map(l=>ITEM_LABEL[l.kind].toLowerCase()))].join(", ");
-        await smsQueue([smsDoc("inv-"+obj.id,t,invoiceSmsText(get("invoices",obj.id)||obj),"Invoice")]);toast("Invoice created and SMS queued")}
+        toast("Invoice "+obj.no+" created");setTimeout(()=>smsReview([smsDoc("inv-"+obj.id,t,invoiceSmsText(get("invoices",obj.id)||obj),"Invoice")],"Text this invoice","Invoice SMS"),300)}
       else toast("Invoice "+obj.no+" created");
       setTimeout(()=>{if(get("invoices",obj.id))showInvoice(obj.id)},300)}};
 }
@@ -3136,20 +3143,20 @@ function utilSmsText(b){
   return smsLines(rows,v);
 }
 const utilSmsId=b=>"util-"+b.id+"-"+Math.round(+b.total||0);
-async function smsUtilBills(bills,force){
+async function smsUtilBills(bills,force,preview){
   if(!smsReady())return 0;const c=smsCfg();if(!force&&(!c.on||c.utilMsg===false))return 0;
   const docs=[];for(const b of bills){if(b.reversed||!(+b.total>0))continue;const t=get("tenants",b.tenantId);if(!t||t.noSms||!smsPhone(t.phone))continue;
     const id=utilSmsId(b)+(force?"-r"+Date.now().toString(36):"");if(!force&&get("sms",id))continue;docs.push(smsDoc(id,t,utilSmsText(b),"Utility bill"))}
+  if(preview)return docs.length?smsReview(docs,"Text utility bills","Utility bills"):0;
   return docs.length?await smsQueue(docs):0;
 }
 function utilSmsState(inv){if(!inv)return "";const xs=S.sms.filter(x=>x.id&&x.id.startsWith("util-"+inv.id+"-")).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));const x=xs[0];
   if(!x)return `<span class="sub">Not texted</span>`;const cur=x.id.startsWith(utilSmsId(inv));
   return (x.status==="sent"?`<span class="pill p-good" title="${esc(x.text||"")}">SMS sent ${fmtDate((x.sentAt||"").slice(0,10))}</span>`:x.status==="failed"?`<span class="pill p-bad" title="${esc(x.error||"")}">SMS failed</span>`:`<span class="pill">SMS waiting</span>`)+(cur?"":`<span class="sub">Bill changed since</span>`)}
 async function smsLandlordPaid(r){
-  if(!smsReady())return;const c=smsCfg();if(!c.on||c.llMsg===false||r.method==="Settled before system")return;
-  const p=get("properties",r.propertyId)||{},U=r.part==="util"&&p.utilLandlord,L=U?{}:(landlordOf(p.id)||{}),ph=U?p.utilLandlordPhone:(L.phone||p.landlordPhone),name=U?p.utilLandlord:(L.name||p.landlord||"Landlord");if(!smsPhone(ph))return;
-  const text=[`Dear ${name.split(" ")[0]},`,`Berlim Homes has paid you KES ${n0(r.amount)}`,`For: ${p.code||""} ${p.name||""}, ${monthLabel(r.month)} ${U?"water and electricity":"rent"}`,`Date: ${fmtDate(r.date)}`,`Via: ${r.method}${r.ref?", ref "+r.ref:""}`,r.paidTo?`To: ${r.paidTo}`:"","Thank you.",`Berlim Homes ${(S.settings.phone||"").split("/")[0].trim()}`].filter(Boolean).join("\n");
-  await smsQueue([{id:"llpay-"+r.id,to:smsPhone(ph),tenantId:"",landlordId:L.id||"",name,text,kind:"Landlord payment",status:"queued",createdAt:new Date().toISOString(),by:ME.id||""}]);
+  if(!smsReady())return;const c=smsCfg();if(!c.on||c.llMsg===false||r.method==="Settled before system"||r.smsOff)return;
+  const m=llPaidMsg(r);if(!smsPhone(m.ph))return;
+  await smsQueue([{id:"llpay-"+r.id,to:smsPhone(m.ph),tenantId:"",landlordId:m.L.id||"",name:m.name,text:r.smsText||m.text,kind:"Landlord payment",status:"queued",createdAt:new Date().toISOString(),by:ME.id||""}]);
 }
 /* reverse one item (rent, deposit, garbage, water, electricity, penalty...) on an invoice */
 function reverseLine(id,idx){
@@ -3180,10 +3187,10 @@ function lineRevHTML(i){
 document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;
   if(a==="revLine"){e.preventDefault();reverseLine(b.dataset.id,+b.dataset.k)}
   else if(a==="chgLine"){e.preventDefault();changeLine(b.dataset.id,+b.dataset.k)}
-  else if(a==="utilSms"){e.preventDefault();const i=get("invoices",b.dataset.id);if(!i)return;const n=await smsUtilBills([i],true);toast(n?"Utility bill SMS queued":"Couldn't text: check the tenant's phone and that SMS is set up")}
+  else if(a==="utilSms"){e.preventDefault();const i=get("invoices",b.dataset.id);if(!i)return;const n=await smsUtilBills([i],true,true)}
   else if(a==="utilSmsAll"){e.preventDefault();const P=get("properties",filters.uprop);if(!P)return;const bills=S.invoices.filter(i=>i.month===month&&catOf(i)==="util"&&!i.reversed&&(get("units",i.unitId)||{}).propertyId===P.id&&+i.total>0&&!S.sms.some(x=>x.id&&x.id.startsWith(utilSmsId(i))));
     if(!bills.length){toast("Every utility bill here has already been texted");return}
-    askConfirm(`Text ${bills.length} tenant${bills.length>1?"s":""} in ${esc(P.code)} their ${monthLabel(month)} utility bill?`,"Send SMS",async()=>{const n=await smsUtilBills(bills,true);toast(n+" utility bill SMS queued")})}
+    await smsUtilBills(bills,true,true)}
   else if(a==="editOpen"){e.preventDefault();const inp=document.getElementById(b.dataset.id);if(inp){inp.readOnly=false;inp.dataset.manual="1";inp.classList.remove("ro");inp.focus();inp.select();b.remove()}}});
 
 
@@ -3352,7 +3359,7 @@ function invoiceSmsText(i){
 
 /* this month's charges for a tenant, item by item, plus anything brought forward: used by {items} in reminders */
 function itemsFor(t,m){const invs=S.invoices.filter(i=>i.tenantId===t.id&&i.month===m&&!i.adj&&!i.reversed);const parts=invs.flatMap(netLines).map(lineSms);
-  const prior=priorBal(t,invs.map(i=>i.id));if(prior)parts.push("Previous balance: KES "+n0(prior));return parts.join("\n")}
+  const prior=priorBal(t,invs.map(i=>i.id));if(prior)parts.push("Previous balance: KES "+n0(prior));const billed=invs.reduce((x,i)=>x+netLines(i).reduce((y,l)=>y+(+l.amt||0),0),0)+prior,owe=tenBal(t);if(parts.length&&owe>0&&billed-owe>0)parts.push("Paid so far: KES "+n0(billed-owe));return parts.join("\n")}
 function invSmsState(i){const xs=S.sms.filter(x=>x.id&&(x.id.startsWith("inv-"+i.id)||x.id.startsWith("util-"+i.id))).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));const x=xs[0];if(!x)return "";
   return x.status==="sent"?`<span class="pill p-good">SMS sent ${fmtDate((x.sentAt||"").slice(0,10))}</span>`:x.status==="failed"?`<span class="pill p-bad">SMS failed</span>`:`<span class="pill">SMS waiting</span>`}
 function sendInvoiceSms(id){const i=get("invoices",id);if(!i)return;const t=get("tenants",i.tenantId)||{};
@@ -3407,8 +3414,8 @@ Questions? Call {phone}
     if(!ops.length){err.textContent="Nothing changes: the new amounts equal the current ones.";return}
     const ok=await submit(c.prop?"properties":"units",`${CHG_FIELDS.find(x=>x[0]===c.fld)[1]} change from ${monthLabel(c.from)} (${P.code}, ${ops.length} ${c.prop?"property":"house"+(ops.length>1?"s":"")})`,ops,"props");
     if(!ok)return;let n=0;
-    if(d.get("sms")==="on"&&window.FB_BUILD){const tpl=String(d.get("tpl")||"");n=await smsQueue(notes.filter(x=>smsPhone(x.t.phone)&&!x.t.noSms).map((x,k)=>smsDoc("chg-"+uid()+"-"+k,x.t,smsFill(tpl,smsVars(x.t,{what:CHG_LABEL[c.fld],old:n0(x.old),new:n0(x.nw),from:"1 "+monthLabel(c.from),house:unitName(x.u)})),"Rent / charge change")))}
-    closeModal();toast(`Change scheduled from ${monthLabel(c.from)}${n?", "+n+" tenant"+(n>1?"s":"")+" texted":""}`)};
+    let chgDocs=[];if(d.get("sms")==="on"&&window.FB_BUILD){const tpl=String(d.get("tpl")||"");chgDocs=(notes.filter(x=>smsPhone(x.t.phone)&&!x.t.noSms).map((x,k)=>smsDoc("chg-"+uid()+"-"+k,x.t,smsFill(tpl,smsVars(x.t,{what:CHG_LABEL[c.fld],old:n0(x.old),new:n0(x.nw),from:"1 "+monthLabel(c.from),house:unitName(x.u)})),"Rent / charge change")))}
+    closeModal();toast(`Change scheduled from ${monthLabel(c.from)}`);if(chgDocs.length)setTimeout(()=>smsReview(chgDocs,"Text tenants about the change","Change notices"),300)};
 }
 function schedHTML(P){const us=S.units.filter(u=>u.propertyId===P.id),now=todayStr.slice(0,7);
   const items=[...(P.sched||[]).map(c=>({c,o:P,lab:"All houses"})),...us.flatMap(u=>(u.sched||[]).map(c=>({c,o:u,lab:"House "+u.label})))].filter(x=>x.c.from>=now).sort((a,b)=>a.c.from.localeCompare(b.c.from));
@@ -3559,6 +3566,39 @@ document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.c
   if(a==="llPart"){e.preventDefault();filters.llPart=b.dataset.v;render()}
   else if(a==="dedSide"){e.preventDefault();const d=get("ldeds",b.dataset.id);if(!d)return;const to=d.side==="util"?"rent":"util";
     await submit("ldeds",`Deduction "${d.desc}" now taken from ${to==="util"?"utilities":"rent"}`,[{op:"set",col:"ldeds",obj:{...d,side:to}}],"landlords")}});
+
+
+/* ===== preview every SMS before it is sent ===== */
+const smsUnits=t=>{const n=String(t||"").length;return n<=160?1:Math.ceil(n/153)};
+function smsReview(docs,title,doneMsg){
+  docs=(docs||[]).filter(d=>d&&d.to);if(!docs.length){toast("No one to text: check phone numbers.");return Promise.resolve(0)}
+  return new Promise(res=>{let settled=false;const fin=n=>{if(!settled){settled=true;res(n)}};
+    openModal(esc(title||"Preview SMS"),`<p style="margin:0 0 10px">Check the message${docs.length>1?"s":""} below. You can change the wording or untick anyone before sending.</p>
+     <div style="max-height:60vh;overflow:auto;display:grid;gap:10px">${docs.map((d,k)=>`<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px">
+      <label style="display:flex;gap:8px;align-items:center;font-weight:600;margin-bottom:6px"><input type="checkbox" class="sr-ck" data-k="${k}" checked> ${esc(d.name||"")} <span class="sub" style="display:inline;font-weight:400">${esc(d.to)}</span></label>
+      <textarea class="sr-tx" data-k="${k}" rows="${Math.min(12,Math.max(4,String(d.text).split("\n").length+1))}" style="width:100%;font:14px var(--body);padding:8px;border:1px solid var(--line);border-radius:8px">${esc(d.text)}</textarea>
+      <span class="hint sr-n" data-k="${k}">${String(d.text).length} characters · ${smsUnits(d.text)} SMS</span></div>`).join("")}</div>`,
+     `<button class="btn" data-a="close" id="srNo">Don't send</button><button class="btn primary" id="srGo">Send ${docs.length} SMS</button>`,true);
+    const root=document.getElementById("modalRoot"),go=document.getElementById("srGo");
+    const cnt=()=>{const n=[...root.querySelectorAll(".sr-ck")].filter(c=>c.checked).length;go.textContent=n?`Send ${n} SMS`:"Nothing selected";go.disabled=!n};
+    root.querySelectorAll(".sr-ck").forEach(c=>c.onchange=cnt);
+    root.querySelectorAll(".sr-tx").forEach(t=>t.oninput=()=>{const n=root.querySelector(`.sr-n[data-k="${t.dataset.k}"]`);n.textContent=t.value.length+" characters · "+smsUnits(t.value)+" SMS"});
+    const obs=new MutationObserver(()=>{if(!document.getElementById("srGo")){obs.disconnect();fin(0)}});obs.observe(root,{childList:true,subtree:true});
+    go.onclick=async()=>{go.disabled=true;const pick=docs.map((d,k)=>({...d,text:root.querySelector(`.sr-tx[data-k="${k}"]`).value.trim()})).filter((d,k)=>root.querySelector(`.sr-ck[data-k="${k}"]`).checked&&d.text);
+      const n=await smsQueue(pick);settled=true;obs.disconnect();closeModal();toast(n?(doneMsg||"SMS")+": "+n+" queued; they go out within a minute":"Nothing was sent");res(n)};
+  })}
+/* receipt SMS shown in the payment form */
+function payReceiptText(t,amount,receiptNo){const c=smsCfg(),C=compute(),b=(C.ten[t.id]?C.ten[t.id].balance:0)-(+amount||0);
+  return smsFill(c.tplPay,smsVars(t,{amount:n0(+amount||0),receipt:receiptNo||"{receipt}",balance:n0(Math.max(0,b)),balanceText:b>0?"Balance: KES "+n0(b):""}))}
+function llPaidMsg(r){const p=get("properties",r.propertyId)||{},U=r.part==="util"&&p.utilLandlord,L=U?{}:(landlordOf(p.id)||{}),ph=U?p.utilLandlordPhone:(L.phone||p.landlordPhone),name=U?p.utilLandlord:(L.name||p.landlord||"Landlord");
+  const text=[`Dear ${String(name).split(" ")[0]},`,`Berlim Homes has paid you KES ${n0(r.amount)}`,`For: ${p.code||""} ${p.name||""}, ${monthLabel(r.month)} ${U?"water and electricity":"rent"}`,`Date: ${fmtDate(r.date)}`,`Via: ${r.method}${r.ref?", ref "+r.ref:""}`,r.paidTo?`To: ${r.paidTo}`:"","Thank you.",`Berlim Homes ${(S.settings.phone||"").split("/")[0].trim()}`].filter(Boolean).join("\n");
+  return {ph,name,text,L}}
+function smsBox(id,on,label){return `<div class="f full" style="background:#F4EEDF;border-radius:10px;padding:10px 12px"><label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="${id}-on" ${on?"checked":""}> ${label}</label>
+  <textarea id="${id}-tx" rows="7" style="width:100%;font:14px var(--body);padding:8px;border:1px solid var(--line);border-radius:8px;margin-top:6px"></textarea><span class="hint" id="${id}-h"></span></div>`}
+function wireSmsBox(id,make){const on=document.getElementById(id+"-on"),tx=document.getElementById(id+"-tx"),h=document.getElementById(id+"-h");if(!on)return {get:()=>null,refresh:()=>{}};let edited=false;
+  const refresh=()=>{const v=make();if(v===null){tx.value="";tx.disabled=true;h.textContent="No valid phone number, so no SMS will be sent.";return}tx.disabled=!on.checked;if(!edited)tx.value=v;h.textContent=on.checked?tx.value.length+" characters · "+smsUnits(tx.value)+" SMS. You can edit it before saving.":"No SMS will be sent."};
+  tx.oninput=()=>{edited=true;h.textContent=tx.value.length+" characters · "+smsUnits(tx.value)+" SMS"};on.onchange=refresh;refresh();
+  return {get:()=>on.checked&&!tx.disabled&&tx.value.trim()?tx.value.trim():"",refresh}}
 
 const VIEWS={mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
