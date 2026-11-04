@@ -1214,7 +1214,7 @@ function formPay(tid){
    <div class="f"><label for="py-d">Date received</label><input id="py-d" name="date" type="date" value="${todayStr}" required></div>
    ${payMethodFields("","")}
    <div class="f full"><label for="py-n">Note</label><input id="py-n" name="note"></div>
-   ${smsReady()&&smsCfg().on?smsBox("pySms",smsCfg().payMsg!==false,"Text the tenant a payment receipt (SMS)"):""}<div class="err full" id="payErr"></div></form>`,
+   ${smsReady()&&smsCfg().on?smsBox("pySms",smsCfg().payMsg!==false,"Text the tenant that the payment was received (SMS)"):""}<div class="err full" id="payErr"></div></form>`,
    `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fPay" type="submit">Save payment</button>`);
   const am=document.getElementById("py-a"),sel=document.getElementById("py-t"),pc=document.getElementById("py-pc"),who=document.getElementById("py-who"),pn=document.getElementById("py-pn");
   let pySms=null;const fill=()=>{if(pySms)pySms.refresh();const t=get("tenants",sel.value);if(!t){who.innerHTML="";am.placeholder="";return}const b=C.ten[t.id]?C.ten[t.id].balance:0,u=get("units",t.unitId);
@@ -1228,7 +1228,7 @@ function formPay(tid){
     const list=ts.filter(t=>(get("units",t.unitId)||{}).propertyId===P.id&&(exMode?!t.active:t.active));
     sel.innerHTML=list.length?`<option value="">Choose the house</option>`+list.map(t=>{const b=C.ten[t.id]?C.ten[t.id].balance:0;return `<option value="${t.id}" ${t.id===prev?"selected":""}>${esc(unitName(get("units",t.unitId)))} · ${esc(t.name)}${t.active?"":" (moved out"+(t.moveOut?" "+fmtDate(t.moveOut):"")+")"}${b>0?" · owes "+n0(b):""}</option>`}).join(""):`<option value="">${exMode?"No ex-tenants with a balance in "+esc(P.code):"No current tenants in "+esc(P.code)}</option>`;
     if(list.length===1)sel.value=list[0].id;fill()};
-  pySms=wireSmsBox("pySms",()=>{const t=get("tenants",sel.value);if(!t||!smsPhone(t.phone)||t.noSms)return null;return payReceiptText(t,am.value,"(receipt no.)")});am.addEventListener("input",()=>pySms.refresh());
+  pySms=wireSmsBox("pySms",()=>{const t=get("tenants",sel.value);if(!t||!smsPhone(t.phone)||t.noSms)return null;return payReceiptText(t,am.value,"")});am.addEventListener("input",()=>pySms.refresh());
   pc.addEventListener("input",houses);sel.onchange=fill;if(exMode){const k=sel.value;setMode(true);if(tid)sel.value=tid;fill()}else houses();if(!pc.value)pc.focus();else if(!sel.value)sel.focus();wireMethod();
   document.getElementById("fPay").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));
     const ref=d.ref.trim().toUpperCase(),split=d.split==="on",er=refError(d.method,ref,null,d.tenantId,split);
@@ -2606,12 +2606,13 @@ async function shareLandlordPDF(pid){
 /* ---------- render & routing ---------- */
 /* ===== SMS (Mspace) — texts are queued in the "sms" collection; the Berlim Homes Google Apps Script sends them ===== */
 const SMS_DEFAULTS={on:false,payMsg:true,utilMsg:true,llMsg:true,remind:true,remindAt:"5, 1",late:true,auto:true,
-  tplPay:"Dear {name},\nPayment received: KES {amount}\nHouse {house} ({code})\nReceipt: {receipt}\n{balanceText}\nThank you.\n{company}",
-  tplRemind:"Dear {name},\nReminder: your {month} bill is due on {due}.\n{items}\nTotal due: KES {balance}\nPaybill {paybill}, Account {account}\n{company} {phone}",
-  tplLate:"Dear {name},\nYour balance of KES {balance} for House {house} ({code}) was due on {due}.\nPlease pay today.\nPaybill {paybill}, Account {account}\n{company} {phone}"};
+  tplPay:"Dear {name},\n{code} House {house}: payment of KES {amount} received.\n{balanceText}\n\nThank you.\n{company}",
+  tplRemind:"Dear {name},\n{code} House {house}, {month} bill is KES {balance}\n\n{items}\n\nPay by {due}\nPaybill {paybill}, Account {account}\n{company}",
+  tplLate:"Dear {name},\n{code} House {house}: your balance of KES {balance} was due on {due}.\nPlease pay today.\n\nPaybill {paybill}, Account {account}\n{company} {phone}"};
 const SMS_OLD={tplPay:"Dear {name}, we have received KES {amount} for House {house} ({code}). Receipt {receipt}. {balanceText}. Thank you. {company}",tplRemind:"Dear {name}, reminder: your rent for {month} is due on {due}. Amount due KES {balance}. Pay via M-Pesa Paybill {paybill}, Account {account}. {company} {phone}",tplLate:"Dear {name}, your balance of KES {balance} for House {house} ({code}) was due on {due} and is now late. Please pay today via Paybill {paybill}, Account {account}. {company} {phone}"};
 const SMS_OLD2={tplPay:"Dear {name}, we have received KES {amount} for House {house} ({code}). Receipt {receipt}. {balanceText} Thank you. {company}",tplRemind:"Dear {name}, reminder: your {month} bill is due on {due}: {items}. Total due KES {balance}. Pay via M-Pesa Paybill {paybill}, Account {account}. {company} {phone}",tplLate:"Dear {name}, your balance of KES {balance} for House {house} ({code}) was due on {due} and is now late ({items}). Please pay today via Paybill {paybill}, Account {account}. {company} {phone}"};
-const smsCfg=()=>{const c={...SMS_DEFAULTS,...(S.settings.sms||{})};for(const k in SMS_OLD)if(c[k]===SMS_OLD[k]||c[k]===SMS_OLD2[k])c[k]=SMS_DEFAULTS[k];return c};
+const SMS_OLD3={tplPay:"Dear {name},\nPayment received: KES {amount}\nHouse {house} ({code})\nReceipt: {receipt}\n{balanceText}\nThank you.\n{company}",tplRemind:"Dear {name},\nReminder: your {month} bill is due on {due}.\n{items}\nTotal due: KES {balance}\nPaybill {paybill}, Account {account}\n{company} {phone}",tplLate:"Dear {name},\nYour balance of KES {balance} for House {house} ({code}) was due on {due}.\nPlease pay today.\nPaybill {paybill}, Account {account}\n{company} {phone}"};
+const smsCfg=()=>{const c={...SMS_DEFAULTS,...(S.settings.sms||{})};for(const k in SMS_OLD)if(c[k]===SMS_OLD[k]||c[k]===SMS_OLD2[k]||c[k]===SMS_OLD3[k])c[k]=SMS_DEFAULTS[k];if(c.tplPay)c.tplPay=c.tplPay.split("\n").filter(l=>!/\{receipt\}/.test(l)).join("\n").replace(/\s*Receipt\s*\{receipt\}\.?/g,"");return c};
 const smsReady=()=>!!window.FB_BUILD&&mode==="cloud";
 function smsPhone(ph){const n=waNum(ph);return /^254(7|1)\d{8}$/.test(n)?n:""}
 function smsDueDate(p,m){return m+"-"+String(dueDayOf(p)).padStart(2,"0")}
@@ -2620,9 +2621,12 @@ function smsVars(t,extra){
   return {name:(t.name||"").split(" ")[0]||t.name||"",fullname:t.name||"",house:unitName(u),code:p.code||"",property:p.name||"",
     balance:n0(Math.max(0,b)),balanceText:b>0?"Balance: KES "+n0(b):"",items:typeof itemsFor==="function"?itemsFor(t,m):"",
     month:MN[+m.slice(5)-1]+" "+m.slice(0,4),due:fmtDate(smsDueDate(p,m)),paybill:cfg(p).paybill||s.paybill||"",account:acctFor(u),
-    company:"Berlim Homes",phone:(s.phone||"").split("/")[0].trim(),...(extra||{})};
+    company:"Berlim Homes Ltd",phone:(s.phone||"").split("/")[0].trim(),...(extra||{})};
 }
-function smsFill(tpl,v){return String(tpl||"").replace(/\r/g,"").replace(/\{(\w+)\}/g,(m,k)=>v[k]!=null?String(v[k]):m).split("\n").map(l=>l.replace(/\(\s*\)/g,"").replace(/:\s*\./g,".").replace(/[ \t]+/g," ").replace(/\s+([.,;])/g,"$1").replace(/\.\s*\./g,".").trim()).filter(l=>l&&l!==".").join("\n").trim()}
+function smsFill(tpl,v){const out=[];for(const raw of String(tpl||"").replace(/\r/g,"").split("\n")){if(!raw.trim()){out.push("");continue}
+  const l=raw.replace(/\{(\w+)\}/g,(m,k)=>v[k]!=null?String(v[k]):m).replace(/\(\s*\)/g,"").replace(/:\s*\./g,".").replace(/[ \t]+/g," ").replace(/\s+([.,;])/g,"$1").replace(/\.\s*\./g,".").replace(/^:\s*/,"").trim();
+  if(l&&l!==".")out.push(...l.split("\n"))}
+  return out.join("\n").replace(/\n{3,}/g,"\n\n").trim()}
 function smsDoc(id,t,text,kind){return {id,to:smsPhone(t.phone),tenantId:t.id,name:t.name,text,kind,status:"queued",createdAt:new Date().toISOString(),by:ME.id||""}}
 async function smsQueue(docs){let n=0;for(const d of docs){if(!d.to)continue;try{await db.collection("sms").doc(d.id).set(JSON.parse(JSON.stringify(d)));n++}catch(e){}}return n}
 
@@ -3130,15 +3134,16 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
 
 
 /* ===== utility bills by SMS, landlord payment SMS, single-item reversals ===== */
-function smsLines(rows,v){return rows.filter(Boolean).map(r=>String(r).replace(/\{(\w+)\}/g,(m,k)=>v[k]!=null?String(v[k]):m).replace(/[ \t]+/g," ").trim()).filter(Boolean).join("\n")}
+function smsLines(rows,v){return rows.filter(r=>r!=null&&r!==false).map(r=>String(r).replace(/\{(\w+)\}/g,(m,k)=>v[k]!=null?String(v[k]):m).replace(/[ \t]+/g," ").trim()).join("\n").replace(/\n{3,}/g,"\n\n").trim()}
 const SMS_NM={rent:"Rent",water:"Water",elec:"Electricity",service:"Service charge",garbage:"Garbage",deposit:"Deposit",penalty:"Late payment penalty",bfadj:"Previous balance"};
 function utilSmsText(b){
-  const t=get("tenants",b.tenantId)||{},u=get("units",b.unitId)||{},P=propOf(u)||{},v=smsVars(t),rows=[`Dear ${/^name not/i.test(t.name||"")||!t.name?"Tenant":String(t.name).split(/[ /]/)[0]},`,`${P.code||""} House ${unitName(u)}, ${monthLabel(b.month)} utility bill`];
-  let tot=0;const ls=(b.lines||[]).filter(l=>!l.rev&&(+l.amount||0)-(+l.reversedAmt||0)>0);
-  for(const l of ls){const net=(+l.amount||0)-(+l.reversedAmt||0),nm=SMS_NM[l.kind]||String(l.desc||"").replace(/,.*$/,"");tot+=net;
-    if(l.open!=null){if(ls.length>1)rows.push("",nm+":");rows.push(`Previous reading: ${n0(l.open)}`,`Current reading: ${n0(l.close)}`,`Units used: ${n0(l.units)}`,`Rate per unit: KES ${n0(l.rate)}`,`${nm} bill: KES ${n0(net)}`)}
-    else rows.push(`${nm}: KES ${n0(net)}`)}
-  if(ls.length>1)rows.push("",`Total: KES ${n0(tot)}`);
+  const t=get("tenants",b.tenantId)||{},u=get("units",b.unitId)||{},P=propOf(u)||{},v=smsVars(t);
+  const ls=(b.lines||[]).filter(l=>!l.rev&&(+l.amount||0)-(+l.reversedAmt||0)>0).map(l=>({...l,net:(+l.amount||0)-(+l.reversedAmt||0),nm:SMS_NM[l.kind]||String(l.desc||"").replace(/,.*$/,"")}));
+  const tot=ls.reduce((x,l)=>x+l.net,0),one=ls.length===1,what=one?ls[0].nm:"Utility";
+  const rows=[`Dear ${/^name not/i.test(t.name||"")||!t.name?"Tenant":String(t.name).split(/[ /]/)[0]},`,`${P.code||""} House ${unitName(u)}, ${monthLabel(b.month)} ${what} bill is KES ${n0(tot)}`];
+  for(const l of ls){rows.push("");
+    if(!one)rows.push(l.open!=null?`${l.nm}: KES ${n0(l.net)}`:`${l.nm}: KES ${n0(l.net)}`);
+    if(l.open!=null)rows.push(`Previous reading: ${n0(l.open)}`,`Current reading: ${n0(l.close)}`,`Units used: ${n0(l.units)}`,`Rate per unit: KES ${n0(l.rate)}`)}
   rows.push("",`Pay by ${fmtDate(b.dueDate)}`,`Paybill {paybill}, Account {account}`,"{company}");
   return smsLines(rows,v);
 }
@@ -3348,10 +3353,10 @@ const tenBal=t=>{const c=compute().ten[t.id];return c?Math.max(0,Math.round(c.ba
 function invoiceSmsText(i){
   if(catOf(i)==="util"&&typeof utilSmsText==="function")return utilSmsText(i);
   const t=get("tenants",i.tenantId)||{},u=get("units",i.unitId||t.unitId)||{},P=propOf(u)||{},prior=priorBal(t,[i.id]),due=tenBal(t);
-  const rows=[`Dear ${/^name not/i.test(t.name||"")||!t.name?"Tenant":String(t.name).split(/[ /]/)[0]},`,`${P.code||""} House ${unitName(u)}, ${monthLabel(i.month)} bill`];
+  const rows=[`Dear ${/^name not/i.test(t.name||"")||!t.name?"Tenant":String(t.name).split(/[ /]/)[0]},`,`${P.code||""} House ${unitName(u)}, ${monthLabel(i.month)} bill is KES ${n0(due)}`,""];
   for(const l of netLines(i))rows.push(`${SMS_NM[l.kind]||String(l.desc||"").replace(/,.*$/,"")}: KES ${n0(l.amt)}`);
   if(prior)rows.push(`Previous balance: KES ${n0(prior)}`);
-  rows.push(due>0?`Total due: KES ${n0(due)}`:"Already covered by your payments. Thank you.");
+  if(due<=0)rows.push("","Already covered by your payments. Thank you.");
   if(due>0)rows.push("",`Pay by ${fmtDate(i.dueDate)}`,`Paybill {paybill}, Account {account}`);
   rows.push("{company}");
   return smsLines(rows,smsVars(t));
