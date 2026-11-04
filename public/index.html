@@ -1560,7 +1560,7 @@ document.getElementById("mnext").onclick=()=>{monthPinned=true;month=monthAdd(mo
 const PERMS=[["payments","Record, edit and delete tenant payments"],["invoices","Generate, reverse and penalise invoices"],["readings","Enter meter readings and meter photos"],["tenants","Add, edit and move out tenants (with move-in bills)"],["providers","Service provider bills and payments"],["props","Properties, houses, rates and setup"],["landlords","Landlord accounts, agreements and remittances"]];
 const PSHORT={payments:"Payments",invoices:"Invoices",readings:"Meter readings",tenants:"Tenants",providers:"Service providers",props:"Properties & setup",landlords:"Landlord accounts"};
 const ROLES={admin:{label:"Administrator (full access)",perms:PERMS.map(p=>p[0])},manager:{label:"Property manager",perms:PERMS.map(p=>p[0])},accountant:{label:"Accountant",perms:["payments","invoices","providers","landlords"]},field:{label:"Field officer / caretaker",perms:["readings","tenants"]},viewer:{label:"View only",perms:[]}};
-const NEED={dedEdit:"landlords",dedReset:"landlords",rates:"props",depLL:"invoices",suspReq:"tenants",endProp:"props",endLl:"landlords",revLine:"invoices",utilSmsAll:"readings",utilSms:"readings",llToggle:"invoices",charge:"invoices",smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
+const NEED={chgLine:"invoices",dedEdit:"landlords",dedReset:"landlords",rates:"props",depLL:"invoices",suspReq:"tenants",endProp:"props",endLl:"landlords",revLine:"invoices",utilSmsAll:"readings",utilSms:"readings",llToggle:"invoices",charge:"invoices",smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
 let staffLoaded=false;
 function myStaff(){return ME.id?S.staff.find(s=>s.id===ME.id&&s.active!==false)||null:null}
 function can(p){if(ME.admin)return true;const s=ME.staff;if(!s||readOnly)return false;return !p||(s.perms||[]).includes(p)}
@@ -3136,12 +3136,16 @@ function reverseLine(id,idx){
 function lineRevHTML(i){
   if(!can("invoices")||i.reversed)return "";const ls=(i.lines||[]).map((l,k)=>({l,k})).filter(x=>!x.l.rev&&(+x.l.amount>0)&&(+x.l.reversedAmt||0)<+x.l.amount);
   if(!ls.length)return "";
-  return `<div class="card" style="margin-top:12px"><div class="ch"><h2>Reverse one item</h2><span style="color:var(--muted);font-size:13px">Cancel a single charge (for example the deposit or the water) and keep the rest of the invoice</span></div><div class="cb row" style="gap:8px;flex-wrap:wrap">
+  return `<div class="card" style="margin-top:12px"><div class="ch"><h2>Change an amount</h2><span style="color:var(--muted);font-size:13px">${ME.admin?"Correct a wrong amount; the invoice, statement and landlord report update":"Corrections go to the admin for approval first"}</span></div><div class="cb row" style="gap:8px;flex-wrap:wrap">
+   ${ls.map(x=>`<button class="btn sm" data-a="chgLine" data-id="${i.id}" data-k="${x.k}">Change ${esc(ITEM_LABEL&&ITEM_LABEL[x.l.kind]||x.l.desc)} · KES ${n0(x.l.amount)}</button>`).join("")}
+   ${(i.lines||[]).filter(l=>l.origAmount!=null).map(l=>`<span class="sub" style="width:100%">${esc(l.desc)}: changed from KES ${n0(l.origAmount)} to ${n0(l.amount)} on ${fmtDate(l.changedAt)} (${esc(l.changeReason||"")})</span>`).join("")}</div></div>
+   <div class="card" style="margin-top:12px"><div class="ch"><h2>Reverse one item</h2><span style="color:var(--muted);font-size:13px">Cancel a single charge (for example the deposit or the water) and keep the rest of the invoice</span></div><div class="cb row" style="gap:8px;flex-wrap:wrap">
    ${ls.map(x=>`<button class="btn sm danger" data-a="revLine" data-id="${i.id}" data-k="${x.k}">Reverse ${esc(ITEM_LABEL&&ITEM_LABEL[x.l.kind]||x.l.desc)} · KES ${n0(+x.l.amount-(+x.l.reversedAmt||0))}</button>`).join("")}
    <button class="btn sm danger" data-a="reverseInv" data-id="${i.id}">Reverse the whole invoice</button></div></div>`;
 }
 document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;
   if(a==="revLine"){e.preventDefault();reverseLine(b.dataset.id,+b.dataset.k)}
+  else if(a==="chgLine"){e.preventDefault();changeLine(b.dataset.id,+b.dataset.k)}
   else if(a==="utilSms"){e.preventDefault();const i=get("invoices",b.dataset.id);if(!i)return;const n=await smsUtilBills([i],true);toast(n?"Utility bill SMS queued":"Couldn't text: check the tenant's phone and that SMS is set up")}
   else if(a==="utilSmsAll"){e.preventDefault();const P=get("properties",filters.uprop);if(!P)return;const bills=S.invoices.filter(i=>i.month===month&&catOf(i)==="util"&&!i.reversed&&(get("units",i.unitId)||{}).propertyId===P.id&&+i.total>0&&!S.sms.some(x=>x.id&&x.id.startsWith(utilSmsId(i))));
     if(!bills.length){toast("Every utility bill here has already been texted");return}
@@ -3416,6 +3420,38 @@ async function dedReset(pid,key){const m=month,r0=lrep(pid,m);if(!r0||!r0.over)r
   if(await submit("lreports",`${(get("properties",pid)||{}).code} ${monthShort(m)}: deduction back to calculated amount`,[{op:"set",col:"lreports",obj:{...r0,over}}],"landlords"))closeModal()}
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;
   if(b.dataset.a==="dedEdit"){e.preventDefault();formDedEdit(b.dataset.id,b.dataset.k)}else if(b.dataset.a==="dedReset"){e.preventDefault();dedReset(b.dataset.id,b.dataset.k)}});
+
+
+/* ===== correct a billed amount; staff changes always go to the admin for approval ===== */
+async function submitAdmin(summary,ops,perm){
+  if(perm&&!can(perm)){toast("Your access doesn't include this. Ask the admin.");return false}
+  if(!ME.admin){const a={id:uid(),summary,ops:JSON.parse(JSON.stringify(ops)),perm:perm||"",by:ME.id,at:new Date().toISOString(),status:"pending",adminOnly:true};
+    if(await save("approvals",a)){toast("Sent to the admin for approval");return "queued"}return false}
+  if(await applyOps(ops)){toast("Saved: "+summary);return "done"}return false}
+function changeLine(id,idx){
+  const i=get("invoices",id);if(!i)return;const l=i.lines[idx];if(!l)return;const t=get("tenants",i.tenantId)||{},u=get("units",i.unitId||t.unitId)||{},P=propOf(u)||{},old=+l.amount||0,isRent=l.kind==="rent";
+  const sameMonths=isRent?S.invoices.filter(x=>x.id!==i.id&&x.tenantId===i.tenantId&&!x.reversed&&!x.adj&&catOf(x)==="rent"&&x.month>=i.month&&(x.lines||[]).some(y=>y.kind==="rent"&&!y.rev&&+y.amount===old)).sort((a,b)=>a.month.localeCompare(b.month)):[];
+  const sent=m=>!!(lrep(P.id,m)||{}).sentAt;
+  openModal("Change amount: "+esc(l.desc),`<p style="margin:0 0 10px">${esc(t.name||"")} · ${esc(P.code||"")} House ${esc(unitName(u))} · ${esc(i.no)} (${monthLabel(i.month)}). Billed <strong>KES ${n0(old)}</strong>.${ME.admin?"":" <strong>The admin must approve this change before it takes effect.</strong>"}</p>
+   ${sent(i.month)?`<div class="banner" style="margin:0 0 10px">The ${monthLabel(i.month)} landlord report was already sent; it will change.</div>`:""}
+   <form id="fCl" class="fg"><div class="f"><label for="cl-a">Correct amount (KES)</label><input id="cl-a" name="amount" type="number" min="0" step="any" required value="${isRent&&+u.rent&&+u.rent!==old?+u.rent:old}"></div>
+   <div class="f"><label for="cl-r">Reason</label><select id="cl-r" name="reason" required><option value="">Choose</option>${["Billed wrong rent","Rent agreed with landlord","Rent increase applied wrongly","Discount agreed","Wrong unit rate","Other"].map(x=>`<option>${x}</option>`).join("")}</select></div>
+   <div class="f full"><label for="cl-n">Details</label><input id="cl-n" name="note" placeholder="e.g. agreed rent is 4,000 per the lease"></div>
+   ${sameMonths.length?`<div class="f full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="others" checked> Also correct ${sameMonths.length} other month${sameMonths.length>1?"s":""} billed KES ${n0(old)}: ${sameMonths.map(x=>monthShort(x.month)+(sent(x.month)?" (report sent)":"")).join(", ")}</label></div>`:""}
+   ${isRent?`<div class="f full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="unit" ${+u.rent!==old?"":"checked"}> Set House ${esc(unitName(u))} rent to this amount for coming months (now KES ${n0(u.rent)})</label></div>`:""}
+   <div class="err full" id="clErr"></div></form>`,
+   `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fCl" type="submit">${ME.admin?"Change amount":"Send for admin approval"}</button>`,true);
+  document.getElementById("fCl").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target)),amt=+d.amount,er=document.getElementById("clErr");
+    if(!d.reason){er.textContent="Choose a reason.";return}if(d.reason==="Other"&&!d.note.trim()){er.textContent="Add the details.";return}if(amt===old){er.textContent="The amount is unchanged.";return}
+    const why=d.reason+(d.note.trim()?": "+d.note.trim():""),stamp={changedAt:todayStr,changedBy:ME.id||"",changeReason:why};
+    const fix=(inv,k)=>{const lines=inv.lines.map((x,j)=>j===k?{...x,amount:amt,rate:(+x.qty||1)?amt/(+x.qty||1):amt,origAmount:x.origAmount??+x.amount,...stamp}:x);return {...inv,lines,total:lines.reduce((s,x)=>s+(+x.amount||0),0),locked:true}};
+    const ops=[{op:"set",col:"invoices",obj:fix(i,idx)}];
+    if(d.others==="on")for(const x of sameMonths){const k=x.lines.findIndex(y=>y.kind==="rent"&&!y.rev&&+y.amount===old);ops.push({op:"set",col:"invoices",obj:fix(x,k)})}
+    if(d.unit==="on"&&+u.rent!==amt)ops.push({op:"set",col:"units",obj:{...u,rent:amt,rentHistory:[...(u.rentHistory||[]),{from:old,to:amt,at:todayStr,why}]}});
+    const n=ops.filter(o=>o.col==="invoices").length;
+    const r=await submitAdmin(`Change ${l.desc} for ${t.name} (${P.code} ${unitName(u)}) from ${kes(old)} to ${kes(amt)}${n>1?" on "+n+" invoices":""}${d.unit==="on"?", and house rent":""}: ${why}`,ops,"invoices");
+    if(r){closeModal();if(r==="done")setTimeout(()=>showInvoice(id),250)}};
+}
 
 const VIEWS={mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
