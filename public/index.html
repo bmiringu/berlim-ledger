@@ -711,7 +711,7 @@ function monthReport(pid,m){
   const units=S.units.filter(u=>u.propertyId===pid).sort(sortUnits);
   const rows=[];
   for(const u of units){
-    const ts=S.tenants.filter(t=>t.unitId===u.id&&(S.invoices.some(i=>i.tenantId===t.id&&i.month===m&&!i.adj)||S.payments.some(x=>x.tenantId===t.id&&(x.date||"").slice(0,7)===m)||(t.active&&(!t.moveIn||t.moveIn<=lastDay(m))&&(!t.billFrom||t.billFrom<=m))));
+    const ts=S.tenants.filter(t=>t.unitId===u.id&&onReport(t,m)&&(S.invoices.some(i=>i.tenantId===t.id&&i.month===m&&!i.adj)||S.payments.some(x=>x.tenantId===t.id&&(x.date||"").slice(0,7)===m)||(t.active&&(!t.moveIn||t.moveIn<=lastDay(m))&&(!t.billFrom||t.billFrom<=m))));
     if(!ts.length){rows.push({u,t:null,ch:{},bf:0,paid:0,direct:0,arrears:0});continue}
     for(const t of ts){
       const before=S.invoices.filter(i=>i.tenantId===t.id&&(i.month<m||(i.adj&&i.month===m))).reduce((s,i)=>s+invAmt(i),0)-S.payments.filter(x=>x.tenantId===t.id&&(x.date||"")<start).reduce((s,x)=>s+(+x.amount||0),0);
@@ -1829,11 +1829,26 @@ function formMoveOut(id){
    <div class="f"><label for="mo-a">New address or location</label><input id="mo-a" name="exAddress" value="${esc(t.exAddress||"")}"></div>
    <div class="f"><label for="mo-dep">Deposit refunded (KES)</label><input id="mo-dep" name="depositRefund" type="number" min="0" value="${esc(t.depositRefund??"")}" placeholder="Deposit held ${n0(t.deposit)}"><span class="hint">Record only; it doesn't change the balance</span></div>
    <div class="f"><label for="mo-ded">Deposit deductions</label><input id="mo-ded" name="depositDeduct" value="${esc(t.depositDeduct||"")}" placeholder="e.g. repainting 3,000"></div>
+   <div class="f full" style="background:#F4EEDF;border-radius:10px;padding:10px 12px"><label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" name="depLL" id="mo-dll" ${t.depLded||(!t.depLded&&!cfg(propOf(get("units",t.unitId))).holdDeposits)?"checked":""}> Deduct the deposit refund from the landlord</label><span class="hint" id="mo-dllh"></span></div>
+   ${ex?"":`<div class="f full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="cancelMo" id="mo-cx"> <span id="mo-cxl"></span></label><span class="hint">Rent and garbage billed for months after the move-out month are cancelled automatically, and the house shows as vacant on the landlord report.</span></div>`}
    <div class="f full"><label for="mo-n">Notes</label><input id="mo-n" name="exNote" value="${esc(t.exNote||"")}" placeholder="Condition of house, keys returned, follow-up on balance"></div></form>`,
    `<button class="btn" data-a="close">Cancel</button><button class="btn ${ex?"primary":"danger"}" type="submit" form="fMO">${ex?"Save details":"Move out"}</button>`,true);
-  document.getElementById("fMO").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));
+  const U=get("units",t.unitId)||{},P=cfg(propOf(U)),fm=document.getElementById("fMO");
+  const upd=()=>{const d=Object.fromEntries(new FormData(fm)),mo=(d.moveOut||todayStr).slice(0,7),amt=+d.depositRefund||0,dm=depDedMonth(t,mo);
+    document.getElementById("mo-dllh").textContent=amt>0?`KES ${n0(amt)} will appear under Deductions on ${P.code} landlord report for ${monthLabel(dm)} as "Deposit refund, House ${unitName(U)} (${t.name})".`:"Enter the deposit refunded above; that amount is deducted from the landlord.";
+    const cl=document.getElementById("mo-cxl");if(cl){const n=moveOutInvs(t,mo,true).filter(i=>i.month===mo).reduce((s,i)=>s+invNet(i),0);cl.textContent=`Cancel ${monthLabel(mo)} rent${n?" (KES "+n0(n)+" billed)":""}: the tenant leaves before that month's rent is earned`}};
+  const cx=document.getElementById("mo-cx");if(cx){const day=+(document.getElementById("mo-d").value||todayStr).slice(8,10);cx.checked=day<=dueDayOf(P)}
+  document.getElementById("mo-d").addEventListener("change",()=>{if(cx){const day=+document.getElementById("mo-d").value.slice(8,10);cx.checked=day<=dueDayOf(P)}upd()});fm.addEventListener("input",upd);upd();
+  fm.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target)),mo=d.moveOut.slice(0,7),amt=d.depositRefund===""?0:+d.depositRefund;
     const obj={...t,active:false,moveOut:d.moveOut,exReason:d.exReason,exPhone:d.exPhone.trim(),exAddress:d.exAddress.trim(),depositRefund:d.depositRefund===""?"":+d.depositRefund,depositDeduct:d.depositDeduct.trim(),exNote:d.exNote.trim()};
-    if(await submit("tenants",(ex?"Update ex-tenant ":"Move out ")+t.name,[{op:"set",col:"tenants",obj}],"tenants"))closeModal()};
+    const ops=[];
+    if(d.depLL==="on"&&amt>0){const old=t.depLded&&get("ldeds",t.depLded);const id=old?old.id:uid();obj.depLded=id;
+      ops.push({op:"set",col:"ldeds",obj:{...(old||{}),id,propertyId:P.id,month:old&&(lrep(P.id,old.month)||{}).sentAt?old.month:depDedMonth(t,mo),desc:`Deposit refund, House ${unitName(U)} (${t.name})`,amount:amt,tenantId:t.id,auto:"deposit"}})}
+    else if(t.depLded&&get("ldeds",t.depLded)&&!(lrep(P.id,get("ldeds",t.depLded).month)||{}).sentAt){ops.push({op:"del",col:"ldeds",id:t.depLded});delete obj.depLded}
+    if(!ex)for(const i of moveOutInvs(t,mo,d.cancelMo==="on"))ops.push({op:"set",col:"invoices",obj:{...i,reversed:true,reversedAt:d.moveOut,reverseReason:"Tenant had moved out ("+fmtDate(d.moveOut)+")"}});
+    ops.push({op:"set",col:"tenants",obj});
+    const cxn=ops.filter(o=>o.col==="invoices").length;
+    if(await submit("tenants",(ex?"Update ex-tenant ":"Move out ")+t.name+(amt&&d.depLL==="on"?`, deposit refund ${kes(amt)} deducted from landlord`:"")+(cxn?`, ${cxn} invoice${cxn>1?"s":""} cancelled`:""),ops,"tenants"))closeModal()};
 }
 function reinstate(id){const t=get("tenants",id);if(!t)return;if(activeTenantOf(t.unitId)){toast("That house is let to someone else now.");return}
   askConfirm(`Reinstate <strong>${esc(t.name)}</strong> as the current tenant of House ${esc(unitName(get("units",t.unitId)))}?`,"Reinstate",async()=>{const {moveOut,...rest}=t;await submit("tenants","Reinstate "+t.name,[{op:"set",col:"tenants",obj:{...rest,active:true}}],"tenants")})}
@@ -3357,6 +3372,22 @@ document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.c
   else if(a==="schedDel"){e.preventDefault();const o=get("units",b.dataset.id)||get("properties",b.dataset.id);if(!o)return;const col=get("units",o.id)?"units":"properties";
     askConfirm("Cancel this scheduled change?","Cancel change",async()=>{await submit(col,"Cancel scheduled change",[{op:"set",col,obj:{...o,sched:(o.sched||[]).filter(c=>c.id!==b.dataset.c)}}],"props")})}});
 
+
+/* ===== move-out: house becomes vacant, later rent cancelled, deposit refund deducted from landlord ===== */
+const invNet=i=>(i.lines||[]).reduce((s,l)=>s+(+l.amount||0),0);
+/* a moved-out tenant shows on a landlord report only for a month they still have charges in (and on reports already sent) */
+function onReport(t,m){if(t.active)return true;const pid=(propOf(get("units",t.unitId))||{}).id;if(pid&&(lrep(pid,m)||{}).sentAt)return true;
+  return S.invoices.some(i=>i.tenantId===t.id&&i.month===m&&!i.adj&&!i.reversed&&invNet(i)!==0)}
+/* rent and garbage invoices a moved-out tenant should not carry: months after the move-out month, plus the move-out month when chosen */
+function moveOutInvs(t,mo,incl){const pid=(propOf(get("units",t.unitId))||{}).id;
+  return S.invoices.filter(i=>i.tenantId===t.id&&!i.adj&&!i.reversed&&(catOf(i)==="rent"||catOf(i)==="garbage")&&i.cat!=="misc"&&(i.month>mo||(incl&&i.month===mo))&&!(pid&&(lrep(pid,i.month)||{}).sentAt))}
+function depDedMonth(t,mo){const pid=(propOf(get("units",t.unitId))||{}).id;let m=mo;while(pid&&(lrep(pid,m)||{}).sentAt)m=monthAdd(m,1);return m}
+/* tidy up tenants moved out before this feature: cancel rent billed after they left (reports not yet sent) */
+let moFixed=false;
+async function fixMovedOut(){if(moFixed||mode!=="cloud"||!ME.admin)return;moFixed=true;const ops=[];
+  for(const t of S.tenants.filter(x=>!x.active&&x.moveOut)){for(const i of moveOutInvs(t,t.moveOut.slice(0,7),false))ops.push({op:"set",col:"invoices",obj:{...i,reversed:true,reversedAt:todayStr,reverseReason:"Tenant had moved out ("+fmtDate(t.moveOut)+")"}})}
+  if(ops.length&&await applyOps(ops))toast(ops.length+" invoice"+(ops.length>1?"s":"")+" billed after a move-out cancelled")}
+
 const VIEWS={mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
 let _rq=null;function queueRender(){if(_rq)return;_rq=setTimeout(()=>{_rq=null;render()},mode==="cloud"?40:0)}
@@ -3423,7 +3454,7 @@ loadImportFile();
   await identify(user);
   const slow=setTimeout(()=>setStatus("demo","Records may be out of date, still connecting"),10000);
   const fresh=new Set();
-  const settle=()=>{if(fresh.size>=COLS.length+1){clearTimeout(slow);setStatus("ok",readOnly?"Saved records, view only":"Saved records, synced");setTimeout(autoHistory,1500);setTimeout(()=>smsAuto().catch(()=>{}),4000);setTimeout(()=>applyDueChanges().catch(()=>{}),2500)}};
+  const settle=()=>{if(fresh.size>=COLS.length+1){clearTimeout(slow);setStatus("ok",readOnly?"Saved records, view only":"Saved records, synced");setTimeout(autoHistory,1500);setTimeout(()=>smsAuto().catch(()=>{}),4000);setTimeout(()=>applyDueChanges().catch(()=>{}),2500);setTimeout(()=>fixMovedOut().catch(()=>{}),3500)}};
   COLS.forEach(col=>{db.collection(col).onSnapshot(snap=>{S[col]=snap.docs.map(d=>({...d.data(),id:d.id}));DV++;if(col==="staff")staffLoaded=true;if(!snap.metadata.fromCache){fresh.add(col);settle()}queueRender()},
     err=>{if(col==="staff"){staffLoaded=true;render()}clearTimeout(slow);setStatus("demo","Could not load "+col);fresh.add(col)})});
   if(ME.admin){try{db.collection("expenses").onSnapshot(s=>{S.expenses=s.docs.map(d=>({...d.data(),id:d.id}));DV++;queueRender()},()=>{})}catch(e){}}
