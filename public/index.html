@@ -1141,6 +1141,9 @@ function formProp(id){
    <h3 class="full fsec">Landlord: when we pay the landlord</h3>
    ${I("llPayDay","Pay the landlord by day of month","number","Blank = company default ("+ord(+S.settings.llPayDay||10)+"). Separate from the tenants' due day.","e.g. 10")}
    <div class="f"><label for="p-llPayWhen">For each month's rent, pay in</label><select id="p-llPayWhen" name="llPayWhen"><option value="" ${!p.llPayWhen?"selected":""}>Company default (${(S.settings.llPayWhen||"same")==="next"?"following month":"same month"})</option><option value="same" ${p.llPayWhen==="same"?"selected":""}>The same month (e.g. November rent paid by ${ord(+p.llPayDay||+S.settings.llPayDay||10)} November)</option><option value="next" ${p.llPayWhen==="next"?"selected":""}>The following month (e.g. November rent paid by ${ord(+p.llPayDay||+S.settings.llPayDay||10)} December)</option></select></div>
+   <h3 class="full fsec">Utilities landlord (only if water and electricity are paid to someone else)</h3>
+   ${I("utilLandlord","Utilities paid to (name)","text","Leave blank if the main landlord gets the utilities too")}${I("utilLandlordPhone","Their phone","text","For their report and payment SMS")}
+   <div class="f full"><label for="p-utilLandlordPay">Their bank / M-Pesa details</label><input id="p-utilLandlordPay" name="utilLandlordPay" value="${esc(p.utilLandlordPay||"")}" placeholder="e.g. M-Pesa 07xx xxx xxx, or Equity A/C ..."></div>
    <h3 class="full fsec">Monthly costs deducted from the landlord</h3>
    ${I("caretakerFee","Caretaker fee (KES per month)","number","Fixed amount deducted every month. 0 if none")}${I("caretakerName","Caretaker's name","text","Optional")}
    ${[0,1,2].map(k=>{const fd=(p.fixedDeds||[])[k]||{};return `<div class="f"><label for="p-fdd${k}">Other monthly cost ${k+1}</label><input id="p-fdd${k}" name="fd_desc_${k}" value="${esc(fd.desc||"")}" placeholder="${["e.g. Security guard","e.g. Cleaner","e.g. Garbage collector"][k]}"></div><div class="f"><label for="p-fda${k}">Amount (KES per month)</label><input id="p-fda${k}" name="fd_amt_${k}" type="number" min="0" step="any" value="${esc(fd.amount||"")}"></div>`}).join("")}
@@ -1170,7 +1173,7 @@ function formProp(id){
     d.depositCommPct=String(d.depositCommPct??"").trim()===""?"":+d.depositCommPct;["dueDay","penaltyPct","llPayDay"].forEach(k=>d[k]=String(d[k]??"").trim()===""?"":+d[k]);if(d.llPayDay!==""&&(d.llPayDay<1||d.llPayDay>28)){toast("Landlord payment day must be between 1 and 28");return}
     if(d.dueDay!==""&&(d.dueDay<1||d.dueDay>28)){toast("Due day must be between 1 and 28");return}
     d.holdDeposits=d.holdDeposits==="on";d.garbageToLandlord=d.garbageToLandlord==="on";
-    ["landlordPhone","landlordEmail","code","name","location","landlord","landlordPay","lrNo","elecMeter","elecAccount","waterMeter","waterAccount"].forEach(k=>d[k]=(d[k]||"").trim());d.code=d.code.toUpperCase();
+    ["utilLandlord","utilLandlordPhone","utilLandlordPay","landlordPhone","landlordEmail","code","name","location","landlord","landlordPay","lrNo","elecMeter","elecAccount","waterMeter","waterAccount"].forEach(k=>d[k]=(d[k]||"").trim());d.code=d.code.toUpperCase();
     if(!d.code||!d.name){toast("Give the property a code and a name");return}
     if(S.properties.some(x=>x.code===d.code&&(!p0||x.id!==p0.id))){toast("Code "+d.code+" is already used by another property");return}
     const pobj={...(p0||{id:uid()}),...d},ops=[{op:"set",col:"properties",obj:pobj}];
@@ -1579,7 +1582,7 @@ document.getElementById("mnext").onclick=()=>{const {max}=monthBounds();if(month
 const PERMS=[["payments","Record, edit and delete tenant payments"],["invoices","Generate, reverse and penalise invoices"],["readings","Enter meter readings and meter photos"],["tenants","Add, edit and move out tenants (with move-in bills)"],["providers","Service provider bills and payments"],["props","Properties, houses, rates and setup"],["landlords","Landlord accounts, agreements and remittances"]];
 const PSHORT={payments:"Payments",invoices:"Invoices",readings:"Meter readings",tenants:"Tenants",providers:"Service providers",props:"Properties & setup",landlords:"Landlord accounts"};
 const ROLES={admin:{label:"Administrator (full access)",perms:PERMS.map(p=>p[0])},manager:{label:"Property manager",perms:PERMS.map(p=>p[0])},accountant:{label:"Accountant",perms:["payments","invoices","providers","landlords"]},field:{label:"Field officer / caretaker",perms:["readings","tenants"]},viewer:{label:"View only",perms:[]}};
-const NEED={llLine:"invoices",llAll:"invoices",chgLine:"invoices",dedEdit:"landlords",dedReset:"landlords",rates:"props",depLL:"invoices",suspReq:"tenants",endProp:"props",endLl:"landlords",revLine:"invoices",utilSmsAll:"readings",utilSms:"readings",llToggle:"invoices",charge:"invoices",smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
+const NEED={dedSide:"landlords",llLine:"invoices",llAll:"invoices",chgLine:"invoices",dedEdit:"landlords",dedReset:"landlords",rates:"props",depLL:"invoices",suspReq:"tenants",endProp:"props",endLl:"landlords",revLine:"invoices",utilSmsAll:"readings",utilSms:"readings",llToggle:"invoices",charge:"invoices",smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
 let staffLoaded=false;
 function myStaff(){return ME.id?S.staff.find(s=>s.id===ME.id&&s.active!==false)||null:null}
 function can(p){if(ME.admin)return true;const s=ME.staff;if(!s||readOnly)return false;return !p||(s.perms||[]).includes(p)}
@@ -2106,21 +2109,22 @@ function dedLines(pid,m,R){const L=[];
   return L}
 const llInv=(pid,m)=>get("linvoices",m+"_"+pid);
 function formRemit(id,pid){
-  const r=id?get("remits",id):null;pid=r?r.propertyId:pid;const LM=landlordMonth(pid,month),row={bal:LM.outstanding};
+  const r=id?get("remits",id):null;pid=r?r.propertyId:pid;const LM=landlordMonth(pid,month),pt0=r?(r.part==="util"?"util":"rent"):llPartOf(pid),row={bal:LM.split?(pt0==="util"?LM.outUtil:LM.outRent):LM.outstanding};
   const sugg=Math.max(0,Math.round(row.bal));
   openModal(r?"Edit amount forwarded":"Record amount forwarded to landlord",`<p style="margin:0 0 10px">${esc((get("properties",pid)||{}).code||"")} ${esc((get("properties",pid)||{}).landlord||"")} · still to forward for ${monthLabel(month)}: <strong>${kes(row.bal)}</strong></p><form id="fRm" class="fg">
    <div class="f"><label for="rm-m">For month</label><input id="rm-m" name="month" type="month" required value="${esc(r?r.month:month)}"></div>
+   ${LM.split?`<div class="f"><label for="rm-pt">Payment for</label><select id="rm-pt" name="part"><option value="rent" ${(r?r.part!=="util":llPartOf(pid)!=="util")?"selected":""}>Rent and deposits (${esc(LM.p.landlord||"landlord")})</option><option value="util" ${(r?r.part==="util":llPartOf(pid)==="util")?"selected":""}>Utilities (${esc(LM.p.utilLandlord)})</option></select></div>`:""}
    <div class="f"><label for="rm-a">Amount (KES)</label><input id="rm-a" name="amount" type="number" min="1" step="any" required value="${esc(r?r.amount:sugg||"")}"></div>
    <div class="f"><label for="rm-d">Date paid</label><input id="rm-d" name="date" type="date" required value="${esc(r?r.date:todayStr)}"></div>
    <div class="f"><label for="rm-me">Paid by</label><select id="rm-me" name="method">${methodOptions([...PMETHODS,"Settled before system"],r?r.method:"Bank transfer")}</select></div>
    <div class="f"><label for="rm-r" id="rm-rl">Reference</label><input id="rm-r" name="ref" value="${esc(r?r.ref||"":"")}" style="text-transform:uppercase"><span class="hint">Required. It appears on the landlord report.</span></div>
-   <div class="f full"><label for="rm-to">Paid to (landlord's account)</label><input id="rm-to" name="paidTo" value="${esc(r?r.paidTo||"":((get("properties",pid)||{}).landlordPay||""))}"></div>
+   <div class="f full"><label for="rm-to">Paid to (landlord's account)</label><input id="rm-to" name="paidTo" value="${esc(r?r.paidTo||"":(pt0==="util"?(get("properties",pid)||{}).utilLandlordPay:(get("properties",pid)||{}).landlordPay)||"")}"></div>
    <div class="f"><label for="rm-n">Note</label><input id="rm-n" name="note" value="${esc(r?r.note||"":"")}"></div><div class="err full" id="rmErr"></div></form>`,
    `<button class="btn" data-a="close">Cancel</button><button class="btn primary" type="submit" form="fRm">Save payment</button>`);wireRefLabel("rm-me","rm-rl");
   document.getElementById("fRm").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target)),ref=(d.ref||"").trim().toUpperCase();
     {const er=payRefError(d.method,ref);if(er){document.getElementById("rmErr").textContent=er;return}}
     if(ref&&S.remits.some(x=>(x.ref||"").toUpperCase()===ref&&(!r||x.id!==r.id))){document.getElementById("rmErr").textContent="Reference "+ref+" is already recorded.";return}
-    const obj={...(r||{id:uid()}),propertyId:pid,month:d.month,amount:+d.amount,date:d.date,method:d.method,ref,paidTo:(d.paidTo||"").trim(),note:d.note.trim()};
+    const obj={...(r||{id:uid()}),propertyId:pid,month:d.month,amount:+d.amount,date:d.date,method:d.method,ref,paidTo:(d.paidTo||"").trim(),note:d.note.trim()};if(LM.split)obj.part=d.part==="util"?"util":"rent";
     if(await submit("remits",`Remit ${kes(obj.amount)} to ${(get("properties",pid)||{}).landlord||"landlord"} (${(get("properties",pid)||{}).code||""}, ${monthShort(obj.month)})`,[{op:"set",col:"remits",obj}],"landlords"))closeModal()}}
 const LD_SUGG=["Cleaner","Caretaker","Security","Water bill","Electricity bill","Repairs and maintenance","Plumbing","Painting","Soakpit / exhauster","Materials","Advertising vacant house","Letting commission","Legal fees","Land rates","Insurance","Paid landlord cash"];
 function formLded(id,pid){
@@ -2323,7 +2327,7 @@ function lrHead(L){const s=S.settings,p=L.p,date=L.rems.length?L.rems[L.rems.len
   return `<div class="lrhead">${docHead("Rent collection report",L.inv?"Invoice "+L.inv.no:"")}
    <div class="lrbar"><span><b>Landlord:</b> ${esc(p.landlord||"—")}</span><span><b>Date:</b> ${ordDate(date)}</span></div>
    ${L.rep&&L.rep.sentAt?`<div class="lrsent">REPORT SENT ${ordDate(L.rep.sentAt)}${L.rep.sentVia?" VIA "+esc(L.rep.sentVia.toUpperCase()):""}${L.rems.length?` · PAYMENT REF ${L.rems.map(r=>esc(r.ref||"")).filter(Boolean).join(", ")}`:""}</div>`:""}
-   <h2 class="lrtitle">${esc(p.code)}-${esc((p.name||"").toUpperCase())} PROPERTY ${monthLabel(L.m||month).toUpperCase()} RENT COLLECTION REPORT</h2></div>`}
+   <h2 class="lrtitle">${esc(p.code)}-${esc((p.name||"").toUpperCase())} PROPERTY ${monthLabel(L.m||month).toUpperCase()} ${L.part==="util"?"UTILITIES (WATER AND ELECTRICITY)":L.part==="rent"?"RENT AND DEPOSIT":"RENT"} COLLECTION REPORT</h2></div>`}
 function vLandlords(){
   if(filters.llProp!=="all"&&!get("properties",filters.llProp))filters.llProp="all";
   if(filters.llProp!=="all")return vLandlordAccount(filters.llProp);
@@ -2341,20 +2345,21 @@ function vLandlords(){
   </tbody><tfoot><tr><td colspan="3">TOTAL</td><td class="num">${n0(T(L=>L.total))}</td><td class="num">${n0(T(L=>L.totalDed))}</td><td class="num">${n0(T(L=>L.forward))}</td><td class="num">${n0(T(L=>L.forwarded))}</td><td colspan="3"></td></tr></tfoot></table></div></div>`;
 }
 function vLandlordAccount(pid){
-  const L=landlordMonth(pid,month),p=L.p,ph=waNum(p.landlordPhone),Lp=landlordOf(pid);
+  const L=landlordMonth(pid,month,llPartOf(pid)),p=L.p,ph=waNum(p.landlordPhone),Lp=landlordOf(pid);
   const hist=[];for(let k=0,m=month;k<12;k++,m=monthAdd(m,-1)){const H=landlordMonth(pid,m);if(!H.total&&!H.forwarded&&k)continue;hist.push({m,H})}
   return `<div class="pagehead"><h1><span class="code big">${esc(p.code)}</span> ${esc(p.name)}: ${monthLabel(month)} landlord report</h1>
    <div class="row">${downloads?`<button class="btn" data-a="llDl" data-id="${pid}">Download</button><button class="btn" data-a="llCsv" data-id="${pid}">Export to Excel</button>`:""}<button class="btn primary" data-a="llPdfShare" data-id="${pid}">Send PDF on WhatsApp</button>${downloads?`<button class="btn" data-a="llPdfDl" data-id="${pid}">Download PDF</button>`:""}${ph?`<a class="btn" href="${waLink(p.landlordPhone,llText(pid,month))}" target="_blank" rel="noopener">WhatsApp text summary</a>`:""}<button class="btn" data-a="llCopy" data-id="${pid}">Copy summary</button>
    ${Lp?`<button class="btn" data-a="landlord" data-id="${Lp.id}">Landlord profile</button><button class="btn" data-a="agreement" data-id="${Lp.id}">Agreement</button>`:`<button class="btn" data-a="landlord" data-prop="${pid}">Add landlord profile</button>`}
    <button class="btn" data-a="llNote" data-id="${pid}">Notes and prepared by</button><button class="btn ${L.rep.sentAt?"":"gold"}" data-a="llSent" data-id="${pid}">${L.rep.sentAt?"Sent "+fmtDate(L.rep.sentAt):"Mark report as sent"}</button><button class="btn" data-a="lded" data-prop="${pid}">Add deduction</button><button class="btn gold" data-a="llIssue" data-id="${pid}">${L.inv?"Reissue":"Issue"} commission invoice</button><button class="btn primary" data-a="remit" data-prop="${pid}">Record amount forwarded</button></div>
    <p>${esc(p.landlord||"Landlord not named")}${p.landlordPhone?" · "+esc(p.landlordPhone):""}${p.landlordPay?" · Pay to "+esc(p.landlordPay):""}${!p.landlordPhone?` · <button class="link" data-a="prop" data-id="${pid}">Add the landlord's phone</button> to send reports on WhatsApp`:""}</p></div>
-  ${llSeg()}${propSearch("ll")}
+  ${llPartBar(pid)}${llSeg()}${propSearch("ll")}
   <div class="tiles"><div class="tile"><span class="k">Total collection</span><span class="v">${n0(L.total)}</span><span class="s">Received in ${monthShort(month)}</span></div>
    <div class="tile"><span class="k">Total deductions</span><span class="v">${n0(L.totalDed)}</span><span class="s">Commission ${n0(L.fees)}${L.inv?", invoice "+esc(L.inv.no):""}</span></div>
    <div class="tile"><span class="k">To forward landlord</span><span class="v">${n0(L.forward)}</span><span class="s">For ${monthShort(month)}</span></div>
    <div class="tile"><span class="k">Forwarded</span><span class="v">${n0(L.forwarded)}</span><span class="s">${L.rems.length?"Last on "+fmtDate(L.rems[L.rems.length-1].date):"Nothing recorded yet"}</span></div>
    <div class="tile ${L.outstanding>0?"alert":""}"><span class="k">Not yet forwarded</span><span class="v">${n0(Math.max(0,L.outstanding))}</span><span class="s">For ${monthShort(month)} · pay by ${fmtDate(llDueDate(p,month))}</span></div></div>
   <p style="margin:0 0 12px">Landlord is paid by the <b>${llDueLabel(p)}</b> ${llDuePill(p,month,L)} · tenants pay by the <b>${ord(dueDayOf(p))}</b>. <button class="link" data-a="prop" data-id="${pid}">Change dates</button></p>
+  ${L.part?"":`<p style="margin:0 0 12px">Rent and deposits to forward: <strong>KES ${n0(L.fwdRent)}</strong> · Utilities to forward: <strong>KES ${n0(L.fwdUtil)}</strong> (after commission). To pay utilities to a different person, add a utilities landlord under <button class="link" data-a="prop" data-id="${pid}">Edit property</button>.</p>`}
   <div class="card"><div class="cb">${llStatementHTML(pid,month)}</div></div>
   ${llDedCard(pid,month)}
   ${llInvoicesCard(pid,month)}
@@ -2428,7 +2433,7 @@ function agreementHTML(l){
 /* landlord report: each house's charges for the month (rent as per house), no B/f, no penalties, no paid amounts */
 const LR_COLS=[["deposit","Deposit"],["water","Water"],["elec","Electricity"],["garbage","Garbage"],["service","Service charge"],["other","Other charges"],["rent","Rent Amounts (Kes)"]];
 const lrVal=(ch,c)=>c[0]==="other"?(ch.other||0)+(ch.manual||0):(ch[c[0]]||0);
-function landlordMonth(pid,m){
+function landlordMonthAll(pid,m){
   const R=monthReport(pid,m),p=R.p,inv=llInv(pid,m),rep=lrep(pid,m)||{};
   const rows=R.rows.map(r=>{const ch={};if(r.t)Object.entries(r.chL||r.ch).forEach(([k,v])=>{if(k!=="penalty"&&(k!=="garbage"||p.garbageToLandlord))ch[k]=v});return {...r,lch:ch,ltot:Object.values(ch).reduce((s,v)=>s+v,0)}});
   const cols=LR_COLS.filter(c=>c[0]==="rent"||rows.some(r=>lrVal(r.lch,c)));
@@ -2439,15 +2444,17 @@ function landlordMonth(pid,m){
   const commission=Math.round(base*(+p.commissionPct||0)/100),utilComm=Math.round(util*(+p.utilCommissionPct||0)/100),depComm=Math.round((T.deposit||0)*depPct(p)/100),vat=Math.round((commission+utilComm+depComm)*(+p.vatPct||0)/100);
   const ded=[];
   if(commission)ded.push({desc:`Management commission ${p.commissionPct}%`,amount:commission,fee:1,key:"comm"});
-  if(utilComm)ded.push({desc:`Commission on water and electricity ${p.utilCommissionPct}%`,amount:utilComm,fee:1,key:"ucomm"});
+  if(utilComm)ded.push({desc:`Commission on water and electricity ${p.utilCommissionPct}%`,amount:utilComm,fee:1,key:"ucomm",side:"util"});
   if(depComm)ded.push({desc:`Commission on deposits ${depPct(p)}%`,amount:depComm,fee:1,key:"dcomm"});
-  if(vat)ded.push({desc:`${p.vatPct}% VAT on management fee`,amount:vat,fee:1,key:"vat"});
+  const vatU=Math.round(utilComm*(+p.vatPct||0)/100);
+  if(vat&&p.utilLandlord&&vatU){ded.push({desc:`${p.vatPct}% VAT on management fee`,amount:vat-vatU,fee:1,key:"vat"});ded.push({desc:`${p.vatPct}% VAT on utilities commission`,amount:vatU,fee:1,key:"vatu",side:"util"})}
+  else if(vat)ded.push({desc:`${p.vatPct}% VAT on management fee`,amount:vat,fee:1,key:"vat",utilShare:vatU});
   if(+p.lettingPct)S.tenants.filter(t=>{const u=get("units",t.unitId);return u&&u.propertyId===pid&&t.moveIn&&t.moveIn.slice(0,7)===m&&!t.noLetting&&!/^t-/.test(t.id)}).forEach(t=>{const u=get("units",t.unitId),amt=Math.round((+u.rent||0)*(+p.lettingPct)/100);if(amt)ded.push({desc:`Letting fee, new tenant House ${u.label} (${p.lettingPct}% of rent)`,amount:amt,fee:1,key:"let_"+t.id,tid:t.id})});
   if(total>0&&+p.caretakerFee)ded.push({desc:`Caretaker fee${p.caretakerName?" ("+p.caretakerName+")":""}`,amount:+p.caretakerFee,key:"caretaker"});
   if(total>0)(p.fixedDeds||[]).forEach((x,k)=>{if(+x.amount)ded.push({desc:x.desc,amount:+x.amount,key:"fixed_"+k})});
   if(T.service)ded.push({desc:"Service charge",amount:T.service,key:"service"});
-  S.ppays.filter(x=>x.propertyId===pid&&(x.date||"").slice(0,7)===m&&x.deduct).forEach(x=>{const v=get("providers",x.providerId)||{};const b=get("pbills",x.billId);ded.push({desc:`${v.service||v.name||"Service provider"}${b?" bill "+monthLabel(b.month):""}${v.name&&v.service?" ("+v.name+")":""}`,amount:+x.amount||0,ppay:x.id})});
-  S.ldeds.filter(d=>d.propertyId===pid&&d.month===m).forEach(d=>ded.push({desc:d.desc,amount:+d.amount||0,id:d.id}));
+  S.ppays.filter(x=>x.propertyId===pid&&(x.date||"").slice(0,7)===m&&x.deduct).forEach(x=>{const v=get("providers",x.providerId)||{};const b=get("pbills",x.billId);ded.push({desc:`${v.service||v.name||"Service provider"}${b?" bill "+monthLabel(b.month):""}${v.name&&v.service?" ("+v.name+")":""}`,amount:+x.amount||0,ppay:x.id,side:x.side||(/water|electric|kplc/i.test((v.service||"")+" "+(v.name||""))?"util":"rent")})});
+  S.ldeds.filter(d=>d.propertyId===pid&&d.month===m).forEach(d=>ded.push({desc:d.desc,amount:+d.amount||0,id:d.id,side:d.side==="util"?"util":"rent"}));
   if(p.holdDeposits&&T.deposit)ded.push({desc:"Deposits held in trust by Berlim Homes",amount:T.deposit,key:"held"});
   rows.filter(r=>r.t&&r.direct).forEach(r=>ded.push({desc:`House ${r.u.label} (paid landlord directly)`,amount:r.direct,key:"direct_"+r.u.id}));
   const over=rep.over||{};for(const d of ded)if(d.key&&over[d.key]!=null){d.calc=d.amount;d.amount=+over[d.key];d.edited=1;if(over[d.key+"_desc"])d.desc=over[d.key+"_desc"]}
@@ -2458,7 +2465,7 @@ function landlordMonth(pid,m){
   return {R,p,rows,cols,T,total,ded,totalDed,forward,rems,forwarded,outstanding:forward-forwarded,inv,rep,fees:ded.filter(d=>d.fee).reduce((s,d)=>s+d.amount,0)};
 }
 function llStatementHTML(pid,m){
-  const L={...landlordMonth(pid,m),m},p=L.p,cols=L.cols,multi=cols.length>1,n=v=>v?n0(v):"";
+  const L={...landlordMonth(pid,m,llPartOf(pid)),m},p=L.p,cols=L.cols,multi=cols.length>1,n=v=>v?n0(v):"";
   const rows=L.rows.map(r=>!r.t?`<tr class="vac"><td>${esc(r.u.label)}</td><td>Vacant</td><td>${esc(r.u.type||"")}</td>${cols.map(()=>"<td></td>").join("")}${multi?"<td></td>":""}</tr>`:
     `<tr><td>${esc(r.u.label)}</td><td>${esc(r.t.name)}${r.t.active?"":" <small>(moved out)</small>"}</td><td>${esc(r.u.type||"")}</td>${cols.map(c=>`<td class="num">${n(lrVal(r.lch,c))}</td>`).join("")}${multi?`<td class="num"><strong>${n0(r.ltot)}</strong></td>`:""}</tr>`).join("");
   const fees=L.ded.filter(d=>d.fee),others=L.ded.filter(d=>!d.fee);
@@ -2469,7 +2476,7 @@ function llStatementHTML(pid,m){
   <h3 class="dsec">Total collections</h3><table class="lrsum"><tbody>${[...cols].reverse().filter(c=>L.T[c[0]]).map(c=>`<tr><td>${c[0]==="rent"?"RENT COLLECTED":esc(c[1].toUpperCase())+(c[0]==="deposit"?" COLLECTED":"")}</td><td class="num">${n0(L.T[c[0]])}</td></tr>`).join("")}</tbody><tfoot><tr><td>TOTAL COLLECTION</td><td class="num">${n0(L.total)}</td></tr></tfoot></table>
   ${fees.length?`<h3 class="dsec">Total property management fee${L.inv?`: invoice ${esc(L.inv.no)}, ${fmtDate(L.inv.issueDate)}`:""}</h3><table class="lrsum"><tbody>${fees.map(d=>`<tr><td>${esc(d.desc)}</td><td class="num">${n0(d.amount)}</td></tr>`).join("")}</tbody><tfoot><tr><td>TOTAL</td><td class="num">${n0(L.fees)}</td></tr></tfoot></table>`:""}
   <h3 class="dsec">Deductions from rent collection</h3><table class="lrsum"><tbody>${L.ded.map(d=>`<tr><td>${esc(d.desc)}</td><td class="num">${n0(d.amount)}</td></tr>`).join("")||`<tr><td colspan="2">No deductions</td></tr>`}</tbody><tfoot><tr><td>TOTAL DEDUCTIONS</td><td class="num">${n0(L.totalDed)}</td></tr></tfoot></table>
-  <table class="lrsum lrfin"><tbody><tr><td>TOTAL COLLECTION</td><td class="num">${n0(L.total)}</td></tr><tr><td>TOTAL DEDUCTIONS</td><td class="num">${n0(L.totalDed)}</td></tr></tbody><tfoot><tr><td>AMOUNTS TO FORWARD LANDLORD</td><td class="num">${n0(L.forward)}</td></tr></tfoot></table>
+  <table class="lrsum lrfin"><tbody><tr><td>TOTAL COLLECTION</td><td class="num">${n0(L.total)}</td></tr><tr><td>TOTAL DEDUCTIONS</td><td class="num">${n0(L.totalDed)}</td></tr></tbody><tfoot><tr><td>AMOUNTS TO FORWARD LANDLORD</td><td class="num">${n0(L.forward)}</td></tr></tfoot></table>${llSplitHTML(L)}
   ${others.length===0&&!fees.length?"":""}
   <p class="lrfwd">${L.rems.length?`AMOUNTS FORWARDED TO LANDLORD KES ${n0(L.forwarded)} AS AT ${ordDate(L.rems[L.rems.length-1].date)}${L.rems.length>1||L.rems[0].ref?` (Paid ${L.rems.map(r=>"Kes "+n0(r.amount)+(r.ref?" "+esc(r.ref):"")).join(" + ")})`:""}${L.outstanding>0?`. BALANCE OF KES ${n0(L.outstanding)} STILL TO BE FORWARDED.`:""}`:`AMOUNT OF KES ${n0(L.forward)} TO BE FORWARDED TO LANDLORD${p.landlordPay?" TO "+esc(p.landlordPay.toUpperCase()):""} BY ${ordDate(llDueDate(p,m))}.`}</p>
   ${L.rems.length?`<h3 class="dsec">Payment details</h3><table class="lrsum lrpay"><thead><tr><th>Date</th><th>Paid by</th><th>Reference</th><th>Paid to</th><th class="num">Amount</th></tr></thead><tbody>${L.rems.map(r=>`<tr><td>${fmtDate(r.date)}</td><td>${esc(r.method||"")}</td><td><strong>${esc(r.ref||"")}</strong></td><td>${esc(r.paidTo||p.landlordPay||"")}</td><td class="num">${n0(r.amount)}</td></tr>`).join("")}</tbody><tfoot><tr><td colspan="4">TOTAL FORWARDED</td><td class="num">${n0(L.forwarded)}</td></tr></tfoot></table>`:""}
@@ -2477,11 +2484,11 @@ function llStatementHTML(pid,m){
   <p class="lrthanks">Thank you for your continued trust in our property management services. We value our partnership and look forward to continuing to work with you.</p>
   <div class="lrfoot"><span>LEASING &amp; MARKETING · TENANT MANAGEMENT · MAINTENANCE &amp; REPAIRS</span><span>Where your dream resides</span></div></div>`;
 }
-function llText(pid,m){const L=landlordMonth(pid,m),p=L.p;
-  return `*${p.code}-${(p.name||"").toUpperCase()} PROPERTY ${monthLabel(m).toUpperCase()} RENT COLLECTION REPORT*\nLandlord: ${p.landlord||""}\n\nTOTAL COLLECTIONS\n`+[...L.cols].reverse().filter(c=>L.T[c[0]]).map(c=>`${c[0]==="rent"?"Rent":c[1]}: KES ${n0(L.T[c[0]])}`).join("\n")+
-   `\nTotal collection: KES ${n0(L.total)}\n\nDEDUCTIONS\n`+(L.ded.map(d=>`${d.desc}: KES ${n0(d.amount)}`).join("\n")||"None")+`\nTotal deductions: KES ${n0(L.totalDed)}\n\n*AMOUNT TO FORWARD LANDLORD: KES ${n0(L.forward)}*`+(L.rems.length?`\nForwarded: KES ${n0(L.forwarded)} on ${fmtDate(L.rems[L.rems.length-1].date)}`:"")+(L.rep.note?`\n\nNote: ${L.rep.note}`:"")+`\n\n${S.settings.company}\n${S.settings.phone}`}
-function llCSV(pid,m){const L=landlordMonth(pid,m),p=L.p;
-  const rows=[[`Landlord: ${p.landlord||""}`,"","Date: "+fmtDate(todayStr)],[`${p.code}-${(p.name||"").toUpperCase()} PROPERTY ${monthLabel(m).toUpperCase()} RENT COLLECTION REPORT`],["HOUSE NUMBER","HOUSE TENANT","Unit Type",...L.cols.map(c=>c[1]),"TOTAL AMOUNTS"]];
+function llText(pid,m){const L=landlordMonth(pid,m,llPartOf(pid)),p=L.p;
+  return `*${p.code}-${(p.name||"").toUpperCase()} PROPERTY ${monthLabel(m).toUpperCase()} ${llWord(L)} COLLECTION REPORT*\nLandlord: ${p.landlord||""}\n\nTOTAL COLLECTIONS\n`+[...L.cols].reverse().filter(c=>L.T[c[0]]).map(c=>`${c[0]==="rent"?"Rent":c[1]}: KES ${n0(L.T[c[0]])}`).join("\n")+
+   `\nTotal collection: KES ${n0(L.total)}\n\nDEDUCTIONS\n`+(L.ded.map(d=>`${d.desc}: KES ${n0(d.amount)}`).join("\n")||"None")+`\nTotal deductions: KES ${n0(L.totalDed)}\n\n*AMOUNT TO FORWARD LANDLORD: KES ${n0(L.forward)}*`+(!L.part&&(L.utilTotal||L.utilDed)?`\nRent${L.T.deposit?" and deposits":""}: KES ${n0(L.fwdRent)}\nUtilities: KES ${n0(L.fwdUtil)}`:"")+(L.rems.length?`\nForwarded: KES ${n0(L.forwarded)} on ${fmtDate(L.rems[L.rems.length-1].date)}`:"")+(L.rep.note?`\n\nNote: ${L.rep.note}`:"")+`\n\n${S.settings.company}\n${S.settings.phone}`}
+function llCSV(pid,m){const L=landlordMonth(pid,m,llPartOf(pid)),p=L.p;
+  const rows=[[`Landlord: ${p.landlord||""}`,"","Date: "+fmtDate(todayStr)],[`${p.code}-${(p.name||"").toUpperCase()} PROPERTY ${monthLabel(m).toUpperCase()} ${llWord(L)} COLLECTION REPORT`],["HOUSE NUMBER","HOUSE TENANT","Unit Type",...L.cols.map(c=>c[1]),"TOTAL AMOUNTS"]];
   L.rows.forEach(r=>rows.push(r.t?[r.u.label,r.t.name,r.u.type,...L.cols.map(c=>lrVal(r.lch,c)||""),r.ltot]:[r.u.label,"Vacant",r.u.type]));
   rows.push(["TOTAL","","",...L.cols.map(c=>L.T[c[0]]),L.total]);if(L.rep.note)rows.push([],["NOTE",L.rep.note]);
   rows.push([],["TOTAL COLLECTIONS"]);[...L.cols].reverse().forEach(c=>{if(L.T[c[0]])rows.push([c[0]==="rent"?"RENT":c[1].toUpperCase(),L.T[c[0]]])});rows.push(["TOTAL COLLECTION",L.total],[],["DEDUCTIONS FROM RENT COLLECTION"]);
@@ -2534,7 +2541,7 @@ function formLlSent(pid){
 /* ---------- landlord report as a PDF, shared to WhatsApp ---------- */
 async function landlordPDF(pid,m){
   if(!window.jspdf||!window.jspdf.jsPDF)throw new Error("pdf_unavailable");
-  const L=landlordMonth(pid,m),p=L.p,s=S.settings,cols=L.cols,multi=cols.length>1;
+  const L=landlordMonth(pid,m,llPartOf(pid)),p=L.p,s=S.settings,cols=L.cols,multi=cols.length>1;
   const doc=new window.jspdf.jsPDF({unit:"pt",format:"a4"}),W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight();
   const navy=[15,30,58],gold=[184,154,94],ink=[26,34,51];
   const logo=await logoPNG();if(logo)doc.addImage(logo,"PNG",40,30,58,58);
@@ -2546,7 +2553,7 @@ async function landlordPDF(pid,m){
   doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(...navy);doc.text("Landlord: "+(p.landlord||"-"),40,118);doc.text("Date: "+ordDate(rd),W-40,118,{align:"right"});
   let y=134;
   if(L.rep&&L.rep.sentAt){doc.setTextColor(31,122,77);doc.setFontSize(9);doc.text(`REPORT SENT ${ordDate(L.rep.sentAt)}${L.rep.sentVia?" VIA "+L.rep.sentVia.toUpperCase():""}${L.rems.length?"  |  PAYMENT REF "+L.rems.map(r=>r.ref).filter(Boolean).join(", "):""}`,W/2,y,{align:"center"});y+=16}
-  doc.setTextColor(...navy);doc.setFontSize(11.5);doc.text(`${p.code}-${(p.name||"").toUpperCase()} PROPERTY ${monthLabel(m).toUpperCase()} RENT COLLECTION REPORT`,W/2,y+4,{align:"center"});y+=16;
+  doc.setTextColor(...navy);doc.setFontSize(11.5);doc.text(`${p.code}-${(p.name||"").toUpperCase()} PROPERTY ${monthLabel(m).toUpperCase()} ${llWord(L)} COLLECTION REPORT`,W/2,y+4,{align:"center"});y+=16;
   const head=["House","House tenant","Unit type",...cols.map(c=>c[1]),...(multi?["Total"]:[])];
   const body=L.rows.map(r=>r.t?[r.u.label,r.t.name,r.u.type||"",...cols.map(c=>{const v=lrVal(r.lch,c);return v?n0(v):""}),...(multi?[n0(r.ltot)]:[])]:[r.u.label,"Vacant",r.u.type||"",...cols.map(()=>""),...(multi?[""]:[])]);
   const foot=[["TOTAL","","",...cols.map(c=>n0(L.T[c[0]])),...(multi?[n0(L.total)]:[])]];
@@ -2561,6 +2568,7 @@ async function landlordPDF(pid,m){
   small("TOTAL COLLECTIONS",[...cols].reverse().filter(c=>L.T[c[0]]).map(c=>[c[0]==="rent"?"RENT COLLECTED":c[1].toUpperCase(),n0(L.T[c[0]])]),"TOTAL COLLECTION",L.total);
   small("DEDUCTIONS FROM RENT COLLECTION",L.ded.map(d=>[d.desc,n0(d.amount)]),"TOTAL DEDUCTIONS",L.totalDed);
   small("SUMMARY",[["TOTAL COLLECTION",n0(L.total)],["TOTAL DEDUCTIONS",n0(L.totalDed)]],"AMOUNTS TO FORWARD LANDLORD",L.forward);
+  if(!L.part&&(L.utilTotal||L.utilDed))small("RENT AND UTILITIES TO FORWARD",[["Rent"+(L.T.deposit?" and deposits":"")+" ("+n0(L.rentTotal)+" less "+n0(L.rentDed)+")",n0(L.fwdRent)],["Utilities ("+n0(L.utilTotal)+" less "+n0(L.utilDed)+")"+(L.split?" to "+L.p.utilLandlord:""),n0(L.fwdUtil)]],"TOTAL TO FORWARD",L.forward);
   if(L.rems.length){if(y>H-120){doc.addPage();y=50}
     doc.autoTable({startY:y,margin:{left:40,right:40},head:[["Date paid","Paid by","Reference","Paid to","Amount"]],body:L.rems.map(r=>[fmtDate(r.date),r.method||"",r.ref||"",r.paidTo||p.landlordPay||"",n0(r.amount)]),
       foot:[[{content:"TOTAL FORWARDED",colSpan:4},n0(L.forwarded)]],styles:{fontSize:8,cellPadding:3.5,textColor:ink},headStyles:{fillColor:navy,textColor:255},footStyles:{fillColor:[243,237,224],textColor:navy,fontStyle:"bold"},columnStyles:{4:{halign:"right"}},didParseCell:d=>{if(d.column.index===4||(d.section==="foot"&&d.column.index===1))d.cell.styles.halign="right"}});
@@ -2576,7 +2584,7 @@ async function landlordPDF(pid,m){
 }
 const llPdfName=(pid,m)=>{const p=get("properties",pid)||{};return `${p.code||""}-${(p.name||"").toUpperCase()} ${monthLabel(m).toUpperCase()} RENT REPORT.pdf`.replace(/[\\/:*?"<>|]+/g,"-")};
 async function shareLandlordPDF(pid){
-  const p=get("properties",pid)||{},name=llPdfName(pid,month);let buf;
+  const p=landlordMonth(pid,month,llPartOf(pid)).p,name=llPdfName(pid,month);let buf;
   try{toast("Preparing the PDF…");buf=await landlordPDF(pid,month)}catch(e){toast("The PDF maker didn't load. Reload the page and try again.");return}
   const file=new File([buf],name,{type:"application/pdf"}),text=`${p.code} ${p.name}: ${monthLabel(month)} rent collection report from ${S.settings.company}.`;
   // 1. phone share sheet with the PDF attached (pick WhatsApp)
@@ -3138,8 +3146,8 @@ function utilSmsState(inv){if(!inv)return "";const xs=S.sms.filter(x=>x.id&&x.id
   return (x.status==="sent"?`<span class="pill p-good" title="${esc(x.text||"")}">SMS sent ${fmtDate((x.sentAt||"").slice(0,10))}</span>`:x.status==="failed"?`<span class="pill p-bad" title="${esc(x.error||"")}">SMS failed</span>`:`<span class="pill">SMS waiting</span>`)+(cur?"":`<span class="sub">Bill changed since</span>`)}
 async function smsLandlordPaid(r){
   if(!smsReady())return;const c=smsCfg();if(!c.on||c.llMsg===false||r.method==="Settled before system")return;
-  const p=get("properties",r.propertyId)||{},L=landlordOf(p.id)||{},ph=L.phone||p.landlordPhone,name=L.name||p.landlord||"Landlord";if(!smsPhone(ph))return;
-  const text=`Dear ${name.split(" ")[0]}, Berlim Homes has paid you KES ${n0(r.amount)} for ${p.name||p.code||""} (${p.code||""}), ${monthLabel(r.month)} rent, on ${fmtDate(r.date)} via ${r.method}${r.ref?", ref "+r.ref:""}${r.paidTo?", to "+r.paidTo:""}. Thank you. Berlim Homes ${(S.settings.phone||"").split("/")[0].trim()}`;
+  const p=get("properties",r.propertyId)||{},U=r.part==="util"&&p.utilLandlord,L=U?{}:(landlordOf(p.id)||{}),ph=U?p.utilLandlordPhone:(L.phone||p.landlordPhone),name=U?p.utilLandlord:(L.name||p.landlord||"Landlord");if(!smsPhone(ph))return;
+  const text=`Dear ${name.split(" ")[0]}, Berlim Homes has paid you KES ${n0(r.amount)} for ${p.name||p.code||""} (${p.code||""}), ${monthLabel(r.month)} ${U?"water and electricity":"rent"}, on ${fmtDate(r.date)} via ${r.method}${r.ref?", ref "+r.ref:""}${r.paidTo?", to "+r.paidTo:""}. Thank you. Berlim Homes ${(S.settings.phone||"").split("/")[0].trim()}`;
   await smsQueue([{id:"llpay-"+r.id,to:smsPhone(ph),tenantId:"",landlordId:L.id||"",name,text:text.replace(/\s+/g," "),kind:"Landlord payment",status:"queued",createdAt:new Date().toISOString(),by:ME.id||""}]);
 }
 /* reverse one item (rent, deposit, garbage, water, electricity, penalty...) on an invoice */
@@ -3431,10 +3439,10 @@ async function fixMovedOut(){if(moFixed||mode!=="cloud"||!ME.admin)return;moFixe
 
 
 /* ===== every landlord deduction editable for the month ===== */
-function llDedCard(pid,m){const L=landlordMonth(pid,m),sent=!!L.rep.sentAt,ok=can("landlords"),over=L.rep.over||{};
+function llDedCard(pid,m){const L=landlordMonth(pid,m,llPartOf(pid)),sent=!!L.rep.sentAt,ok=can("landlords"),over=L.rep.over||{};
   const removed=Object.keys(over).filter(k=>!k.endsWith("_desc")&&!k.startsWith("add_")&&+over[k]===0);
   const row=d=>{const act=!ok?"":d.id?`<button class="btn sm" data-a="lded" data-id="${d.id}">Edit</button> <button class="btn sm danger" data-a="delLded" data-id="${d.id}">Delete</button>`:d.ppay?`<button class="btn sm" data-a="ppay" data-id="${d.ppay}">Edit payment</button>`:d.key?`<button class="btn sm" data-a="dedEdit" data-id="${pid}" data-k="${d.key}">Edit</button>`:"";
-    return `<tr><td>${esc(d.desc)}${d.edited?` <span class="pill p-warn">Edited</span><span class="sub">Calculated ${n0(d.calc||0)}</span>`:""}${d.fee?'<span class="sub">Management fee</span>':""}</td><td class="num">${n0(d.amount)}</td><td class="num" style="white-space:nowrap">${act}</td></tr>`};
+    return `<tr><td>${esc(d.desc)}${d.edited?` <span class="pill p-warn">Edited</span><span class="sub">Calculated ${n0(d.calc||0)}</span>`:""}${d.fee?'<span class="sub">Management fee</span>':""}<span class="sub">From ${d.side==="util"?"utilities":"rent"}${d.id&&ok?` · <button class="link" data-a="dedSide" data-id="${d.id}">take from ${d.side==="util"?"rent":"utilities"} instead</button>`:""}</span></td><td class="num">${n0(d.amount)}</td><td class="num" style="white-space:nowrap">${act}</td></tr>`};
   return `<div class="card"><div class="ch"><h2>Deductions for ${monthLabel(m)}</h2><span style="color:var(--muted);font-size:13px">${sent?"Report already sent: changes will alter a sent report":"Edit any line; changes apply to this month only"}</span>${ok?`<button class="btn sm" data-a="lded" data-prop="${pid}">Add deduction</button>`:""}</div>
    <div class="tw"><table><thead><tr><th>Deduction</th><th class="num">Amount</th><th></th></tr></thead><tbody>${L.ded.map(row).join("")||`<tr><td colspan="3" class="empty">No deductions this month.</td></tr>`}
    ${removed.map(k=>`<tr style="opacity:.6"><td>${esc(DED_NAMES(k))} <span class="pill p-mute">Removed this month</span></td><td class="num">0</td><td class="num">${ok?`<button class="btn sm" data-a="dedReset" data-id="${pid}" data-k="${k}">Restore</button>`:""}</td></tr>`).join("")}</tbody>
@@ -3503,6 +3511,48 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
   const i=get("invoices",b.dataset.id);if(!i)return;
   if(a==="llLine"){const k=+b.dataset.k;setLL(i,[k],i.lines[k].toLandlord===false)}
   else setLL(i,i.lines.map((l,k)=>l.rev?-1:k).filter(k=>k>=0),b.dataset.v==="yes")});
+
+
+/* ===== rent and utilities forwarded separately (and to different landlords where set) ===== */
+const UTIL_K=["water","elec"];
+function landlordMonth(pid,m,part){
+  const L=landlordMonthAll(pid,m),p=L.p,split=!!(p.utilLandlord&&String(p.utilLandlord).trim());
+  const utilTotal=Math.round((L.T.water||0)+(L.T.elec||0)),rentTotal=L.total-utilTotal;
+  const sideAmt=d=>d.side==="util"?d.amount:(d.utilShare&&!d.edited?Math.min(d.utilShare,d.amount):0);
+  const utilDed=Math.round(L.ded.reduce((s,d)=>s+sideAmt(d),0)),rentDed=L.totalDed-utilDed;
+  const fwdUtil=utilTotal-utilDed,fwdRent=L.forward-fwdUtil;
+  const remsU=L.rems.filter(r=>r.part==="util"),remsR=L.rems.filter(r=>r.part!=="util");
+  const sum=a=>a.reduce((s,r)=>s+(+r.amount||0),0);
+  const X={...L,split,utilTotal,rentTotal,utilDed,rentDed,fwdUtil,fwdRent,fwdedUtil:sum(remsU),fwdedRent:sum(remsR),
+    outRent:fwdRent-sum(remsR),outUtil:fwdUtil-sum(remsU)};
+  if(!split||!part||part==="all")return X;
+  const u=part==="util",keep=k=>u?UTIL_K.includes(k):!UTIL_K.includes(k);
+  const rows=L.rows.map(r=>{const lch={};Object.entries(r.lch||{}).forEach(([k,v])=>{if(keep(k))lch[k]=v});return {...r,lch,ltot:Object.values(lch).reduce((s,v)=>s+v,0)}});
+  const cols=L.cols.filter(c=>c[0]==="rent"?!u:keep(c[0]));if(u&&!cols.length)cols.push(["water","Water"]);
+  const T={};cols.forEach(c=>T[c[0]]=L.T[c[0]]||0);
+  const ded=L.ded.filter(d=>u?d.side==="util":d.side!=="util"),rems=u?remsU:remsR;
+  const total=u?utilTotal:rentTotal,totalDed=Math.round(ded.reduce((s,d)=>s+d.amount,0)),forward=total-totalDed,forwarded=sum(rems);
+  const pp=u?{...p,landlord:p.utilLandlord,landlordPhone:p.utilLandlordPhone||"",landlordPay:p.utilLandlordPay||""}:p;
+  return {...X,part,p:pp,rows,cols,T,ded,total,totalDed,forward,rems,forwarded,outstanding:forward-forwarded,fees:ded.filter(d=>d.fee).reduce((s,d)=>s+d.amount,0)};
+}
+const llWord=L=>L.part==="util"?"UTILITIES (WATER AND ELECTRICITY)":L.part==="rent"?"RENT AND DEPOSIT":"RENT";
+const llPartOf=pid=>{const p=get("properties",pid)||{};return p.utilLandlord&&filters.llPart==="util"?"util":p.utilLandlord?"rent":undefined};
+function llSplitHTML(L){
+  if(L.part)return "";const p=L.p;
+  return `<h3 class="dsec">Amounts to forward, rent and utilities</h3><table class="lrsum"><tbody>
+   <tr><td>RENT${L.T.deposit?" AND DEPOSITS":""} COLLECTED ${n0(L.rentTotal)} LESS DEDUCTIONS ${n0(L.rentDed)}</td><td class="num"><strong>${n0(L.fwdRent)}</strong></td></tr>
+   ${L.utilTotal||L.utilDed?`<tr><td>UTILITIES (WATER AND ELECTRICITY) COLLECTED ${n0(L.utilTotal)} LESS DEDUCTIONS ${n0(L.utilDed)}${L.split?" · TO "+esc(String(p.utilLandlord).toUpperCase()):""}</td><td class="num"><strong>${n0(L.fwdUtil)}</strong></td></tr>`:""}</tbody>
+   <tfoot><tr><td>TOTAL TO FORWARD</td><td class="num">${n0(L.forward)}</td></tr></tfoot></table>`}
+function llPartBar(pid){const p=get("properties",pid)||{};if(!p.utilLandlord)return "";const cur=llPartOf(pid);
+  const F=landlordMonth(pid,month);
+  return `<div class="card"><div class="cb row" style="gap:10px;align-items:center;flex-wrap:wrap"><strong>Two landlords on this property:</strong>
+   <button class="btn ${cur==="rent"?"primary":""}" data-a="llPart" data-v="rent">Rent and deposits · ${esc(p.landlord||"Landlord")} · KES ${n0(F.fwdRent)}</button>
+   <button class="btn ${cur==="util"?"primary":""}" data-a="llPart" data-v="util">Utilities · ${esc(p.utilLandlord)} · KES ${n0(F.fwdUtil)}</button>
+   <span class="sub">Each gets their own report, deductions, payments and SMS.</span></div></div>`}
+document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;
+  if(a==="llPart"){e.preventDefault();filters.llPart=b.dataset.v;render()}
+  else if(a==="dedSide"){e.preventDefault();const d=get("ldeds",b.dataset.id);if(!d)return;const to=d.side==="util"?"rent":"util";
+    await submit("ldeds",`Deduction "${d.desc}" now taken from ${to==="util"?"utilities":"rent"}`,[{op:"set",col:"ldeds",obj:{...d,side:to}}],"landlords")}});
 
 const VIEWS={mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
