@@ -941,7 +941,7 @@ function showUtilStatement(tid){
    <table><thead><tr><th>Month</th><th>Bill no.</th><th>Item</th><th class="num">Opening</th><th class="num">Closing</th><th class="num">Units</th><th class="num">Rate</th><th class="num">Amount</th><th>Status</th></tr></thead><tbody>${body||`<tr><td colspan="9" class="empty">No utility bills yet.</td></tr>`}</tbody>
    <tfoot><tr><td colspan="7">Total utilities billed</td><td class="num">KES ${n0(tot)}</td><td></td></tr></tfoot></table>
    <p style="font-size:12px;color:var(--muted);margin:10px 0 0">Bills imported from the 2026 Excel reports show amounts only; readings appear from the month they are entered here.</p></div>`;
-  openModal("Utility statement",html,`${downloads?`<button class="btn" id="dlUS">Download for printing</button>`:""}<button class="btn" data-a="stmt" data-id="${tid}">Full statement</button><button class="btn primary" data-a="close">Done</button>`,true);
+  openModal("Utility statement",html,`${downloads?`<button class="btn" id="dlUS">Download PDF</button>`:""}<button class="btn" data-a="stmt" data-id="${tid}">Full statement</button><button class="btn primary" data-a="close">Done</button>`,true);
   const dl=document.getElementById("dlUS");if(dl)dl.onclick=()=>dlFile(`Utility-statement-${p.code||""}-${unitName(u)}.html`.replace(/[^\w.-]+/g,"-"),standalone("Utility statement "+t.name,html));
 }
 
@@ -1297,13 +1297,13 @@ function formEditPay(id){
 }
 function showInvoice(id){
   const i=get("invoices",id);if(!i)return;
-  openModal(CATS[catOf(i)].title+" "+esc(i.no),invoiceHTML(i)+llLinesHTML(i)+lineRevHTML(i),`${window.FB_BUILD&&!i.reversed?`<button class="btn" data-a="invSms" data-id="${i.id}">Send SMS</button>${invSmsState(i)}`:""}<a class="btn" href="${waLink((get("tenants",i.tenantId)||{}).phone,invoiceText(i))}" target="_blank" rel="noopener">Send on WhatsApp</a><button class="btn" id="cpTxt">Copy text</button>${downloads?`<button class="btn" id="dlInv">Download for printing</button>`:""}${!can("invoices")?"":i.reversed?`<button class="btn" data-a="restoreInv" data-id="${i.id}">Restore invoice</button>`:`<button class="btn danger" data-a="reverseInv" data-id="${i.id}">Reverse invoice</button>`}${can("payments")?`<button class="btn primary" data-a="pay" data-id="${i.tenantId}">Record payment</button>`:""}`,true);
+  openModal(CATS[catOf(i)].title+" "+esc(i.no),invoiceHTML(i)+llLinesHTML(i)+lineRevHTML(i),`${window.FB_BUILD&&!i.reversed?`<button class="btn" data-a="invSms" data-id="${i.id}">Send SMS</button>${invSmsState(i)}`:""}<a class="btn" href="${waLink((get("tenants",i.tenantId)||{}).phone,invoiceText(i))}" target="_blank" rel="noopener">Send on WhatsApp</a><button class="btn" id="cpTxt">Copy text</button>${downloads?`<button class="btn" id="dlInv">Download PDF</button>`:""}${!can("invoices")?"":i.reversed?`<button class="btn" data-a="restoreInv" data-id="${i.id}">Restore invoice</button>`:`<button class="btn danger" data-a="reverseInv" data-id="${i.id}">Reverse invoice</button>`}${can("payments")?`<button class="btn primary" data-a="pay" data-id="${i.tenantId}">Record payment</button>`:""}`,true);
   document.getElementById("cpTxt").onclick=async()=>{try{await navigator.clipboard.writeText(invoiceText(i));toast("Message copied")}catch(e){toast("Copy was blocked by the browser")}};
   const dl=document.getElementById("dlInv");if(dl)dl.onclick=()=>dlFile(i.no+".html",standalone(i.no,invoiceHTML(i)));
 }
 function showReceipt(id){
   const p=get("payments",id);if(!p)return;
-  openModal("Receipt "+esc(p.receiptNo),receiptHTML(p),`${downloads?`<button class="btn" id="dlR">Download for printing</button>`:""}<button class="btn" data-a="close">Done</button>`,true);
+  openModal("Receipt "+esc(p.receiptNo),receiptHTML(p),`${downloads?`<button class="btn" id="dlR">Download PDF</button>`:""}<button class="btn" data-a="close">Done</button>`,true);
   const dl=document.getElementById("dlR");if(dl)dl.onclick=()=>dlFile(p.receiptNo+".html",standalone(p.receiptNo,receiptHTML(p)));
 }
 function statementData(tid){
@@ -1414,7 +1414,19 @@ function showStatement(tid){
     try{const pdf=await statementPDF(tid);if(downloads)await downloads.save({filename:name,data:new Blob([pdf],{type:"application/pdf"})});else toast("Downloads aren't available in this view")}
     catch(e){if(e&&e.code==="declined")return;toast(e&&e.message==="pdf_unavailable"?"The PDF maker didn't load. Reload and try again.":"Couldn't make the PDF")}};
 }
-async function dlFile(name,data){if(!downloads)return;try{await downloads.save({filename:name,data})}catch(e){if(e&&e.code!=="declined")toast("Download is not available here")}}
+/* documents download as PDF: the page is laid out in a hidden frame and turned into an A4 PDF */
+const H2P="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js";
+async function pdfFromDoc(name,docHtml){
+  toast("Preparing PDF…");const f=document.createElement("iframe");f.setAttribute("aria-hidden","true");f.style.cssText="position:fixed;left:-10000px;top:0;width:800px;height:1130px;border:0;background:#fff";document.body.appendChild(f);
+  try{const d=f.contentDocument;d.open();d.write(String(docHtml).replace(/<button[\s\S]*?<\/button>/g,""));d.close();
+    await new Promise((res,rej)=>{const sc=d.createElement("script");sc.src=H2P;sc.onload=res;sc.onerror=()=>rej(new Error("pdf_lib"));d.head.appendChild(sc)});
+    await new Promise(r=>setTimeout(r,250));
+    const opts=f.contentWindow.JSON.parse(JSON.stringify({margin:[8,8,10,8],filename:name,image:{type:"jpeg",quality:0.96},html2canvas:{scale:2,useCORS:true,backgroundColor:"#ffffff",windowWidth:800},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},pagebreak:{mode:["css","legacy"],avoid:["tr","h2","h3",".lrsum"]}}));
+    const blob=await f.contentWindow.html2pdf().set(opts).from(d.body).outputPdf("blob");
+    await downloads.save({filename:name,data:new Blob([blob],{type:"application/pdf"})});toast("PDF downloaded: "+name)}
+  catch(e){console.warn("pdf",e);toast("Couldn't make the PDF. Check the connection and try again.")}
+  finally{setTimeout(()=>f.remove(),500)}}
+async function dlFile(name,data){if(!downloads)return;if(/\.html$/i.test(name)&&/<html/i.test(String(data))){return pdfFromDoc(name.replace(/\.html$/i,".pdf"),data)}try{await downloads.save({filename:name,data})}catch(e){if(e&&e.code!=="declined")toast("Download is not available here")}}
 function csv(rows){return rows.map(r=>r.map(v=>{v=String(v??"");return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(",")).join("\n")}
 
 /* ---------- actions ---------- */
@@ -2289,7 +2301,7 @@ function showAgreement(id){
    <div style="margin-top:14px" id="agPrev">${agreementHTML(l)}</div>
    <div class="card" style="margin-top:14px"><div class="cb"><strong>Signed copy</strong><p style="margin:6px 0 0;font-size:13.5px">${(l.agreement||{}).fileId?`On file${l.agreement.signedDate?", signed "+fmtDate(l.agreement.signedDate):""}. <button class="link" data-a="agrFile" data-id="${l.id}">Open signed copy</button>`:"No signed copy uploaded yet. After both parties sign, scan or photograph it and upload it here."}</p>
    <div class="row" style="margin-top:10px;align-items:flex-end"><div class="f"><label for="ag-sd">Date signed</label><input id="ag-sd" type="date" class="inline" value="${esc((l.agreement||{}).signedDate||todayStr)}"></div>${assets?`<button class="btn" type="button" id="agUp">${(l.agreement||{}).fileId?"Replace":"Upload"} signed copy (PDF or photo)</button>`:`<span class="hint">Uploading needs Editor access.</span>`}</div></div></div>`,
-   `<button class="btn" data-a="close">Close</button>${downloads?`<button class="btn" id="agDl">Download to print</button>`:""}<button class="btn primary" id="agSave">Save details</button>`,true);
+   `<button class="btn" data-a="close">Close</button>${downloads?`<button class="btn" id="agDl">Download PDF</button>`:""}<button class="btn primary" id="agSave">Save details</button>`,true);
   const f=document.getElementById("fAg"),read=()=>{const d=Object.fromEntries(new FormData(f));return {...(l.agreement||{}),...d,termMonths:+d.termMonths||12,noticeMonths:+d.noticeMonths||3,remitDay:+d.remitDay||10}};
   f.addEventListener("input",()=>{document.getElementById("agPrev").innerHTML=agreementHTML({...l,agreement:read()})});
   const saveAgr=async(extra)=>{const ag={...read(),...extra};if(!ag.no){noReserve={};ag.no=nextNo("AGRT","landlords","agreementNo")}
@@ -2360,7 +2372,7 @@ function vLandlordAccount(pid){
   const L=landlordMonth(pid,month,llPartOf(pid)),p=L.p,ph=waNum(p.landlordPhone),Lp=landlordOf(pid);
   const hist=[];for(let k=0,m=month;k<12;k++,m=monthAdd(m,-1)){const H=landlordMonth(pid,m);if(!H.total&&!H.forwarded&&k)continue;hist.push({m,H})}
   return `<div class="pagehead"><h1><span class="code big">${esc(p.code)}</span> ${esc(p.name)}: ${monthLabel(month)} landlord report</h1>
-   <div class="row">${downloads?`<button class="btn" data-a="llDl" data-id="${pid}">Download</button><button class="btn" data-a="llCsv" data-id="${pid}">Export to Excel</button>`:""}<button class="btn primary" data-a="llPdfShare" data-id="${pid}">Send PDF on WhatsApp</button>${downloads?`<button class="btn" data-a="llPdfDl" data-id="${pid}">Download PDF</button>`:""}${ph?`<a class="btn" href="${waLink(p.landlordPhone,llText(pid,month))}" target="_blank" rel="noopener">WhatsApp text summary</a>`:""}<button class="btn" data-a="llCopy" data-id="${pid}">Copy summary</button>
+   <div class="row">${downloads?`<button class="btn" data-a="llPdfDl" data-id="${pid}">Download PDF</button><button class="btn" data-a="llCsv" data-id="${pid}">Export to Excel</button>`:""}<button class="btn primary" data-a="llPdfShare" data-id="${pid}">Send PDF on WhatsApp</button>${ph?`<a class="btn" href="${waLink(p.landlordPhone,llText(pid,month))}" target="_blank" rel="noopener">WhatsApp text summary</a>`:""}<button class="btn" data-a="llCopy" data-id="${pid}">Copy summary</button>
    ${Lp?`<button class="btn" data-a="landlord" data-id="${Lp.id}">Landlord profile</button><button class="btn" data-a="agreement" data-id="${Lp.id}">Agreement</button>`:`<button class="btn" data-a="landlord" data-prop="${pid}">Add landlord profile</button>`}
    <button class="btn" data-a="llNote" data-id="${pid}">Notes and prepared by</button><button class="btn ${L.rep.sentAt?"":"gold"}" data-a="llSent" data-id="${pid}">${L.rep.sentAt?"Sent "+fmtDate(L.rep.sentAt):"Mark report as sent"}</button><button class="btn" data-a="lded" data-prop="${pid}">Add deduction</button><button class="btn gold" data-a="llIssue" data-id="${pid}">${L.inv?"Reissue":"Issue"} commission invoice</button><button class="btn primary" data-a="remit" data-prop="${pid}">Record amount forwarded</button></div>
    <p>${esc(p.landlord||"Landlord not named")}${p.landlordPhone?" · "+esc(p.landlordPhone):""}${p.landlordPay?" · Pay to "+esc(p.landlordPay):""}${!p.landlordPhone?` · <button class="link" data-a="prop" data-id="${pid}">Add the landlord's phone</button> to send reports on WhatsApp`:""}</p></div>
@@ -2836,7 +2848,7 @@ function showLease(tid){
    <div class="f full"><label for="le-x">Other terms (optional)</label><textarea id="le-x" name="extra" rows="2">${esc(a.extra)}</textarea></div>
    <div class="f full"><span class="hint">Landlord, house, rent, deposit, Paybill account, due date, late fee, garbage and water come from the tenant, house and property records. Same wording as your current agreements in Drive.</span></div></form>
    <div style="margin-top:14px" id="lePrev">${leaseHTML(t,a)}</div>`,
-   `<button class="btn" data-a="close">Close</button><button class="btn" id="lePrint">Print</button>${downloads?`<button class="btn" id="leDl">Download</button>`:""}${edit?`<button class="btn primary" id="leSave">Save</button>`:""}`,true);
+   `<button class="btn" data-a="close">Close</button><button class="btn" id="lePrint">Print</button>${downloads?`<button class="btn" id="leDl">Download PDF</button>`:""}${edit?`<button class="btn primary" id="leSave">Save</button>`:""}`,true);
   const f=document.getElementById("fLe"),read=()=>{const d=Object.fromEntries(new FormData(f));const idNo=(d.idNo||"").trim(),poBox=(d.tPoBox||"").trim();delete d.idNo;delete d.tPoBox;return {idNo,poBox,lease:{...(t.lease||{}),...d,termMonths:+d.termMonths||12}}};
   f.addEventListener("input",()=>{const r=read();document.getElementById("lePrev").innerHTML=leaseHTML({...t,idNo:r.idNo,poBox:r.poBox},{...leaseOf(t),...r.lease})});
   const save=async()=>{const r=read();const lease={...r.lease,generatedAt:(t.lease||{}).generatedAt||todayStr};if(!lease.no){noReserve={};lease.no=nextNo("TA","tenants","leaseNo")}
