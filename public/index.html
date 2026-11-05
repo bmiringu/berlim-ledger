@@ -934,14 +934,19 @@ async function saveUtilRates(pid){const P=get("properties",pid);if(!P)return;con
   if(await save("properties",{...P,waterRate:w,elecRate:e}))toast(`Rates saved for ${P.code}: water KES ${n0(w)}, electricity KES ${n0(e)} per unit. Save readings to update the bills.`)}
 function showUtilStatement(tid){
   const t=get("tenants",tid);if(!t)return;const u=get("units",t.unitId),p=propOf(u)||{},C=compute();
-  const invs=S.invoices.filter(i=>i.tenantId===tid&&!i.adj&&catOf(i)==="util").sort((a,b)=>a.month.localeCompare(b.month));
+  const allU=S.invoices.filter(i=>i.tenantId===tid&&!i.adj&&catOf(i)==="util").sort((a,b)=>a.month.localeCompare(b.month));
+  const uys=[...new Set(allU.map(i=>i.month.slice(0,4)))].sort(),uw=utYear[tid]||curYear(),uyr=uw==="all"||uys.includes(uw)?uw:(uys[uys.length-1]||curYear());
+  const invs=uyr==="all"?allU:allU.filter(i=>i.month.slice(0,4)===uyr);
+  const uOwe=Math.round(allU.filter(i=>!i.reversed).reduce((x,i)=>x+Math.max(0,(C.inv[i.id]||{}).bal||0),0));
+  const uBf=uyr==="all"?[]:arrearsByMonth(tid,"util",uyr),uBfAmt=uBf.reduce((x,a)=>x+a.amt,0);
   let tot=0;const body=invs.map(i=>i.lines.map((l,k)=>{const amt=i.reversed?0:+l.amount||0;tot+=amt;const c=C.inv[i.id]||{};
     return `<tr${i.reversed?' style="text-decoration:line-through;color:var(--muted)"':""}><td style="white-space:nowrap">${k?"":monthShort(i.month)}</td><td style="white-space:nowrap">${k?"":esc(i.no)}</td><td>${esc(l.desc)}</td><td class="num">${l.open!=null?n0(l.open):""}</td><td class="num">${l.close!=null?n0(l.close):""}</td><td class="num">${l.units!=null?n0(l.units):""}</td><td class="num">${l.open!=null?n0(l.rate):"Fixed"}</td><td class="num">${n0(l.amount)}</td><td>${k?"":pill(c.status||"Unpaid")}</td></tr>`}).join("")).join("");
   const html=`<div class="doc">${docHead("Utility statement",fmtDate(todayStr))}<div class="meta"><div><h4>Tenant</h4><strong>${esc(t.name)}</strong><br>House ${esc(unitName(u))}, ${esc(p.code||"")} ${esc(p.name||"")}<br>${esc(t.phone||"")}</div><div style="text-align:right"><h4>Rates now</h4>Water KES ${n0(cfg(p).waterRate)} per unit<br>Electricity KES ${n0(cfg(p).elecRate)} per unit</div></div>
-   <table><thead><tr><th>Month</th><th>Bill no.</th><th>Item</th><th class="num">Opening</th><th class="num">Closing</th><th class="num">Units</th><th class="num">Rate</th><th class="num">Amount</th><th>Status</th></tr></thead><tbody>${body||`<tr><td colspan="9" class="empty">No utility bills yet.</td></tr>`}</tbody>
-   <tfoot><tr><td colspan="7">Total utilities billed</td><td class="num">KES ${n0(tot)}</td><td></td></tr></tfoot></table>
+   ${uyr!=="all"?`<p style="margin:12px 0 0;font-weight:600">Utility bills for ${uyr}</p>`:""}${arrearsNoteHTML(tid,uOwe,"util")}
+   <table><thead><tr><th>Month</th><th>Bill no.</th><th>Item</th><th class="num">Opening</th><th class="num">Closing</th><th class="num">Units</th><th class="num">Rate</th><th class="num">Amount</th><th>Status</th></tr></thead><tbody>${uBfAmt?`<tr style="background:#FBF3E4;font-weight:600"><td></td><td>B/F</td><td colspan="5">Unpaid utility bills brought forward from ${+uyr-1}: ${esc(arrList(uBf))}</td><td class="num">${n0(uBfAmt)}</td><td>${pill("Unpaid")}</td></tr>`:""}${body||`<tr><td colspan="9" class="empty">No utility bills in ${esc(uyr)}.</td></tr>`}</tbody>
+   <tfoot><tr><td colspan="7">Total utilities billed${uyr!=="all"?" in "+uyr:""}</td><td class="num">KES ${n0(tot)}</td><td></td></tr>${uOwe?`<tr><td colspan="7">Utilities still owing (all years)</td><td class="num">KES ${n0(uOwe)}</td><td></td></tr>`:""}</tfoot></table>
    <p style="font-size:12px;color:var(--muted);margin:10px 0 0">Bills imported from the 2026 Excel reports show amounts only; readings appear from the month they are entered here.</p></div>`;
-  openModal("Utility statement",html,`${downloads?`<button class="btn" id="dlUS">Download PDF</button>`:""}<button class="btn" data-a="stmt" data-id="${tid}">Full statement</button><button class="btn primary" data-a="close">Done</button>`,true);
+  openModal("Utility statement",yearTabs(uys,uyr,"utYr",tid)+html,`${downloads?`<button class="btn" id="dlUS">Download PDF</button>`:""}<button class="btn" data-a="stmt" data-id="${tid}">Full statement</button><button class="btn primary" data-a="close">Done</button>`,true);
   const dl=document.getElementById("dlUS");if(dl)dl.onclick=()=>dlFile(`Utility-statement-${p.code||""}-${unitName(u)}.html`.replace(/[^\w.-]+/g,"-"),standalone("Utility statement "+t.name,html));
 }
 
@@ -1311,7 +1316,7 @@ function statementData(tid){
   const CO={rent:0,garbage:1,util:2},rows=[];
   for(const i of S.invoices.filter(x=>x.tenantId===tid)){
     if(i.adj){rows.push({d:i.issueDate,o:0,ref:"Adjustment",desc:(i.lines[0]||{}).desc||"Balance adjustment",dr:i.total>0?i.total:0,cr:i.total<0?-i.total:0});continue}
-    i.lines.forEach((l,k)=>{const amt=+l.amount||0;rows.push({d:i.issueDate,o:1+CO[catOf(i)]*0.1+k*0.001,ref:i.no,desc:(l.kind==="rent"?l.desc:`${l.desc}, ${monthLabel(i.month)}`),dr:amt>0?amt:0,cr:amt<0?-amt:0})});
+    i.lines.forEach((l,k)=>{const amt=+l.amount||0;rows.push({d:i.issueDate,o:1+CO[catOf(i)]*0.1+k*0.001,ref:i.no,inv:k===0&&!i.reversed?i.id:null,desc:(l.kind==="rent"?l.desc:`${l.desc}, ${monthLabel(i.month)}`),dr:amt>0?amt:0,cr:amt<0?-amt:0})});
     if(i.reversed)rows.push({d:i.reversedAt||i.issueDate,o:1.5,ref:i.no,desc:`Reversal of ${CATS[catOf(i)].title.toLowerCase()}: ${i.reverseReason||""}`,dr:0,cr:+i.total||0});
   }
   for(const x of S.payments.filter(x=>x.tenantId===tid))rows.push({d:x.date,o:2,ref:x.ref||x.receiptNo||"",desc:`Payment received, ${x.method}${x.ref?"":" (no code recorded)"}, receipt ${x.receiptNo||""}`,dr:0,cr:+x.amount||0});
@@ -1320,11 +1325,15 @@ function statementData(tid){
   return {t,u,p,rows,balance:run};
 }
 const balTxt=v=>v<0?"("+n0(-v)+")":n0(v);
-function statementHTML(tid){
-  const D=statementData(tid);if(!D)return "";const {t,u,p,rows,balance}=D;
+function statementHTML(tid,yrArg){
+  const D=statementData(tid);if(!D)return "";const {t,u,p,balance}=D,yr=yrArg||stmtYearOf(D,tid).yr,SL=stmtSlice(D,yr),C=compute();
+  const bf=yr!=="all"&&SL.open?[{d:yr+"-01-01",ref:"B/F",desc:`Balance brought forward from ${+yr-1}`+(SL.open>0?(()=>{const l=arrList(arrearsByMonth(tid,null,yr));return l?` (still unpaid from: ${l})`:" (since cleared by later payments)"})():" (credit)"),dr:0,cr:0,bal:SL.open,bf:1}]:[];
+  const rows=[...bf,...SL.rows],last=yr==="all"||yr===curYear()||yr>=D.rows.slice(-1).map(r=>r.d.slice(0,4))[0];
+  const owing=r=>{if(!r.inv)return "";const c=C.inv[r.inv];return c&&c.bal>0.5?` <span class="pill p-bad" style="font-size:10px">Unpaid KES ${n0(c.bal)}</span>`:""};
   return `<div class="doc">${docHead("Statement",fmtDate(todayStr))}<div class="meta"><div><h4>Tenant</h4><strong>${esc(t.name)}</strong><br>House ${esc(unitName(u))}, ${esc(p.code||"")} ${esc(p.name||"")}<br>${esc(t.phone||"")}${t.email?"<br>"+esc(t.email):""}</div><div style="text-align:right"><h4>Account</h4>M-Pesa account ${esc(acctFor(u))}<br>Deposit held: KES ${n0(t.deposit)}</div></div>
-   <table class="stmt"><thead><tr><th>Date</th><th>Ref. no.</th><th>Description</th><th class="num">Charged</th><th class="num">Paid</th><th class="num">Balance</th></tr></thead><tbody>${rows.map(r=>`<tr><td style="white-space:nowrap">${fmtDate(r.d)}</td><td style="white-space:nowrap">${esc(r.ref)}</td><td>${esc(r.desc)}</td><td class="num">${r.dr?n0(r.dr):""}</td><td class="num">${r.cr?n0(r.cr):""}</td><td class="num">${balTxt(r.bal)}</td></tr>`).join("")||`<tr><td colspan="6" class="empty">No transactions yet.</td></tr>`}</tbody>
-   <tfoot><tr><td colspan="5">${balance>0?"Amount owing":balance<0?"In credit":"Account clear"}</td><td class="num">KES ${n0(Math.abs(balance))}</td></tr></tfoot></table>
+   ${yr!=="all"?`<p style="margin:12px 0 0;font-weight:600">Statement for ${yr}</p>`:""}${arrearsNoteHTML(tid,balance)}
+   <table class="stmt"><thead><tr><th>Date</th><th>Ref. no.</th><th>Description</th><th class="num">Charged</th><th class="num">Paid</th><th class="num">Balance</th></tr></thead><tbody>${rows.map(r=>`<tr${r.bf?' style="background:#FBF3E4;font-weight:600"':""}><td style="white-space:nowrap">${r.bf?"":fmtDate(r.d)}</td><td style="white-space:nowrap">${esc(r.ref)}</td><td>${esc(r.desc)}${owing(r)}</td><td class="num">${r.dr?n0(r.dr):""}</td><td class="num">${r.cr?n0(r.cr):""}</td><td class="num">${balTxt(r.bal)}</td></tr>`).join("")||`<tr><td colspan="6" class="empty">No transactions in ${esc(yr)}.</td></tr>`}</tbody>
+   <tfoot>${last?`<tr><td colspan="5">${balance>0?"Amount owing":balance<0?"In credit":"Account clear"}</td><td class="num">KES ${n0(Math.abs(balance))}</td></tr>`:`<tr><td colspan="5">Balance carried forward to ${+yr+1}</td><td class="num">${balTxt(SL.close)}</td></tr>`}</tfoot></table>
    <div class="pay"><strong>How to pay:</strong> M-Pesa → Lipa na M-Pesa → Paybill <strong>${esc(S.settings.paybill)}</strong>, Account <strong>${esc(acctFor(u))}</strong>.</div>
    <div class="foot">${esc(S.settings.company)} acts as managing agent on behalf of the landlord. Where your dream resides.</div></div>`;
 }
@@ -1337,9 +1346,12 @@ function waNum(ph){let d=String(ph||"").replace(/\D/g,"");if(d.startsWith("0"))d
 function waLink(ph,text){const n=waNum(ph);return `https://wa.me/${n}?text=${encodeURIComponent(text)}`}
 let LOGO_PNG=null;
 function logoPNG(){if(LOGO_PNG)return Promise.resolve(LOGO_PNG);return new Promise(res=>{const img=new Image();img.onload=()=>{const c=document.createElement("canvas");c.width=c.height=240;c.getContext("2d").drawImage(img,0,0,240,240);try{LOGO_PNG=c.toDataURL("image/png")}catch(e){LOGO_PNG=null}res(LOGO_PNG)};img.onerror=()=>res(null);img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(logoSVG(240))})}
-async function statementPDF(tid){
+async function statementPDF(tid,yrArg){
   if(!window.jspdf||!window.jspdf.jsPDF)throw new Error("pdf_unavailable");
-  const D=statementData(tid),{t,u,p,rows,balance}=D,s=S.settings;
+  const D=statementData(tid),{t,u,p,balance}=D,s=S.settings,yr=yrArg||stmtYearOf(D,tid).yr,SL=stmtSlice(D,yr),C=compute();
+  const rows=[...(yr!=="all"&&SL.open?[{d:"",ref:"B/F",desc:`Balance brought forward from ${+yr-1}`+(SL.open>0?(()=>{const l=arrList(arrearsByMonth(tid,null,yr));return l?` (still unpaid from: ${l})`:" (since cleared by later payments)"})():" (credit)"),dr:0,cr:0,bal:SL.open}]:[]),
+    ...SL.rows.map(r=>{const c=r.inv&&C.inv[r.inv];return c&&c.bal>0.5?{...r,desc:r.desc+"  [unpaid KES "+n0(c.bal)+"]"}:r})];
+  const lastYr=yr==="all"||yr>=(D.rows.slice(-1)[0]||{d:"0"}).d.slice(0,4)||yr===curYear(),arr=balance>0?arrList(arrearsByMonth(tid)):"";
   const doc=new window.jspdf.jsPDF({unit:"pt",format:"a4"}),W=doc.internal.pageSize.getWidth();
   const navy=[15,30,58],gold=[184,154,94];
   const logo=await logoPNG();if(logo)doc.addImage(logo,"PNG",40,32,62,62);
@@ -1353,9 +1365,11 @@ async function statementPDF(tid){
   doc.setFontSize(10.5);doc.setFont("helvetica","bold");doc.setTextColor(...navy);doc.text(t.name,40,128);doc.setFont("helvetica","normal");doc.setTextColor(26,34,51);
   doc.text(`House ${unitName(u)}, ${p.code||""} ${p.name||""}`,40,142);if(t.phone)doc.text(t.phone,40,156);
   doc.text(`M-Pesa account: ${acctFor(u)}`,W-40,128,{align:"right"});doc.text(`Deposit held: KES ${n0(t.deposit)}`,W-40,142,{align:"right"});
-  doc.autoTable({startY:170,margin:{left:40,right:40},head:[["Date","Ref. no.","Description","Charged","Paid","Balance"]],
-    body:rows.map(r=>[fmtDate(r.d),r.ref,r.desc,r.dr?n0(r.dr):"",r.cr?n0(r.cr):"",balTxt(r.bal)]),
-    foot:[[{content:balance>0?"Amount owing":balance<0?"In credit":"Account clear",colSpan:5},"KES "+n0(Math.abs(balance))]],
+  let y0=170;if(yr!=="all"){doc.setFont("helvetica","bold");doc.setTextColor(...navy);doc.text("Statement for "+yr,40,y0);y0+=8}
+  if(arr){doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor(180,35,42);const L=doc.splitTextToSize("Where the balance of KES "+n0(balance)+" comes from (unpaid, oldest first): "+arr,W-80);doc.text(L,40,y0+10);y0+=10+L.length*11;doc.setFontSize(10.5)}
+  doc.autoTable({startY:y0+6,margin:{left:40,right:40},head:[["Date","Ref. no.","Description","Charged","Paid","Balance"]],
+    body:rows.map(r=>[r.d?fmtDate(r.d):"",r.ref,r.desc,r.dr?n0(r.dr):"",r.cr?n0(r.cr):"",balTxt(r.bal)]),
+    foot:[lastYr?[{content:balance>0?"Amount owing":balance<0?"In credit":"Account clear",colSpan:5},"KES "+n0(Math.abs(balance))]:[{content:"Balance carried forward to "+(+yr+1),colSpan:5},balTxt(SL.close)]],
     styles:{fontSize:8,cellPadding:4,textColor:[26,34,51]},headStyles:{fillColor:navy,textColor:255},footStyles:{fillColor:[243,237,224],textColor:navy,fontStyle:"bold"},
     alternateRowStyles:{fillColor:[251,249,244]},didParseCell:d=>{if(d.section!=="body"&&d.column.index>=3)d.cell.styles.halign="right"},columnStyles:{0:{cellWidth:62},1:{cellWidth:118},3:{halign:"right",cellWidth:58},4:{halign:"right",cellWidth:58},5:{halign:"right",cellWidth:62}}});
   let y=doc.lastAutoTable.finalY+20;if(y>760){doc.addPage();y=60}
@@ -1399,7 +1413,8 @@ function showStatement(tid){
     <button class="btn gold" id="stLink">${link?"Make a fresh link":"Create download link"}</button>
     ${link?`<a class="btn" href="${esc(link)}" target="_blank" rel="noopener">Open link</a><button class="btn" id="stCopyLink">Copy link</button>`:""}
     <p id="stMsg" class="hint" style="width:100%;margin:0">${link?"Link ready: "+esc(link):(window.fbShare?"Creates a download link for the statement PDF. WhatsApp and email messages then include the link.":"Saves the statement PDF to your Google Drive and shares it with the tenant's email. WhatsApp and email messages then include the link.")}</p></div>`;
-  openModal("Tenant statement",share+statementHTML(tid)+stmtInvoicesCard(tid),
+  const SD=statementData(tid),SY=stmtYearOf(SD,tid);
+  openModal("Tenant statement",share+yearTabs(SY.ys,SY.yr,"stYr",tid)+statementHTML(tid,SY.yr)+stmtInvoicesCard(tid),
     `<button class="btn" id="dlPdf">Download PDF</button>
      <a class="btn" href="${waLink(t.phone,text)}" target="_blank" rel="noopener">Send on WhatsApp${t.phone?"":" (choose chat)"}</a>
      <a class="btn" href="mailto:${encodeURIComponent(t.email||"")}?subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(text)}" target="_blank" rel="noopener">Send by email</a>
@@ -1410,8 +1425,8 @@ function showStatement(tid){
   const cl=document.getElementById("stCopyLink");if(cl)cl.onclick=async()=>{try{await navigator.clipboard.writeText(link);toast("Link copied")}catch(e){toast("Copy was blocked by the browser")}};
   document.getElementById("cpStmt").onclick=async()=>{try{await navigator.clipboard.writeText(text);toast("Message copied")}catch(e){toast("Copy was blocked by the browser")}};
   document.getElementById("dlPdf").onclick=async()=>{
-    const u=get("units",t.unitId),p=propOf(u)||{},name=`Statement-${p.code||""}-${unitName(u)}-${t.name}`.replace(/[^\w-]+/g,"-")+".pdf";
-    try{const pdf=await statementPDF(tid);if(downloads)await downloads.save({filename:name,data:new Blob([pdf],{type:"application/pdf"})});else toast("Downloads aren't available in this view")}
+    const u=get("units",t.unitId),p=propOf(u)||{},name=`Statement-${p.code||""}-${unitName(u)}-${t.name}${SY.yr!=="all"?"-"+SY.yr:""}`.replace(/[^\w-]+/g,"-")+".pdf";
+    try{const pdf=await statementPDF(tid,SY.yr);if(downloads)await downloads.save({filename:name,data:new Blob([pdf],{type:"application/pdf"})});else toast("Downloads aren't available in this view")}
     catch(e){if(e&&e.code==="declined")return;toast(e&&e.message==="pdf_unavailable"?"The PDF maker didn't load. Reload and try again.":"Couldn't make the PDF")}};
 }
 /* documents download as PDF: the page is laid out in a hidden frame and turned into an A4 PDF */
@@ -2370,7 +2385,10 @@ function vLandlords(){
 }
 function vLandlordAccount(pid){
   const L=landlordMonth(pid,month,llPartOf(pid)),p=L.p,ph=waNum(p.landlordPhone),Lp=landlordOf(pid);
-  const hist=[];for(let k=0,m=month;k<12;k++,m=monthAdd(m,-1)){const H=landlordMonth(pid,m);if(!H.total&&!H.forwarded&&k)continue;hist.push({m,H})}
+  const fm=firstMonthOf(pid),llys=[];for(let y=+fm.slice(0,4);y<=+curYear();y++)llys.push(String(y));
+  const lyw=filters.llYear||month.slice(0,4),lyr=lyw==="all"||llys.includes(lyw)?lyw:curYear();
+  const hist=[];{const from=lyr==="all"?fm:lyr+"-01",to=lyr==="all"||lyr===curYear()?todayStr.slice(0,7):lyr+"-12";for(let m=to;m>=from;m=monthAdd(m,-1)){const H=landlordMonth(pid,m,llPartOf(pid));if(!H.total&&!H.forwarded&&m!==month)continue;hist.push({m,H})}}
+  const llOwe=[];for(let m=todayStr.slice(0,7);m>=fm;m=monthAdd(m,-1)){const H=landlordMonth(pid,m,llPartOf(pid)),o=Math.round(H.forward-H.forwarded);if(o>0)llOwe.unshift({label:monthShort(m),amt:o})}
   return `<div class="pagehead"><h1><span class="code big">${esc(p.code)}</span> ${esc(p.name)}: ${monthLabel(month)} landlord report</h1>
    <div class="row">${downloads?`<button class="btn" data-a="llPdfDl" data-id="${pid}">Download PDF</button><button class="btn" data-a="llCsv" data-id="${pid}">Export to Excel</button>`:""}<button class="btn primary" data-a="llPdfShare" data-id="${pid}">Send PDF on WhatsApp</button>${ph?`<a class="btn" href="${waLink(p.landlordPhone,llText(pid,month))}" target="_blank" rel="noopener">WhatsApp text summary</a>`:""}<button class="btn" data-a="llCopy" data-id="${pid}">Copy summary</button>
    ${Lp?`<button class="btn" data-a="landlord" data-id="${Lp.id}">Landlord profile</button><button class="btn" data-a="agreement" data-id="${Lp.id}">Agreement</button>`:`<button class="btn" data-a="landlord" data-prop="${pid}">Add landlord profile</button>`}
@@ -2387,7 +2405,9 @@ function vLandlordAccount(pid){
   <div class="card"><div class="cb">${llStatementHTML(pid,month)}</div></div>
   ${llDedCard(pid,month)}
   ${llInvoicesCard(pid,month)}
-  <div class="card"><div class="ch"><h2>Monthly reports</h2><span style="color:var(--muted);font-size:13px">Each month on its own; click a month to open its report</span></div><div class="tw"><table><thead><tr><th>Month</th><th class="num">Total collection</th><th class="num">Deductions</th><th class="num">To forward</th><th class="num">Forwarded</th><th>Status</th></tr></thead><tbody>
+  <div class="card"><div class="ch"><h2>Monthly reports${lyr!=="all"?", "+lyr:""}</h2><span style="color:var(--muted);font-size:13px">Each month on its own; click a month to open its report</span></div>
+   <div class="cb" style="padding-bottom:0">${yearTabs(llys,lyr,"llYr",pid)}${llOwe.length?`<div style="border-left:4px solid #B4232A;background:#FBEDEC;padding:10px 14px;border-radius:6px;margin:0 0 12px;font-size:13px"><strong>Not yet forwarded to the landlord: KES ${n0(llOwe.reduce((x,a)=>x+a.amt,0))}</strong>, by month, oldest first. Record amounts forwarded to clear them.<br>${esc(arrList(llOwe))}</div>`:""}</div>
+   <div class="tw"><table><thead><tr><th>Month</th><th class="num">Total collection</th><th class="num">Deductions</th><th class="num">To forward</th><th class="num">Forwarded</th><th>Status</th></tr></thead><tbody>
    ${hist.map(({m,H})=>`<tr><td><button class="link" data-a="llMonth" data-id="${m}">${monthLabel(m)}</button></td><td class="num">${n0(H.total)}</td><td class="num">${n0(H.totalDed)}</td><td class="num"><strong>${n0(H.forward)}</strong></td><td class="num">${n0(H.forwarded)}</td><td>${H.forward<=0?pill("Clear"):H.forwarded>=H.forward?pill("Paid"):H.forwarded>0?pill("Partial"):`<span class="pill p-warn">To forward</span>`} ${H.rep.sentAt?`<span class="pill p-info">Sent</span>`:""}</td></tr>`).join("")}
    </tbody></table></div></div>
   <div class="grid2">
@@ -3624,6 +3644,32 @@ function wireSmsBox(id,make){const on=document.getElementById(id+"-on"),tx=docum
   const refresh=()=>{const v=make();if(v===null){tx.value="";tx.disabled=true;h.textContent="No valid phone number, so no SMS will be sent.";return}tx.disabled=!on.checked;if(!edited)tx.value=v;h.textContent=on.checked?tx.value.length+" characters · "+smsUnits(tx.value)+" SMS. You can edit it before saving.":"No SMS will be sent."};
   tx.oninput=()=>{edited=true;h.textContent=tx.value.length+" characters · "+smsUnits(tx.value)+" SMS"};on.onchange=refresh;refresh();
   return {get:()=>on.checked&&!tx.disabled&&tx.value.trim()?tx.value.trim():"",refresh}}
+
+
+/* ===== statements by year, with notes tracing arrears ===== */
+const stYear={},utYear={};
+const curYear=()=>todayStr.slice(0,4);
+/* unpaid amounts by month (oldest first), optionally only utility bills */
+function arrearsByMonth(tid,onlyCat,beforeYear){const C=compute(),M={};
+  for(const i of S.invoices.filter(x=>x.tenantId===tid&&!x.reversed)){if(onlyCat&&catOf(i)!==onlyCat)continue;if(onlyCat==="util"&&i.adj)continue;
+    const c=C.inv[i.id];if(!c||!(c.bal>0.5))continue;const m=i.adj?"0000-00":i.month;if(beforeYear&&m.slice(0,4)>=beforeYear&&m!=="0000-00")continue;
+    M[m]=(M[m]||0)+c.bal}
+  return Object.keys(M).sort().map(m=>({m,amt:Math.round(M[m]),label:m==="0000-00"?"Before the system":monthShort(m)}))}
+const arrList=a=>a.map(x=>`${x.label} KES ${n0(x.amt)}`).join(" · ");
+function yearTabs(years,cur,act,id){if(years.length<2)return "";
+  return `<div class="row" style="gap:6px;flex-wrap:wrap;margin:0 0 10px">${years.map(y=>`<button class="btn sm ${y===cur?"primary":""}" data-a="${act}" data-id="${id}" data-y="${y}">${y}</button>`).join("")}<button class="btn sm ${cur==="all"?"primary":""}" data-a="${act}" data-id="${id}" data-y="all">All years</button></div>`}
+function stmtYearOf(D,tid){const ys=[...new Set(D.rows.map(r=>r.d.slice(0,4)))].sort();const want=stYear[tid]||curYear();return {ys,yr:want==="all"||ys.includes(want)?want:(ys[ys.length-1]||curYear())}}
+/* rows for one year, opening with the balance brought forward */
+function stmtSlice(D,yr){if(yr==="all")return {rows:D.rows,open:0,close:D.balance};
+  const before=D.rows.filter(r=>r.d.slice(0,4)<yr),inYr=D.rows.filter(r=>r.d.slice(0,4)===yr);
+  const open=before.length?before[before.length-1].bal:0,close=inYr.length?inYr[inYr.length-1].bal:open;
+  return {rows:inYr,open,close}}
+function arrearsNoteHTML(tid,balance,onlyCat){if(!(balance>0))return "";const a=arrearsByMonth(tid,onlyCat);if(!a.length)return "";
+  return `<div style="border-left:4px solid #B4232A;background:#FBEDEC;padding:10px 14px;border-radius:6px;margin:10px 0 12px;font-size:13px"><strong>Where the balance of KES ${n0(balance)} comes from:</strong> unpaid amounts by month, oldest first<br>${esc(arrList(a))}</div>`}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;
+  if(a==="stYr"){e.preventDefault();stYear[b.dataset.id]=b.dataset.y;showStatement(b.dataset.id)}
+  else if(a==="utYr"){e.preventDefault();utYear[b.dataset.id]=b.dataset.y;showUtilStatement(b.dataset.id)}
+  else if(a==="llYr"){e.preventDefault();filters.llYear=b.dataset.y;render()}});
 
 const VIEWS={mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
