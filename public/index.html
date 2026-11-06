@@ -792,7 +792,7 @@ async function saveSettings(obj){
   if(mode==="cloud"){try{await db.doc("settings/config").set(obj);return true}catch(e){toast("Could not save settings.");return false}}
   S.settings=obj;render();return true;
 }
-async function remove(col,id){
+async function remove(col,id){if(!ME.admin&&!["staff","accessRequests"].includes(col)){toast("Only an administrator can delete records. Ask the admin, or use Reverse instead.");return false}
   DV++;
   if(mode==="cloud"){try{await db.collection(col).doc(id).delete();return true}catch(e){toast("Could not delete just now.");return false}}
   S[col]=S[col].filter(x=>x.id!==id);render();return true;
@@ -1667,7 +1667,7 @@ async function identify(user){
    otherwise queued in approvals for the admin to approve or reject. */
 async function submit(_col,summary,ops,perm){
   if(perm&&!can(perm)){toast("Your access doesn't include this. Ask the admin.");return false}
-  if(needsApproval()){
+  if(needsApproval()||(!ME.admin&&ops.some(o=>o.op==="del"))){
     const a={id:uid(),summary,ops:JSON.parse(JSON.stringify(ops)),perm:perm||"",by:ME.id,at:new Date().toISOString(),status:"pending"};
     if(await save("approvals",a)){toast("Sent to the admin for approval");return "queued"}return false}
   if(await applyOps(ops)){toast("Saved: "+summary);return "done"}return false;
