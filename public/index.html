@@ -1193,7 +1193,7 @@ function formProp(id){
     if(LL.name){const ex=landlordOf(pobj.id)||S.landlords.find(x=>x.name.toLowerCase()===LL.name.toLowerCase());const lobj={...(ex||{id:uid(),since:todayStr,propertyIds:[]}),...Object.fromEntries(Object.entries(LL).filter(([k,v])=>v!==""||["bankName","branch","accName","accNo","mmProvider","mmNumber","mmAccount","mpesa"].includes(k)))};
       if(!(lobj.propertyIds||[]).includes(pobj.id))lobj.propertyIds=[...(lobj.propertyIds||[]),pobj.id];ops.push({op:"set",col:"landlords",obj:lobj});
       (lobj.propertyIds||[]).filter(i=>i!==pobj.id).forEach(i=>{const op=get("properties",i);if(op)ops.push({op:"set",col:"properties",obj:{...op,landlord:lobj.name,landlordPhone:lobj.phone||op.landlordPhone,landlordEmail:lobj.email||op.landlordEmail,landlordPay:bankLine(lobj)}})})}
-    if(await submit("properties",(p0?"Edit property ":"Add property ")+d.code,ops,"props")){closeModal()}};
+    if(await submit("properties",(p0?"Edit property ":"Add property ")+d.code,ops,"props")){closeModal();setTimeout(()=>fixPenalties().then(n=>{if(n){penSmsAsked=false;promptPenaltySms(true)}}).catch(()=>{}),900)}};
   wirePay("pl_");
   const dp=document.getElementById("delP");if(dp)dp.onclick=async()=>{if(await remove("properties",p0.id)){closeModal();toast("Property deleted")}};
 }
@@ -3871,7 +3871,7 @@ let penDone=false;
 async function autoPenalties(){
   if(penDone||mode!=="cloud"||!ME.admin)return;penDone=true;const st=S.settings;if(st.autoPenalty===false)return;
   const from=st.autoPenaltyFrom||todayStr.slice(0,7);if(!st.autoPenaltyFrom)await saveSettings({autoPenaltyFrom:from});
-  const objs=penaltyDue(from,todayStr.slice(0,7)).map(addPenalty).filter(Boolean);
+  await fixPenalties();const objs=penaltyDue(from,todayStr.slice(0,7)).map(addPenalty).filter(Boolean);
   if(objs.length){const n=await saveMany("invoices",objs);toast(`Late penalty added to ${n} rent invoice${n===1?"":"s"} not paid in full by the due day and grace days`)}
   setTimeout(()=>promptPenaltySms().catch(()=>{}),objs.length?1500:300)}
 function penaltyBar(){if(!ME.admin)return "";const on=S.settings.autoPenalty!==false;const waiting=penaltyDue(month,month,filters.code).length;
@@ -3893,11 +3893,12 @@ function addPenalty(i){const pf=penaltyFor(i);if(!(pf.amt>0))return null;const l
 /* penalty notices: tenants are texted when a late penalty is added (preview first) */
 const penSkip=()=>{try{return JSON.parse(localStorage.getItem("bh_pen_skip")||"[]")}catch(e){return []}};
 function penaltySmsDocs(){const from=S.settings.autoPenaltyFrom||todayStr.slice(0,7),skip=new Set(penSkip()),sent=new Set(S.sms.map(x=>x.id));
-  return S.invoices.filter(i=>i.month>=from&&!i.reversed&&catOf(i)==="rent"&&i.lines.some(l=>l.kind==="penalty")&&!sent.has("pen-"+i.id)&&!skip.has(i.id)).map(i=>{
+  let rs=[];try{rs=JSON.parse(localStorage.getItem("bh_pen_resend")||"[]")}catch(e){}const RS=new Set(rs);
+  return S.invoices.filter(i=>i.month>=from&&!i.reversed&&catOf(i)==="rent"&&i.lines.some(l=>l.kind==="penalty")&&(!sent.has("pen-"+i.id)||(RS.has(i.id)&&!sent.has("pen2-"+i.id)))&&!skip.has(i.id)).map(i=>{
     const t=get("tenants",i.tenantId);if(!t||t.noSms||!smsPhone(t.phone))return null;const u=get("units",i.unitId)||get("units",t.unitId),p=propOf(u)||{};
     const amt=i.lines.filter(l=>l.kind==="penalty").reduce((x,l)=>x+(+l.amount||0),0),v=smsVars(t),bal=(compute().ten[t.id]||{}).balance||0;
     const text=smsLines([`Dear ${v.name},`,`${p.code||""} House ${unitName(u)}: your ${monthLabel(i.month)} rent was not paid in full by ${fmtDate(dueDateFor(i.month,pForT(t,p)))}.`,`A late payment penalty of KES ${n0(amt)} has been added.`,bal>0?`Balance: KES ${n0(bal)}`:null,"","Paybill {paybill}, Account {account}","{company}"],v);
-    return {...smsDoc("pen-"+i.id,t,text,"Late penalty"),_inv:i.id}}).filter(Boolean)}
+    const again=sent.has("pen-"+i.id);return {...smsDoc((again?"pen2-":"pen-")+i.id,t,again?text.replace("A late payment penalty","Correction: the late payment penalty").replace("has been added","is the correct amount"):text,"Late penalty"),_inv:i.id}}).filter(Boolean)}
 let penSmsAsked=false;
 async function promptPenaltySms(force){if((penSmsAsked&&!force)||!ME.admin||!smsReady()||!smsCfg().on)return;penSmsAsked=true;
   const docs=penaltySmsDocs();if(!docs.length)return;
@@ -3908,6 +3909,19 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
 
 /* the day a late penalty starts: the day after the due day plus grace days */
 function penaltyDay(i){const d=new Date(penaltyFromNow(i)+"T00:00:00");d.setDate(d.getDate()+1);return iso(d)}
+
+
+/* automatic penalty lines follow the property's current penalty setting (until reversed) */
+function penaltyFixes(){const from=S.settings.autoPenaltyFrom||todayStr.slice(0,7),out=[];
+  for(const i of S.invoices){if(i.month<from||i.reversed||catOf(i)!=="rent")continue;const k=i.lines.findIndex(l=>l.kind==="penalty"&&l.auto&&!l.rev&&!(+l.reversedAmt));if(k<0)continue;
+    const pf=penaltyFor(i),l=i.lines[k];if(!(pf.amt>0)||Math.round(+l.amount)===Math.round(pf.amt))continue;
+    const lines=i.lines.map((x,j)=>j===k?{...x,amount:pf.amt,rate:pf.amt,desc:pf.label,prevAmount:x.amount}:x);out.push({...i,lines,total:lines.reduce((s,x)=>s+(+x.amount||0),0)})}
+  return out}
+async function fixPenalties(){if(!ME.admin||mode!=="cloud")return 0;const objs=penaltyFixes();if(!objs.length)return 0;
+  const sentIds=new Set(S.sms.map(x=>x.id));const n=await saveMany("invoices",objs);
+  /* tenants already texted the old amount get the corrected notice in the next preview */
+  const resend=objs.filter(i=>sentIds.has("pen-"+i.id)).map(i=>i.id);if(resend.length){try{localStorage.setItem("bh_pen_resend",JSON.stringify(resend))}catch(e){}}
+  toast(`Late penalty corrected on ${n} invoice${n===1?"":"s"} to match the property's penalty setting`);return n}
 
 const VIEWS={maint:vMaint,mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
