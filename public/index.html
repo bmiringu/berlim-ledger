@@ -1318,7 +1318,7 @@ function statementData(tid){
   const CO={rent:0,garbage:1,util:2},rows=[];
   for(const i of S.invoices.filter(x=>x.tenantId===tid)){
     if(i.adj){rows.push({d:i.issueDate,o:0,ref:"Adjustment",desc:(i.lines[0]||{}).desc||"Balance adjustment",dr:i.total>0?i.total:0,cr:i.total<0?-i.total:0});continue}
-    i.lines.forEach((l,k)=>{const amt=+l.amount||0;rows.push({d:i.issueDate,o:1+CO[catOf(i)]*0.1+k*0.001,ref:i.no,inv:k===0&&!i.reversed?i.id:null,desc:(l.kind==="rent"?l.desc:`${l.desc}, ${monthLabel(i.month)}`),dr:amt>0?amt:0,cr:amt<0?-amt:0})});
+    i.lines.forEach((l,k)=>{const amt=+l.amount||0;const dd=l.kind==="penalty"?(l.penDate||penaltyDay(i)):i.issueDate;rows.push({d:dd,o:1+CO[catOf(i)]*0.1+k*0.001,ref:i.no,inv:k===0&&!i.reversed?i.id:null,desc:(l.kind==="rent"?l.desc:`${l.desc}, ${monthLabel(i.month)}`),dr:amt>0?amt:0,cr:amt<0?-amt:0})});
     if(i.reversed)rows.push({d:i.reversedAt||i.issueDate,o:1.5,ref:i.no,desc:`Reversal of ${CATS[catOf(i)].title.toLowerCase()}: ${i.reverseReason||""}`,dr:0,cr:+i.total||0});
   }
   for(const x of S.payments.filter(x=>x.tenantId===tid))rows.push({d:x.date,o:2,ref:x.ref||x.receiptNo||"",desc:`Payment received, ${x.method}${x.ref?"":" (no code recorded)"}, receipt ${x.receiptNo||""}`,dr:0,cr:+x.amount||0});
@@ -3887,7 +3887,7 @@ function penaltyFromNow(i){const t=get("tenants",i.tenantId),u=get("units",i.uni
 function paidLate(i){const pf=penaltyFromNow(i);if(!(todayStr>pf))return false;if(i.lines.some(l=>l.kind==="deposit"))return false;if((i.issueDate||"")>pf)return false;
   return paidBy(i.id,pf)<invAmt(i)-0.5}
 function penaltyDue(fromMonth,toMonth,code){return S.invoices.filter(i=>i.month>=fromMonth&&i.month<=toMonth&&!i.adj&&!i.reversed&&catOf(i)==="rent"&&i.cat!=="misc"&&!i.lines.some(l=>l.kind==="penalty")&&!propEnded(propOf(get("units",i.unitId)),i.month)&&(!code||code==="all"||(get("units",i.unitId)||{}).propertyId===code)&&paidLate(i))}
-function addPenalty(i){const pf=penaltyFor(i);if(!(pf.amt>0))return null;const lines=[...i.lines,{desc:pf.label,qty:1,rate:pf.amt,amount:pf.amt,kind:"penalty",auto:true,addedAt:todayStr}];return {...i,lines,total:lines.reduce((s,l)=>s+(+l.amount||0),0)}}
+function addPenalty(i){const pf=penaltyFor(i);if(!(pf.amt>0))return null;const lines=[...i.lines,{desc:pf.label,qty:1,rate:pf.amt,amount:pf.amt,kind:"penalty",auto:true,addedAt:todayStr,penDate:penaltyDay(i)}];return {...i,lines,total:lines.reduce((s,l)=>s+(+l.amount||0),0)}}
 
 
 /* penalty notices: tenants are texted when a late penalty is added (preview first) */
@@ -3904,6 +3904,10 @@ async function promptPenaltySms(force){if((penSmsAsked&&!force)||!ME.admin||!sms
   const n=await smsReview(docs.map(({_inv,...d})=>d),`Text ${docs.length} tenant${docs.length>1?"s":""} about their late penalty`,"Penalty notices");
   if(!n){try{localStorage.setItem("bh_pen_skip",JSON.stringify([...penSkip(),...docs.map(d=>d._inv)]))}catch(e){}toast("Penalty notices not sent. Use \"Text penalty notices\" on the Invoices page to send them later.")}}
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b||b.dataset.a!=="penSms")return;e.preventDefault();try{localStorage.removeItem("bh_pen_skip")}catch(x){}penSmsAsked=false;promptPenaltySms(true)});
+
+
+/* the day a late penalty starts: the day after the due day plus grace days */
+function penaltyDay(i){const d=new Date(penaltyFromNow(i)+"T00:00:00");d.setDate(d.getDate()+1);return iso(d)}
 
 const VIEWS={maint:vMaint,mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
