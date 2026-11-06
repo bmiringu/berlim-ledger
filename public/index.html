@@ -566,6 +566,7 @@ body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
   <a href="#tenants" data-v="tenants"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm-8 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm0 2c-2.3 0-7 1.2-7 3.5V19h7v-2.5c0-.9.4-1.8 1.1-2.5A11 11 0 0 0 8 13zm8 0c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4z"/></svg><span class="lg">Tenants</span><span class="sm">Tenants</span></a>
   <a href="#units" data-v="units"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 11h3v9h6v-6h2v6h6v-9h3z"/></svg><span class="lg">Properties</span><span class="sm">Houses</span></a>
   <a href="#utilities" data-v="utilities"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C8 7 6 10.2 6 13a6 6 0 0 0 12 0c0-2.8-2-6-6-11zm1 17.9V18a3 3 0 0 0 3-3h1.9A5 5 0 0 1 13 19.9z"/></svg><span class="lg">Utilities</span><span class="sm">Utilities</span></a>
+  <a href="#maint" data-v="maint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22.7 19.3l-6.1-6.1a6.5 6.5 0 0 0-8.4-8.4l3.6 3.6-2.8 2.8-3.6-3.6a6.5 6.5 0 0 0 8.4 8.4l6.1 6.1a1 1 0 0 0 1.4 0l1.4-1.4a1 1 0 0 0 0-1.4z"/></svg><span class="lg">Maintenance</span><span class="sm">Repairs</span></a>
   <a href="#invoices" data-v="invoices"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM9 12h8v1.5H9zm0 3.5h8V17H9zm0-7h4V10H9z"/></svg><span class="lg">Invoices</span><span class="sm">Invoices</span></a>
   <a href="#payments" data-v="payments"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v12H3zm2 2v2h14V8zm0 6v2h5v-2z"/></svg><span class="lg">Payments</span><span class="sm">Payments</span></a>
   <a href="#providers" data-v="providers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM10 5h4v2h-4zm3 10h-2v-2H9v-2h2V9h2v2h2v2h-2z"/></svg><span class="lg">Providers</span><span class="sm">Providers</span></a>
@@ -582,10 +583,10 @@ body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
 <script>
 "use strict";
 /* ---------- state ---------- */
-const COLS=["properties","units","tenants","readings","invoices","payments","providers","pbills","ppays","approvals","staff","accessRequests","remits","ldeds","linvoices","landlords","lreports","sms"];
+const COLS=["properties","units","tenants","readings","invoices","payments","providers","pbills","ppays","approvals","staff","accessRequests","remits","ldeds","linvoices","landlords","lreports","sms","maint"];
 const DEFAULT_SETTINGS={company:"Berlim Homes Limited",phone:"0791 025 078 / 0731 220 221",email:"info@berlimhomes.com",website:"www.berlimhomes.com",address:"Nairoview Plaza, 1st Floor, Room 205, Ruiru",preparedBy:"",
   paybill:"222111",accPrefix:"2371748#",waterRate:150,elecRate:0,garbage:300,serviceCharge:0,dueDay:5,penaltyPct:10,llPayDay:10,llPayWhen:"same"};
-const S={settings:{...DEFAULT_SETTINGS},properties:[],units:[],tenants:[],readings:[],invoices:[],payments:[],providers:[],pbills:[],ppays:[],approvals:[],staff:[],accessRequests:[],remits:[],ldeds:[],linvoices:[],landlords:[],lreports:[]};
+const S={settings:{...DEFAULT_SETTINGS},properties:[],units:[],tenants:[],readings:[],invoices:[],payments:[],providers:[],pbills:[],ppays:[],approvals:[],staff:[],accessRequests:[],remits:[],ldeds:[],linvoices:[],landlords:[],lreports:[],maint:[]};
 let DV=0;
 let mode="loading", db=null, downloads=null, mcp=null, readOnly=false, assets=null, USER=null;
 const ME={id:null,admin:true,staff:null,email:"",name:"",ready:false};
@@ -965,6 +966,7 @@ function vInvoices(){
     <button class="btn" data-a="penalty">Apply late penalties</button>
     ${downloads?`<button class="btn" data-a="csvInv">Export CSV</button>`:""}</div>
     <p>${have} tenant${have===1?"":"s"} billed for ${monthLabel(month)}${missing?`, ${missing} still to bill`:""}. Each tenant gets a separate rent invoice, garbage invoice and utility bill. Refreshing rebuilds them from the latest rates and readings and keeps any penalties. Penalties apply to invoices still unpaid after each property's due day and grace days (set under Edit property).</p></div>
+  ${penaltyBar()}
   ${codeChips()}
   <div class="card"><div class="tw">${list.length?`<table><thead><tr><th>Invoice no.</th><th>Type</th><th>Code</th><th>House</th><th>Tenant</th><th>Due</th><th class="num">Amount</th><th class="num">Paid</th><th class="num">Balance</th><th>Status</th><th></th></tr></thead><tbody>
   ${list.map(i=>{const t=get("tenants",i.tenantId),u=get("units",i.unitId),c=C.inv[i.id]||{paid:0,bal:i.total,status:"Unpaid"};
@@ -1420,7 +1422,7 @@ function showStatement(tid){
      <a class="btn" href="mailto:${encodeURIComponent(t.email||"")}?subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(text)}" target="_blank" rel="noopener">Send by email</a>
      <button class="btn" id="cpStmt">Copy message</button>
      <button class="btn" data-a="utilStmt" data-id="${tid}">Utility statement</button>
-     <button class="btn" data-a="charge" data-id="${tid}">New invoice</button><button class="btn primary" data-a="pay" data-id="${tid}">Record payment</button>`,true);
+     <button class="btn" data-a="mNew" data-id="${tid}">Log maintenance</button><button class="btn" data-a="charge" data-id="${tid}">New invoice</button><button class="btn primary" data-a="pay" data-id="${tid}">Record payment</button>`,true);
   document.getElementById("stLink").onclick=()=>createStatementLink(tid);
   const cl=document.getElementById("stCopyLink");if(cl)cl.onclick=async()=>{try{await navigator.clipboard.writeText(link);toast("Link copied")}catch(e){toast("Copy was blocked by the browser")}};
   document.getElementById("cpStmt").onclick=async()=>{try{await navigator.clipboard.writeText(text);toast("Message copied")}catch(e){toast("Copy was blocked by the browser")}};
@@ -1615,9 +1617,9 @@ document.getElementById("mprev").onclick=()=>{const {min}=monthBounds();if(month
 document.getElementById("mnext").onclick=()=>{const {max}=monthBounds();if(month>=max){toast("You can't go past the current month");return}monthPinned=true;month=monthAdd(month,1);render()};
 
 /* ================= v3: access, approvals, providers, ex-tenants, photos, move-in billing ================= */
-const PERMS=[["payments","Record, edit and delete tenant payments"],["invoices","Generate, reverse and penalise invoices"],["readings","Enter meter readings and meter photos"],["tenants","Add, edit and move out tenants (with move-in bills)"],["providers","Service provider bills and payments"],["props","Properties, houses, rates and setup"],["landlords","Landlord accounts, agreements and remittances"]];
+const PERMS=[["payments","Record, edit and delete tenant payments"],["invoices","Generate, reverse and penalise invoices"],["readings","Enter meter readings and meter photos"],["tenants","Add, edit and move out tenants (with move-in bills)"],["providers","Service provider bills and payments"],["props","Properties, houses, rates and setup"],["landlords","Landlord accounts, agreements and remittances"],["maint","Log, assign and resolve maintenance issues"]];
 const PSHORT={payments:"Payments",invoices:"Invoices",readings:"Meter readings",tenants:"Tenants",providers:"Service providers",props:"Properties & setup",landlords:"Landlord accounts"};
-const ROLES={admin:{label:"Administrator (full access)",perms:PERMS.map(p=>p[0])},manager:{label:"Property manager",perms:PERMS.map(p=>p[0])},accountant:{label:"Accountant",perms:["payments","invoices","providers","landlords"]},field:{label:"Field officer / caretaker",perms:["readings","tenants"]},viewer:{label:"View only",perms:[]}};
+const ROLES={admin:{label:"Administrator (full access)",perms:PERMS.map(p=>p[0])},manager:{label:"Property manager",perms:PERMS.map(p=>p[0])},accountant:{label:"Accountant",perms:["payments","invoices","providers","landlords"]},field:{label:"Field officer / caretaker",perms:["readings","tenants","maint"]},viewer:{label:"View only",perms:[]}};
 const NEED={dedSide:"landlords",llLine:"invoices",llAll:"invoices",chgLine:"invoices",dedEdit:"landlords",dedReset:"landlords",rates:"props",depLL:"invoices",suspReq:"tenants",endProp:"props",endLl:"landlords",revLine:"invoices",utilSmsAll:"readings",utilSms:"readings",llToggle:"invoices",charge:"invoices",smsNotice:"tenants",pay:"payments",editpay:"payments",delpay:"payments",gen:"invoices",penalty:"invoices",reverseInv:"invoices",restoreInv:"invoices",tenant:"tenants",moveout:"tenants",reinstate:"tenants",prop:"props",unit:"props",saveRates:"props",runImport:"props",saveRead:"readings",photo:"readings",provider:"providers",pbill:"providers",ppay:"providers",delPB:"providers",delPP:"providers",billFixed:"providers",remit:"landlords",lded:"landlords",llIssue:"landlords",llSettle:"landlords",delRemit:"landlords",delLded:"landlords",landlord:"landlords",agreement:"landlords",llNote:"landlords",llSent:"landlords"};
 let staffLoaded=false;
 function myStaff(){return ME.id?S.staff.find(s=>s.id===ME.id&&s.active!==false)||null:null}
@@ -3139,7 +3141,8 @@ function vMgmt(){
   const bar=(v,max,col)=>`<div style="background:#EFE8D8;border-radius:6px;height:8px;min-width:80px"><div style="width:${Math.round(v/max*100)}%;height:8px;border-radius:6px;background:${col}"></div></div>`;
   const top=D.tenants.slice(0,20);
   return `<div class="pagehead"><h1>Management, ${monthLabel(month)}</h1><p>Income and how the portfolio is doing. Only administrators can open this page.</p>
-   <div class="row">${window.FB_BUILD?`<button class="btn" data-a="smsNotice" data-who="owing">Send arrears notice</button>`:""}${downloads?`<button class="btn" data-a="mgmtCsv">Export analysis</button>`:""}</div></div>
+   <div class="row">${window.FB_BUILD?`<button class="btn" data-a="smsNotice" data-who="owing">Send arrears notice</button>`:""}${downloads?`<button class="btn" data-a="mgmtCsv">Export analysis</button>`:""}</div>
+  ${monthResultCard()}</div>
   <div class="tiles">
    <div class="tile accent"><span class="k">Management income</span><span class="v">${n0(I.T.total)}</span><span class="s">Commission, letting fees, penalties</span></div>
    <div class="tile"><span class="k">Collection rate</span><span class="v">${charged?Math.round(paid/charged*100):0}%</span><span class="s">KES ${n0(paid)} of ${n0(charged)} charged</span></div>
@@ -3671,7 +3674,214 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
   else if(a==="utYr"){e.preventDefault();utYear[b.dataset.id]=b.dataset.y;showUtilStatement(b.dataset.id)}
   else if(a==="llYr"){e.preventDefault();filters.llYear=b.dataset.y;render()}});
 
-const VIEWS={mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
+
+/* =====================================================================
+   1. MONTH RESULT: are arrears turning the month into a loss?
+   Landlord reports pay landlords on what was BILLED. Rent a tenant does
+   not pay is still forwarded, so Berlim Homes covers it until collected.
+   Cash result for a month = Berlim income - unpaid rent already counted
+   on landlord reports - office expenses.
+   ===================================================================== */
+let _allocMemo={dv:-1,v:null};
+function payAlloc(){if(_allocMemo.dv===DV)return _allocMemo.v;const A={},CO={rent:0,garbage:1,util:2,misc:3};
+  const byT={},payT={};for(const i of S.invoices)(byT[i.tenantId]||(byT[i.tenantId]=[])).push(i);for(const p of S.payments)(payT[p.tenantId]||(payT[p.tenantId]=[])).push(p);
+  for(const tid in byT){const q=byT[tid].filter(i=>invAmt(i)>0).sort((a,b)=>a.month.localeCompare(b.month)||(b.adj?1:0)-(a.adj?1:0)||(CO[catOf(a)]??4)-(CO[catOf(b)]??4)).map(i=>({id:i.id,left:invAmt(i)}));let qi=0;
+    for(const p of (payT[tid]||[]).slice().sort((a,b)=>(a.date||"").localeCompare(b.date||""))){let amt=+p.amount||0;
+      while(amt>0.0001&&qi<q.length){const take=Math.min(amt,q[qi].left);(A[q[qi].id]||(A[q[qi].id]=[])).push({d:p.date||"",amt:take});amt-=take;q[qi].left-=take;if(q[qi].left<=0.0001)qi++}}}
+  _allocMemo={dv:DV,v:A};return A}
+const paidBy=(iid,date)=>(payAlloc()[iid]||[]).reduce((s,x)=>s+(x.d<=date?x.amt:0),0);
+let _mrMemo={};
+function monthResult(m){const k=DV+"|"+m;if(_mrMemo[k])return _mrMemo[k];
+  const end=lastDay(m),now=todayStr,inc=mgmtIncome(m);
+  const rows=sortedProps().filter(p=>!propEnded(p,m)).map(p=>{const L=landlordMonth(p.id,m);let T=0,Ue=0,Un=0;
+    for(const r of L.rows){if(!r.t||!(r.ltot>0))continue;T+=r.ltot;
+      const invs=S.invoices.filter(i=>i.tenantId===r.t.id&&i.month===m&&!i.adj&&!i.reversed),tot=invs.reduce((s,i)=>s+invAmt(i),0);if(!(tot>0))continue;
+      const pe=invs.reduce((s,i)=>s+Math.min(invAmt(i),paidBy(i.id,end)),0),pn=invs.reduce((s,i)=>s+Math.min(invAmt(i),paidBy(i.id,now)),0);
+      Ue+=r.ltot*Math.max(0,tot-pe)/tot;Un+=r.ltot*Math.max(0,tot-pn)/tot}
+    const ir=inc.rows.find(x=>x.p.id===p.id)||{total:0};
+    return {p,T:Math.round(T),F:Math.round(ir.total),Ue:Math.round(Ue),Un:Math.round(Un),fwd:L.forward,fwded:L.forwarded}});
+  const sum=f=>rows.reduce((s,r)=>s+r[f],0),E=Math.round(expensesFor(m).reduce((s,x)=>s+(+x.amount||0),0));
+  const R={m,rows,T:sum("T"),F:sum("F"),Ue:sum("Ue"),Un:sum("Un"),E};R.profit=R.F-R.E;R.cashEnd=R.F-R.Ue-R.E;R.cashNow=R.F-R.Un-R.E;R.recovered=R.Ue-R.Un;
+  _mrMemo={[k]:R,..._mrMemo};return R}
+const kesS=v=>(v<0?"−":"")+"KES "+n0(Math.abs(v));
+function verdictPill(v,soft){return v<0?`<span class="pill p-bad">${soft||"Loss"} ${n0(-v)}</span>`:`<span class="pill p-good">Gain ${n0(v)}</span>`}
+function monthResultCard(){
+  if(!ME.admin)return "";const R=monthResult(month),yr=month.slice(0,4);
+  const hist=[];for(let mm=1;mm<=12;mm++){const m=yr+"-"+String(mm).padStart(2,"0");if(m>todayStr.slice(0,7))break;hist.push(monthResult(m))}
+  const bad=R.cashNow<0;
+  return `<div class="card adminonly"><div class="ch"><h2>Did we make a loss in ${monthLabel(month)}?</h2><span class="pill p-info">Admin only</span></div><div class="cb">
+   <div style="border-left:5px solid ${bad?"#B4232A":"#2E7D4F"};background:${bad?"#FBEDEC":"#EDF7F0"};padding:12px 16px;border-radius:8px;margin-bottom:14px;font-size:14.5px">
+    ${bad?`<strong>Yes, in cash terms: KES ${n0(-R.cashNow)} short.</strong> Tenants still owe KES ${n0(R.Un)} of ${monthLabel(month)}'s rent that is already on the landlord reports. Landlords are paid on what was billed, so Berlim Homes covers that amount from its own money until the tenants pay. Our income for the month (KES ${n0(R.F)}) less office expenses (KES ${n0(R.E)}) does not cover it.`
+         :`<strong>No. ${monthLabel(month)} is KES ${n0(R.cashNow)} ahead in cash.</strong> Our income (KES ${n0(R.F)}) covers office expenses (KES ${n0(R.E)}) and the KES ${n0(R.Un)} tenants still owe on rent already reported to landlords.`}
+    ${R.recovered>0?`<br>KES ${n0(R.recovered)} of the arrears at month end has since been collected.`:""}</div>
+   <div class="incgrid">
+    <div class="inc big"><span class="k">Cash result now</span><b style="color:${bad?"#B4232A":"#2E7D4F"}">${kesS(R.cashNow)}</b><span class="s">Income − unpaid rent on landlord reports − expenses</span></div>
+    <div class="inc"><span class="k">Berlim income</span><b>${n0(R.F)}</b><span class="s">Commission, letting fees, penalties</span></div>
+    <div class="inc"><span class="k">Office expenses</span><b>${n0(R.E)}</b><span class="s">Recorded for the month</span></div>
+    <div class="inc"><span class="k">Profit on paper</span><b>${kesS(R.profit)}</b><span class="s">Income − expenses, if every tenant pays</span></div>
+    <div class="inc"><span class="k">Unpaid at month end</span><b>${n0(R.Ue)}</b><span class="s">Rent on landlord reports not yet paid by ${fmtDate(lastDay(month))}</span></div>
+    <div class="inc"><span class="k">Still unpaid today</span><b>${n0(R.Un)}</b><span class="s">After later payments</span></div>
+    <div class="inc"><span class="k">Cash result at month end</span><b>${kesS(R.cashEnd)}</b><span class="s">Before later payments came in</span></div>
+   </div>
+   <div class="tw" style="margin-top:14px"><table><thead><tr><th>Code</th><th>Property</th><th class="num">Billed on landlord report</th><th class="num">Unpaid at month end</th><th class="num">Still unpaid today</th><th class="num">Our income</th><th class="num">Result today</th></tr></thead><tbody>
+    ${R.rows.filter(r=>r.T||r.F).map(r=>`<tr><td><span class="code">${esc(r.p.code)}</span></td><td>${esc(r.p.name)}</td><td class="num">${n0(r.T)}</td><td class="num ${r.Ue?"neg":""}">${n0(r.Ue)}</td><td class="num ${r.Un?"neg":""}">${n0(r.Un)}</td><td class="num">${n0(r.F)}</td><td class="num">${verdictPill(r.F-r.Un)}</td></tr>`).join("")}
+   </tbody><tfoot><tr><td colspan="2">ALL PROPERTIES (before office expenses)</td><td class="num">${n0(R.T)}</td><td class="num">${n0(R.Ue)}</td><td class="num">${n0(R.Un)}</td><td class="num">${n0(R.F)}</td><td class="num">${verdictPill(R.F-R.Un)}</td></tr></tfoot></table></div>
+   <h3 style="margin:18px 0 8px;font-size:15px">Month by month, ${yr}</h3>
+   <div class="tw"><table><thead><tr><th>Month</th><th class="num">Our income</th><th class="num">Expenses</th><th class="num">Profit on paper</th><th class="num">Unpaid at month end</th><th class="num">Still unpaid today</th><th class="num">Cash result today</th><th>Verdict</th></tr></thead><tbody>
+    ${hist.map(h=>`<tr${h.m===month?' style="background:#FBF6EA"':""}><td><button class="link" data-a="llMonth" data-id="${h.m}">${monthShort(h.m)}</button></td><td class="num">${n0(h.F)}</td><td class="num">${n0(h.E)}</td><td class="num">${n0(h.profit)}</td><td class="num">${n0(h.Ue)}</td><td class="num">${n0(h.Un)}</td><td class="num"><strong>${kesS(h.cashNow)}</strong></td><td>${h.cashNow<0?`<span class="pill p-bad">Loss</span>`:h.Un>0?`<span class="pill p-warn">Gain, arrears open</span>`:`<span class="pill p-good">Gain</span>`}</td></tr>`).join("")}
+   </tbody><tfoot><tr><td>${yr} to date</td><td class="num">${n0(hist.reduce((s,h)=>s+h.F,0))}</td><td class="num">${n0(hist.reduce((s,h)=>s+h.E,0))}</td><td class="num">${n0(hist.reduce((s,h)=>s+h.profit,0))}</td><td class="num">${n0(hist.reduce((s,h)=>s+h.Ue,0))}</td><td class="num">${n0(hist.reduce((s,h)=>s+h.Un,0))}</td><td class="num"><strong>${kesS(hist.reduce((s,h)=>s+h.cashNow,0))}</strong></td><td></td></tr></tfoot></table></div>
+   <p class="hint" style="margin:10px 0 0">How to read this: "Profit on paper" assumes every tenant eventually pays. "Cash result" shows what actually happened, because unpaid rent is still forwarded to landlords on the reports. A month turns back from loss to gain as its arrears are collected. Record office expenses under Management to make this complete.</p>
+  </div></div>`}
+
+/* =====================================================================
+   2. MAINTENANCE: log, assign, follow up and close, with SMS
+   ===================================================================== */
+if(!S.maint)S.maint=[];if(!COLS.includes("maint"))COLS.push("maint");
+const M_CATS=["Plumbing / water","Electrical","Carpentry / doors","Painting","Roofing / leaks","Security / locks","Cleaning / drainage","Pest control","Appliance","Other"];
+const M_OPEN=["Reported","Assigned","In progress"];
+const canMaint=()=>ME.admin||can("tenants")||can("maint")||can("props");
+const mDays=x=>Math.max(0,Math.round((new Date(todayStr)-new Date((x.reportedAt||todayStr).slice(0,10)))/864e5));
+const mOver=x=>M_OPEN.includes(x.status)&&((x.visitDate&&x.visitDate<todayStr)||mDays(x)>(x.priority==="Urgent"?1:3));
+function mPill(x){const c={Reported:"p-warn",Assigned:"p-info","In progress":"p-info",Resolved:"p-good",Closed:"p-good",Cancelled:"p-mute"}[x.status]||"";return `<span class="pill ${c}">${esc(x.status)}</span>${mOver(x)?' <span class="pill p-bad">Overdue</span>':""}`}
+const mWhere=x=>{const u=get("units",x.unitId),p=get("properties",x.propertyId)||propOf(u)||{};return {u,p,t:get("tenants",x.tenantId)}};
+const mVars=(x,extra)=>{const {u,p,t}=mWhere(x);return {name:t?(/^name not/i.test(t.name||"")?"Tenant":String(t.name).split(/[ /]/)[0]):"Tenant",no:x.no,title:x.title,code:p.code||"",house:u?unitName(u):"",property:p.name||"",company:"Berlim Homes Ltd",phone:(S.settings.phone||"").split("/")[0].trim(),who:x.assignee||"",whoPhone:x.assigneePhone||"",visit:x.visitDate?fmtDate(x.visitDate):"soon",details:x.details||"",tenant:t?t.name:"",tphone:t?t.phone||"":"",...(extra||{})}};
+const M_SMS={
+ booked:"Dear {name},\nWe have received your maintenance request.\nRef: {no}\nIssue: {title}\n\nWe will let you know once someone is assigned.\n{company}",
+ assigned:"Dear {name},\nYour request {no} ({title}) has been assigned.\nTechnician: {who} {whoPhone}\nVisit: {visit}\n\nPlease allow access.\n{company}",
+ job:"Hello {who},\nNew job {no}\n{code} House {house}, {property}\nIssue: {title}\n{details}\nTenant: {tenant} {tphone}\nVisit: {visit}\n\n{company}",
+ resolved:"Dear {name},\nYour request {no} ({title}) has been resolved.\n{note}\n\nIf the problem continues, please call {phone}.\n{company}"};
+function mLog(x,status,note){return [...(x.log||[]),{at:new Date().toISOString(),by:ME.label||ME.email||ME.id||"",status,note:note||""}]}
+function vMaint(){
+  const f=filters.mstat||"open",code=filters.mcode||"all";
+  let xs=S.maint.filter(x=>code==="all"||x.propertyId===code);
+  const open=xs.filter(x=>M_OPEN.includes(x.status)),m0=month;
+  const tiles={open:open.length,urgent:open.filter(x=>x.priority==="Urgent").length,over:open.filter(mOver).length,
+    done:xs.filter(x=>(x.resolvedAt||"").slice(0,7)===m0).length,cost:xs.filter(x=>(x.resolvedAt||"").slice(0,7)===m0).reduce((s,x)=>s+(+x.cost||0),0)};
+  if(f==="open")xs=open;else if(f==="done")xs=xs.filter(x=>!M_OPEN.includes(x.status));
+  xs.sort((a,b)=>(M_OPEN.includes(b.status)-M_OPEN.includes(a.status))||((b.priority==="Urgent")-(a.priority==="Urgent"))||(b.reportedAt||"").localeCompare(a.reportedAt||""));
+  const pc=sortedProps();
+  return `<div class="pagehead"><h1>Maintenance</h1><div class="row">${canMaint()?`<button class="btn primary" data-a="mNew">Log an issue</button>`:""}${downloads?`<button class="btn" data-a="mCsv">Export to Excel</button>`:""}</div></div>
+  <div class="tiles">
+   <div class="tile ${tiles.open?"alert":""}"><span class="k">Open issues</span><span class="v">${tiles.open}</span><span class="s">Reported, assigned or in progress</span></div>
+   <div class="tile ${tiles.urgent?"alert":""}"><span class="k">Urgent</span><span class="v">${tiles.urgent}</span><span class="s">Open and marked urgent</span></div>
+   <div class="tile ${tiles.over?"alert":""}"><span class="k">Overdue</span><span class="v">${tiles.over}</span><span class="s">Visit date passed, or open over 3 days (1 if urgent)</span></div>
+   <div class="tile"><span class="k">Resolved in ${monthShort(m0)}</span><span class="v">${tiles.done}</span><span class="s">Cost KES ${n0(tiles.cost)}</span></div></div>
+  <div class="row" style="gap:6px;flex-wrap:wrap;margin:0 0 10px">${[["open","Open"],["done","Resolved / closed"],["all","All"]].map(([k,l])=>`<button class="btn sm ${f===k?"primary":""}" data-a="mFilt" data-v="${k}">${l}</button>`).join("")}
+   <span style="width:12px"></span><button class="btn sm ${code==="all"?"primary":""}" data-a="mCode" data-v="all">All properties</button>${pc.map(p=>`<button class="btn sm ${code===p.id?"primary":""}" data-a="mCode" data-v="${p.id}">${esc(p.code)}</button>`).join("")}</div>
+  <div class="card"><div class="tw">${xs.length?`<table><thead><tr><th>Ref.</th><th>Reported</th><th>House</th><th>Tenant</th><th>Issue</th><th>Priority</th><th>Assigned to</th><th>Status</th><th></th></tr></thead><tbody>
+   ${xs.map(x=>{const {u,p,t}=mWhere(x);return `<tr><td><button class="link" data-a="mView" data-id="${x.id}">${esc(x.no)}</button></td><td style="white-space:nowrap">${fmtDate((x.reportedAt||"").slice(0,10))}<span class="sub">${M_OPEN.includes(x.status)?mDays(x)+" day"+(mDays(x)===1?"":"s")+" open":""}</span></td>
+    <td><span class="code">${esc(p.code||"")}</span> ${esc(u?unitName(u):"Common area")}</td><td>${t?esc(t.name):"—"}</td><td><strong>${esc(x.title)}</strong><span class="sub">${esc(x.category||"")}</span></td>
+    <td>${x.priority==="Urgent"?'<span class="pill p-bad">Urgent</span>':esc(x.priority||"Normal")}</td><td>${x.assignee?esc(x.assignee)+(x.visitDate?`<span class="sub">Visit ${fmtDate(x.visitDate)}</span>`:""):"—"}</td><td>${mPill(x)}</td>
+    <td class="num" style="white-space:nowrap">${canMaint()?(M_OPEN.includes(x.status)?`<button class="btn sm" data-a="mAssign" data-id="${x.id}">${x.assignee?"Reassign":"Assign"}</button> ${x.status!=="In progress"?`<button class="btn sm" data-a="mProg" data-id="${x.id}">Started</button> `:""}<button class="btn sm primary" data-a="mResolve" data-id="${x.id}">Resolved</button>`:x.status==="Resolved"?`<button class="btn sm" data-a="mClose" data-id="${x.id}">Close</button> <button class="btn sm" data-a="mReopen" data-id="${x.id}">Reopen</button>`:x.status!=="Cancelled"?`<button class="btn sm" data-a="mReopen" data-id="${x.id}">Reopen</button>`:""):""}</td></tr>`}).join("")}
+  </tbody></table>`:`<div class="empty">${f==="open"?"No open maintenance issues.":"Nothing here yet."}</div>`}</div></div>`}
+function houseOpts(pid,sel){return `<option value="">Common area (no house)</option>`+S.units.filter(u=>u.propertyId===pid).sort(sortUnits).map(u=>{const t=activeTenantOf(u.id);return `<option value="${u.id}" ${u.id===sel?"selected":""}>${esc(unitName(u))}${t?" · "+esc(t.name):" · vacant"}</option>`}).join("")}
+function formMaint(id,tid){
+  const x=id?get("maint",id):null,t0=tid?get("tenants",tid):null,u0=t0?get("units",t0.unitId):x?get("units",x.unitId):null;
+  const pid0=(x&&x.propertyId)||(u0&&u0.propertyId)||(filters.mcode&&filters.mcode!=="all"?filters.mcode:(sortedProps()[0]||{}).id);
+  openModal(x?"Edit "+esc(x.no):"Log a maintenance issue",`<form id="fM" class="fg">
+   <div class="f"><label for="m-p">Property</label><select id="m-p" name="propertyId" required>${sortedProps().map(p=>`<option value="${p.id}" ${p.id===pid0?"selected":""}>${esc(p.code)} ${esc(p.name)}</option>`).join("")}</select></div>
+   <div class="f"><label for="m-u">House</label><select id="m-u" name="unitId">${houseOpts(pid0,u0?u0.id:"")}</select></div>
+   <div class="f"><label for="m-c">Category</label><select id="m-c" name="category">${M_CATS.map(c=>`<option ${x&&x.category===c?"selected":""}>${c}</option>`).join("")}</select></div>
+   <div class="f"><label for="m-pr">Priority</label><select id="m-pr" name="priority">${["Normal","Urgent","Low"].map(c=>`<option ${x&&x.priority===c?"selected":""}>${c}</option>`).join("")}</select></div>
+   <div class="f full"><label for="m-t">Issue (short)</label><input id="m-t" name="title" required maxlength="80" value="${esc(x?x.title:"")}" placeholder="e.g. Kitchen sink leaking"></div>
+   <div class="f full"><label for="m-d">Details</label><textarea id="m-d" name="details" rows="3" style="width:100%;font:14px var(--body);padding:8px;border:1px solid var(--line);border-radius:8px">${esc(x?x.details||"":"")}</textarea></div>
+   <div class="f"><label for="m-by">Reported by</label><select id="m-by" name="reportedBy">${["Tenant","Caretaker","Field officer","Landlord","Office"].map(c=>`<option ${x&&x.reportedBy===c?"selected":""}>${c}</option>`).join("")}</select></div>
+   <div class="f"><label for="m-dt">Date reported</label><input id="m-dt" name="date" type="date" value="${esc(x?(x.reportedAt||"").slice(0,10):todayStr)}"></div>
+   ${!x&&smsReady()?smsBox("mSms",true,"Text the tenant that the request was received (SMS)"):""}<div class="err full" id="mErr"></div></form>`,
+   `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fM" type="submit">${x?"Save":"Log issue"}</button>`,true);
+  const fm=document.getElementById("fM"),ps=document.getElementById("m-p"),us=document.getElementById("m-u");
+  const draft=()=>{const d=Object.fromEntries(new FormData(fm));return {no:x?x.no:"(new ref.)",title:d.title||"(issue)",propertyId:d.propertyId,unitId:d.unitId,tenantId:d.unitId?(activeTenantOf(d.unitId)||{}).id:""}};
+  const sb=wireSmsBox("mSms",()=>{const dx=draft(),t=get("tenants",dx.tenantId);if(!t||!smsPhone(t.phone)||t.noSms)return null;return smsFill(M_SMS.booked,mVars(dx))});
+  ps.onchange=()=>{us.innerHTML=houseOpts(ps.value,"");sb.refresh()};us.onchange=()=>sb.refresh();fm.addEventListener("input",()=>sb.refresh());
+  fm.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(fm));if(!d.title.trim()){document.getElementById("mErr").textContent="Describe the issue.";return}
+    const ten=d.unitId?activeTenantOf(d.unitId):null;
+    const obj=x?{...x,propertyId:d.propertyId,unitId:d.unitId||"",tenantId:ten?ten.id:(x.unitId===d.unitId?x.tenantId:""),category:d.category,priority:d.priority,title:d.title.trim(),details:d.details.trim(),reportedBy:d.reportedBy,reportedAt:d.date||x.reportedAt}
+      :{id:uid(),no:nextNo("MNTC","maint"),propertyId:d.propertyId,unitId:d.unitId||"",tenantId:ten?ten.id:"",category:d.category,priority:d.priority,title:d.title.trim(),details:d.details.trim(),reportedBy:d.reportedBy,reportedAt:(d.date||todayStr)+"T"+new Date().toTimeString().slice(0,8),status:"Reported",createdBy:ME.id||""};
+    if(!x)obj.log=mLog(obj,"Reported",d.reportedBy+": "+obj.title);
+    const txt=sb.get();
+    if(!(await save("maint",obj)))return;closeModal();toast(x?"Saved":"Issue "+obj.no+" logged");
+    if(txt&&ten)await smsQueue([smsDoc("mnt-"+obj.id+"-b",ten,txt.replace("(new ref.)",obj.no),"Maintenance received")]);}}
+function formMAssign(id){const x=get("maint",id);if(!x)return;
+  const techs=[...new Map(S.maint.filter(m=>m.assignee).map(m=>[m.assignee,m.assigneePhone||""])).entries()];
+  const staff=S.staff.filter(s=>s.active!==false).map(s=>[s.label||s.email||s.id,s.phone||""]);
+  const all=[...new Map([...staff,...techs]).entries()];
+  openModal("Assign "+esc(x.no)+": "+esc(x.title),`<form id="fMA" class="fg">
+   <div class="f"><label for="ma-w">Assign to (field officer or technician)</label><input id="ma-w" name="who" list="ma-list" required value="${esc(x.assignee||"")}" placeholder="Name"><datalist id="ma-list">${all.map(([n])=>`<option value="${esc(n)}">`).join("")}</datalist></div>
+   <div class="f"><label for="ma-ph">Their phone</label><input id="ma-ph" name="phone" value="${esc(x.assigneePhone||"")}" placeholder="07XX XXX XXX"></div>
+   <div class="f"><label for="ma-v">Visit date</label><input id="ma-v" name="visit" type="date" value="${esc(x.visitDate||todayStr)}"></div>
+   <div class="f"><label for="ma-n">Note</label><input id="ma-n" name="note" placeholder="Optional"></div>
+   ${smsReady()?smsBox("maT",true,"Text the tenant who is coming and when (SMS)")+smsBox("maW",true,"Text the job details to the person assigned (SMS)"):""}</form>`,
+   `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fMA" type="submit">Assign</button>`,true);
+  const fm=document.getElementById("fMA"),who=document.getElementById("ma-w"),ph=document.getElementById("ma-ph"),M=new Map(all);
+  const dx=()=>{const d=Object.fromEntries(new FormData(fm));return {...x,assignee:d.who,assigneePhone:d.phone,visitDate:d.visit}};
+  const sT=wireSmsBox("maT",()=>{const t=get("tenants",x.tenantId);if(!t||!smsPhone(t.phone)||t.noSms)return null;return smsFill(M_SMS.assigned,mVars(dx()))});
+  const sW=wireSmsBox("maW",()=>{const d=dx();if(!smsPhone(d.assigneePhone))return null;return smsFill(M_SMS.job,mVars(d))});
+  who.addEventListener("change",()=>{if(M.get(who.value)&&!ph.value)ph.value=M.get(who.value)});fm.addEventListener("input",()=>{sT.refresh();sW.refresh()});
+  fm.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(fm));
+    const obj={...x,assignee:d.who.trim(),assigneePhone:d.phone.trim(),visitDate:d.visit,status:x.status==="In progress"?"In progress":"Assigned",assignedAt:new Date().toISOString()};
+    obj.log=mLog(x,"Assigned",`${obj.assignee}${obj.visitDate?", visit "+fmtDate(obj.visitDate):""}${d.note?": "+d.note:""}`);
+    const tt=sT.get(),tw=sW.get();if(!(await save("maint",obj)))return;closeModal();toast(x.no+" assigned to "+obj.assignee);
+    const docs=[];const t=get("tenants",x.tenantId);if(tt&&t)docs.push(smsDoc("mnt-"+x.id+"-a"+Date.now().toString(36),t,tt,"Maintenance assigned"));
+    if(tw)docs.push(smsDoc("mnt-"+x.id+"-j"+Date.now().toString(36),{id:"",name:obj.assignee,phone:obj.assigneePhone},tw,"Maintenance job"));if(docs.length)await smsQueue(docs)}}
+function formMResolve(id){const x=get("maint",id);if(!x)return;const {u,p,t}=mWhere(x);
+  openModal("Resolve "+esc(x.no)+": "+esc(x.title),`<form id="fMR" class="fg">
+   <div class="f full"><label for="mr-n">What was done</label><input id="mr-n" name="note" required placeholder="e.g. Replaced the sink trap and tested"></div>
+   <div class="f"><label for="mr-d">Date resolved</label><input id="mr-d" name="date" type="date" value="${todayStr}"></div>
+   <div class="f"><label for="mr-c">Cost (KES)</label><input id="mr-c" name="cost" type="number" min="0" step="any" value="${esc(x.cost||"")}" placeholder="0 if none"></div>
+   <div class="f full"><label for="mr-ch">Who pays the cost</label><select id="mr-ch" name="charge"><option value="none">Nobody / already settled</option><option value="landlord">Landlord: add to the landlord report deductions</option>${t?`<option value="tenant">Tenant: invoice ${esc(t.name)}</option>`:""}${ME.admin?`<option value="office">Berlim Homes: record as an office expense</option>`:""}</select><span class="hint" id="mr-h"></span></div>
+   ${smsReady()?smsBox("mrS",true,"Text the tenant that it is resolved (SMS)"):""}</form>`,
+   `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fMR" type="submit">Mark resolved</button>`,true);
+  const fm=document.getElementById("fMR");
+  const sb=wireSmsBox("mrS",()=>{if(!t||!smsPhone(t.phone)||t.noSms)return null;const d=Object.fromEntries(new FormData(fm));return smsFill(M_SMS.resolved,mVars(x,{note:d.note||""}))});
+  const hint=()=>{const d=Object.fromEntries(new FormData(fm)),c=+d.cost||0,mm=(d.date||todayStr).slice(0,7);document.getElementById("mr-h").textContent=!c||d.charge==="none"?"":d.charge==="landlord"?`KES ${n0(c)} will appear under Deductions on ${p.code} ${monthLabel(mm)} landlord report.`:d.charge==="tenant"?`A KES ${n0(c)} repair invoice will be added to ${t.name}'s account (kept off the landlord report).`:`KES ${n0(c)} will be recorded as a ${monthLabel(mm)} office expense.`};
+  fm.addEventListener("input",()=>{sb.refresh();hint()});fm.addEventListener("change",hint);hint();
+  fm.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(fm)),c=+d.cost||0,mm=(d.date||todayStr).slice(0,7),ops=[];
+    const obj={...x,status:"Resolved",resolvedAt:d.date||todayStr,resolution:d.note.trim(),cost:c,chargeTo:c?d.charge:"none"};obj.log=mLog(x,"Resolved",d.note.trim()+(c?` · cost KES ${n0(c)} (${d.charge})`:""));
+    if(c&&d.charge==="landlord"){const L0=(lrep(p.id,mm)||{}).sentAt?monthAdd(mm,1):mm;ops.push({op:"set",col:"ldeds",obj:{id:"mnt-"+x.id,propertyId:p.id,month:L0,desc:`Repair ${x.no}: ${x.title}${u?" (House "+unitName(u)+")":""}`,amount:c,maintId:x.id}})}
+    if(c&&d.charge==="tenant"&&t){const lines=[{kind:"repair",desc:`Repair ${x.no}: ${x.title}`,qty:1,rate:c,amount:c,toLandlord:false}];
+      ops.push({op:"set",col:"invoices",obj:{id:"x"+uid(),cat:"misc",no:nextNo("CHRG"),tenantId:t.id,unitId:t.unitId,month:mm,issueDate:d.date||todayStr,dueDate:dueDateFor(mm,pForT(t,p)),lines,total:c,note:"Maintenance "+x.no,locked:true,createdBy:ME.id||""}})}
+    ops.push({op:"set",col:"maint",obj});
+    if(!(await applyOps(ops)))return;
+    if(c&&d.charge==="office"&&ME.admin)await save("expenses",{id:"mnt-"+x.id,date:d.date||todayStr,category:"Repairs and maintenance",details:`${x.no}: ${x.title} (${p.code}${u?" "+unitName(u):""})`,amount:c,paidBy:""});
+    const txt=sb.get();closeModal();toast(x.no+" resolved");if(txt&&t)await smsQueue([smsDoc("mnt-"+x.id+"-r",t,txt,"Maintenance resolved")])}}
+function showMaint(id){const x=get("maint",id);if(!x)return;const {u,p,t}=mWhere(x);
+  openModal(esc(x.no)+": "+esc(x.title),`<div class="meta" style="margin-bottom:10px"><div><strong>${esc(p.code||"")} ${esc(p.name||"")}</strong>, ${u?"House "+esc(unitName(u)):"common area"}<br>${t?esc(t.name)+" · "+esc(t.phone||""):"No tenant"}<br>${esc(x.category||"")} · ${esc(x.priority||"Normal")}</div><div style="text-align:right">${mPill(x)}<br>${x.assignee?"Assigned: "+esc(x.assignee)+" "+esc(x.assigneePhone||""):""}${x.visitDate?"<br>Visit "+fmtDate(x.visitDate):""}${x.cost?"<br>Cost KES "+n0(x.cost)+" ("+esc(x.chargeTo||"")+")":""}</div></div>
+   ${x.details?`<p style="margin:0 0 10px">${esc(x.details)}</p>`:""}${x.resolution?`<p style="margin:0 0 10px"><strong>Resolution:</strong> ${esc(x.resolution)}</p>`:""}
+   <h3 style="font-size:14px;margin:8px 0">Follow-up history</h3><div class="tw"><table><tbody>${(x.log||[]).slice().reverse().map(l=>`<tr><td style="white-space:nowrap">${fmtDate(l.at.slice(0,10))} ${l.at.slice(11,16)}</td><td>${esc(l.status)}</td><td>${esc(l.note)}</td><td class="sub" style="display:table-cell">${esc(l.by)}</td></tr>`).join("")}</tbody></table></div>
+   ${canMaint()?`<div class="f full" style="margin-top:10px"><label for="mv-n">Add a follow-up note</label><div class="row"><input id="mv-n" style="flex:1" placeholder="e.g. Called tenant, part ordered"><button class="btn" id="mvAdd">Add note</button></div></div>`:""}`,
+   `${canMaint()?`<button class="btn" data-a="mEdit" data-id="${x.id}">Edit</button>${M_OPEN.includes(x.status)?`<button class="btn" data-a="mCancel" data-id="${x.id}">Cancel issue</button><button class="btn" data-a="mAssign" data-id="${x.id}">${x.assignee?"Reassign":"Assign"}</button><button class="btn primary" data-a="mResolve" data-id="${x.id}">Resolved</button>`:""}`:""}<button class="btn" data-a="close">Done</button>`,true);
+  const ad=document.getElementById("mvAdd");if(ad)ad.onclick=async()=>{const n=document.getElementById("mv-n").value.trim();if(!n)return;if(await save("maint",{...x,log:mLog(x,"Note",n)})){toast("Note added");setTimeout(()=>showMaint(id),200)}}}
+async function mSet(id,status,note){const x=get("maint",id);if(!x)return;const o={...x,status,log:mLog(x,status,note||"")};if(status==="In progress")o.startedAt=new Date().toISOString();if(status==="Closed")o.closedAt=todayStr;
+  if(await save("maint",o)){toast(x.no+": "+status);closeModal()}}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a,id=b.dataset.id;
+  const go=fn=>{e.preventDefault();fn()};
+  if(a==="mNew")go(()=>formMaint(null,id));else if(a==="mEdit")go(()=>formMaint(id));else if(a==="mView")go(()=>showMaint(id));
+  else if(a==="mAssign")go(()=>formMAssign(id));else if(a==="mResolve")go(()=>formMResolve(id));
+  else if(a==="mProg")go(()=>mSet(id,"In progress","Work started"));else if(a==="mClose")go(()=>mSet(id,"Closed","Confirmed fixed"));
+  else if(a==="mReopen")go(()=>askConfirm("Reopen this issue?","Reopen",()=>mSet(id,"Reported","Reopened")));
+  else if(a==="mCancel")go(()=>askConfirm("Cancel this issue? It stays in the history.","Cancel issue",()=>mSet(id,"Cancelled","Cancelled")));
+  else if(a==="mFilt")go(()=>{filters.mstat=b.dataset.v;render()});else if(a==="mCode")go(()=>{filters.mcode=b.dataset.v;render()});
+  else if(a==="mCsv")go(()=>dlFile("maintenance-"+todayStr+".csv",csv([["Ref","Reported","Property","House","Tenant","Category","Issue","Priority","Assigned to","Visit","Status","Resolved","Cost","Charged to","Resolution"],
+    ...S.maint.map(x=>{const {u,p,t}=mWhere(x);return [x.no,(x.reportedAt||"").slice(0,10),p.code||"",u?unitName(u):"",t?t.name:"",x.category,x.title,x.priority,x.assignee||"",x.visitDate||"",x.status,x.resolvedAt||"",x.cost||0,x.chargeTo||"",x.resolution||""]})])));});
+
+/* =====================================================================
+   3. LATE PENALTIES ADDED AUTOMATICALLY
+   ===================================================================== */
+let penDone=false;
+async function autoPenalties(){
+  if(penDone||mode!=="cloud"||!ME.admin)return;penDone=true;const st=S.settings;if(st.autoPenalty===false)return;
+  const from=st.autoPenaltyFrom||todayStr.slice(0,7);if(!st.autoPenaltyFrom)await saveSettings({autoPenaltyFrom:from});
+  const C=compute();
+  const due=S.invoices.filter(i=>i.month>=from&&i.month<=todayStr.slice(0,7)&&!i.adj&&!i.reversed&&catOf(i)==="rent"&&C.inv[i.id]&&C.inv[i.id].bal>0.5&&todayStr>penaltyFrom(i)&&!i.lines.some(l=>l.kind==="penalty")&&!propEnded(propOf(get("units",i.unitId)),i.month));
+  const objs=due.map(i=>{const pf=penaltyFor(i);if(!(pf.amt>0))return null;const lines=[...i.lines,{desc:pf.label,qty:1,rate:pf.amt,amount:pf.amt,kind:"penalty",auto:true}];return {...i,lines,total:lines.reduce((s,l)=>s+(+l.amount||0),0)}}).filter(Boolean);
+  if(objs.length){const n=await saveMany("invoices",objs);toast(`Late penalty added to ${n} overdue invoice${n===1?"":"s"} (due day and grace days passed)`)}}
+function penaltyBar(){if(!ME.admin)return "";const on=S.settings.autoPenalty!==false;
+  return `<div class="card"><div class="cb row" style="gap:10px;align-items:center;flex-wrap:wrap"><strong>Late penalties:</strong> ${on?`<span class="pill p-good">Automatic</span> added to unpaid rent once each property's due day plus grace days has passed${S.settings.autoPenaltyFrom?", from "+monthLabel(S.settings.autoPenaltyFrom)+" bills":""}.`:`<span class="pill p-mute">Manual</span> use "Apply late penalties" each month.`}
+   <button class="btn sm" data-a="penAuto">${on?"Switch to manual":"Make automatic"}</button><span class="sub">Penalty amount and grace days are set per property under Edit property.</span></div></div>`}
+document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b||b.dataset.a!=="penAuto"||!ME.admin)return;e.preventDefault();
+  const on=S.settings.autoPenalty!==false;await saveSettings({autoPenalty:!on,autoPenaltyFrom:S.settings.autoPenaltyFrom||todayStr.slice(0,7)});toast(on?"Penalties are now manual":"Penalties are now automatic");penDone=false;if(!on)autoPenalties();render()});
+
+const VIEWS={maint:vMaint,mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
 let _rq=null;function queueRender(){if(_rq)return;_rq=setTimeout(()=>{_rq=null;render()},mode==="cloud"?40:0)}
 function render(){
@@ -3737,7 +3947,7 @@ loadImportFile();
   await identify(user);
   const slow=setTimeout(()=>setStatus("demo","Records may be out of date, still connecting"),10000);
   const fresh=new Set();
-  const settle=()=>{if(fresh.size>=COLS.length+1){clearTimeout(slow);setStatus("ok",readOnly?"Saved records, view only":"Saved records, synced");setTimeout(autoHistory,1500);setTimeout(()=>smsAuto().catch(()=>{}),4000);setTimeout(()=>applyDueChanges().catch(()=>{}),2500);setTimeout(()=>fixMovedOut().catch(()=>{}),3500)}};
+  const settle=()=>{if(fresh.size>=COLS.length+1){clearTimeout(slow);setStatus("ok",readOnly?"Saved records, view only":"Saved records, synced");setTimeout(autoHistory,1500);setTimeout(()=>smsAuto().catch(()=>{}),4000);setTimeout(()=>applyDueChanges().catch(()=>{}),2500);setTimeout(()=>fixMovedOut().catch(()=>{}),3500);setTimeout(()=>autoPenalties().catch(()=>{}),5000)}};
   COLS.forEach(col=>{db.collection(col).onSnapshot(snap=>{S[col]=snap.docs.map(d=>({...d.data(),id:d.id}));DV++;if(col==="staff")staffLoaded=true;if(!snap.metadata.fromCache){fresh.add(col);settle()}queueRender()},
     err=>{if(col==="staff"){staffLoaded=true;render()}clearTimeout(slow);setStatus("demo","Could not load "+col);fresh.add(col)})});
   if(ME.admin){try{db.collection("expenses").onSnapshot(s=>{S.expenses=s.docs.map(d=>({...d.data(),id:d.id}));DV++;queueRender()},()=>{})}catch(e){}}
