@@ -23,8 +23,10 @@ service cloud.firestore {
     // Office expenses and profit/loss: administrators only.
     match /expenses/{id} { allow read, write: if isAdmin(); }
     // All business records (properties, tenants, invoices, payments, landlords, providers, approvals, settings...).
+    // Team members read, add and change records; only administrators can delete them (staff use reversals and approvals).
     match /{col}/{id} {
-      allow read, write: if member() && !(col in ['staff', 'people', 'accessRequests', 'logins', 'expenses']);
+      allow read, create, update: if member() && !(col in ['staff', 'people', 'accessRequests', 'logins', 'expenses']);
+      allow delete: if isAdmin() && !(col in ['staff', 'people', 'accessRequests', 'logins', 'expenses']);
     }
   }
 }
