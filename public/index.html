@@ -3882,7 +3882,8 @@ document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.c
 
 
 /* a rent invoice is late if it was not fully paid by the end of its due day plus grace days, even if paid since */
-function paidLate(i){const pf=penaltyFrom(i);if(!(todayStr>pf))return false;if(i.lines.some(l=>l.kind==="deposit"))return false;if((i.issueDate||"")>pf)return false;
+function penaltyFromNow(i){const t=get("tenants",i.tenantId),u=get("units",i.unitId)||(t&&get("units",t.unitId)),p=propOf(u);const d=new Date(dueDateFor(i.month,pForT(t,p))+"T00:00:00");d.setDate(d.getDate()+graceOf(p));return iso(d)}
+function paidLate(i){const pf=penaltyFromNow(i);if(!(todayStr>pf))return false;if(i.lines.some(l=>l.kind==="deposit"))return false;if((i.issueDate||"")>pf)return false;
   return paidBy(i.id,pf)<invAmt(i)-0.5}
 function penaltyDue(fromMonth,toMonth,code){return S.invoices.filter(i=>i.month>=fromMonth&&i.month<=toMonth&&!i.adj&&!i.reversed&&catOf(i)==="rent"&&i.cat!=="misc"&&!i.lines.some(l=>l.kind==="penalty")&&!propEnded(propOf(get("units",i.unitId)),i.month)&&(!code||code==="all"||(get("units",i.unitId)||{}).propertyId===code)&&paidLate(i))}
 function addPenalty(i){const pf=penaltyFor(i);if(!(pf.amt>0))return null;const lines=[...i.lines,{desc:pf.label,qty:1,rate:pf.amt,amount:pf.amt,kind:"penalty",auto:true,addedAt:todayStr}];return {...i,lines,total:lines.reduce((s,l)=>s+(+l.amount||0),0)}}
