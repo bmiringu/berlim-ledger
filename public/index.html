@@ -3931,7 +3931,8 @@ function penaltySmsDocs(){const from=S.settings.autoPenaltyFrom||todayStr.slice(
     const text=smsLines([`Dear ${v.name},`,`${p.code||""} House ${unitName(u)}: your ${monthLabel(i.month)} rent was not paid in full by ${fmtDate(dueDateFor(i.month,pForT(t,p)))}.`,`A late payment penalty of KES ${n0(amt)} has been added.`,bal>0?`Balance: KES ${n0(bal)}`:null,"","Paybill {paybill}, Account {account}","{company}"],v);
     const again=sent.has("pen-"+i.id);return {...smsDoc((again?"pen2-":"pen-")+i.id,t,again?text.replace("A late payment penalty","Correction: the late payment penalty").replace("has been added","is the correct amount"):text,"Late penalty"),_inv:i.id}}).filter(Boolean)}
 let penSmsAsked=false;
-async function promptPenaltySms(force){if((penSmsAsked&&!force)||!ME.admin||!smsReady()||!smsCfg().on)return;penSmsAsked=true;
+async function promptPenaltySms(force,tries){if((penSmsAsked&&!force)||!ME.admin||!smsReady()||!smsCfg().on)return;
+  if(document.getElementById("modalRoot").innerHTML.trim()&&(tries||0)<40){setTimeout(()=>promptPenaltySms(force,(tries||0)+1),15000);return}penSmsAsked=true;
   const docs=penaltySmsDocs();if(!docs.length)return;
   const n=await smsReview(docs.map(({_inv,...d})=>d),`Text ${docs.length} tenant${docs.length>1?"s":""} about their late penalty`,"Penalty notices");
   if(!n){try{localStorage.setItem("bh_pen_skip",JSON.stringify([...penSkip(),...docs.map(d=>d._inv)]))}catch(e){}toast("Penalty notices not sent. Use \"Text penalty notices\" on the Invoices page to send them later.")}}
