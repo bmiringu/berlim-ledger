@@ -171,6 +171,18 @@ table.stmt td{font-size:13px}
 .items input,.items select{width:100%;font:14px var(--body);padding:7px 8px;border:1px solid var(--line);border-radius:8px}.items td{vertical-align:middle}.items .it-x{color:var(--bad);font-size:15px}.items .it-k{min-width:150px}.items .it-ll{min-width:150px}.items .it-d{min-width:160px}
 .incgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.inc{background:#F7F3EA;border:1px solid var(--line);border-radius:12px;padding:12px 14px}.inc .k{display:block;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}.inc b{display:block;font:600 22px var(--display);color:var(--navy);margin:4px 0 2px}.inc .s{font-size:12px;color:var(--muted)}.inc.big{background:var(--navy);border-color:var(--navy)}.inc.big .k,.inc.big .s{color:#C9D0DE}.inc.big b{color:#F3E6C6;font-size:26px}
 #readTbl input.cell.ro{background:#F4EFE3;color:#56607A}#readTbl .link[data-a=editOpen]{margin-left:4px;font-size:14px}
+
+#bootL{position:fixed;inset:0;z-index:900;background:#0F1E3A;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .45s ease}
+#bootL.out{opacity:0;pointer-events:none}
+#bootL[hidden]{display:none!important}
+#bootL .lg{animation:bootB 1.8s ease-in-out infinite}
+@keyframes bootB{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+#bootL .wel{font-family:var(--display,Georgia),serif;color:#F3EEE2;font-size:24px;letter-spacing:1px}
+#bootL .bar{width:240px;height:5px;background:#24365a;border-radius:5px;overflow:hidden}
+#bootL .bar i{display:block;height:100%;width:6%;background:#C9A962;border-radius:5px;transition:width .4s ease}
+#bootL .stp{color:#C9A962;font-size:12px;letter-spacing:3px;text-transform:uppercase;min-height:16px}
+#bootL .tag{color:#9FA9BD;font-size:12px;font-style:italic}
+@media (prefers-reduced-motion:reduce){#bootL .lg{animation:none}}
 </style>
 <style id="modern">
 /* refreshed look: deeper navy masthead with a gold rule, floating icon tabs, rounded cards with soft shadows */
@@ -546,6 +558,9 @@ body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
 </style>
 </head>
 <body class="fb-locked">
+<div id="bootL" hidden role="status" aria-live="polite"><svg class="lg" width="96" height="96" viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="10" fill="#C9A962"/><path d="M12 40V23a12 12 0 0 1 24 0v17" fill="none" stroke="#0F1E3A" stroke-width="2.2"/><path d="M15.5 40V24a8.5 8.5 0 0 1 17 0v16" fill="none" stroke="#0F1E3A" stroke-width="1"/><path d="M9 40h30" stroke="#0F1E3A" stroke-width="1.8"/><text x="24" y="33.5" text-anchor="middle" font-family="Georgia,serif" font-size="10.5" font-weight="700" fill="#0F1E3A">BH</text></svg>
+<div class="wel" id="bootW">Welcome back</div><div class="bar"><i id="bootP"></i></div><div class="stp" id="bootS">Opening your ledger</div><div class="tag">Berlim Homes Ltd · Where your dream resides</div></div>
+
 <header class="mast">
   <div class="brand">
     <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 44V22a16 16 0 0 1 32 0v22" fill="none" stroke="#B89A5E" stroke-width="2.4"/><path d="M21 6.5h6l-1 4h-4z" fill="#B89A5E"/><path d="M5 44h38M7 41h34" stroke="#B89A5E" stroke-width="2"/><text x="24" y="34" text-anchor="middle" font-family="Cormorant Garamond,Georgia,serif" font-size="15" font-weight="700" fill="#F3EEE2">BH</text></svg>
@@ -3923,6 +3938,23 @@ async function fixPenalties(){if(!ME.admin||mode!=="cloud")return 0;const objs=p
   const resend=objs.filter(i=>sentIds.has("pen-"+i.id)).map(i=>i.id);if(resend.length){try{localStorage.setItem("bh_pen_resend",JSON.stringify(resend))}catch(e){}}
   toast(`Late penalty corrected on ${n} invoice${n===1?"":"s"} to match the property's penalty setting`);return n}
 
+
+/* welcome screen while records load: breathing logo, real progress, named steps */
+const BOOT_STEPS=[["properties","properties"],["units","houses"],["tenants","tenants"],["invoices","invoices"],["payments","payments"],["readings","meter readings"],["ldeds","landlord reports"],["sms","messages"]];
+let bootSeen=new Set(),bootDone=false,bootT0=0;
+function bootShow(){const b=document.getElementById("bootL");if(!b||bootDone)return;b.hidden=false;bootT0=Date.now();
+  bootName();
+  setTimeout(()=>bootHide(),25000)}
+function bootName(){const st=ME.staff||{},raw=ME.admin&&!st.label?"Bernard":(st.label||ME.name||String(ME.email||"").split("@")[0]||"");const n=String(raw).split(/[ @.]/)[0];const w=document.getElementById("bootW");if(w)w.textContent=n?"Welcome back, "+n.charAt(0).toUpperCase()+n.slice(1):"Welcome back"}
+function bootTick(col,fresh){bootSeen.add(col);if(bootDone)return;try{bootName()}catch(e){}const tot=COLS.length+1,pct=Math.min(100,Math.round(bootSeen.size/tot*100));
+  const pb=document.getElementById("bootP");if(pb)pb.style.width=Math.max(6,pct)+"%";
+  const next=BOOT_STEPS.find(([c])=>!bootSeen.has(c));const st=document.getElementById("bootS");if(st)st.textContent=next?"Loading "+next[1]:"Preparing your dashboard";
+  const core=["properties","units","tenants","invoices","payments"].every(c=>bootSeen.has(c));
+  if(fresh||(core&&bootSeen.size>=tot-2))bootHide()}
+function bootHide(){if(bootDone)return;bootDone=true;const b=document.getElementById("bootL");if(!b)return;const pb=document.getElementById("bootP");if(pb)pb.style.width="100%";
+  const st=document.getElementById("bootS");if(st)st.textContent="Ready";const wait=Math.max(0,700-(Date.now()-bootT0));
+  setTimeout(()=>{b.classList.add("out");setTimeout(()=>{b.hidden=true},500)},wait)}
+
 const VIEWS={maint:vMaint,mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
 let _rq=null;function queueRender(){if(_rq)return;_rq=setTimeout(()=>{_rq=null;render()},mode==="cloud"?40:0)}
@@ -3989,9 +4021,10 @@ loadImportFile();
   await identify(user);
   const slow=setTimeout(()=>setStatus("demo","Records may be out of date, still connecting"),10000);
   const fresh=new Set();
-  const settle=()=>{if(fresh.size>=COLS.length+1){clearTimeout(slow);setStatus("ok",readOnly?"Saved records, view only":"Saved records, synced");setTimeout(autoHistory,1500);setTimeout(()=>smsAuto().catch(()=>{}),4000);setTimeout(()=>applyDueChanges().catch(()=>{}),2500);setTimeout(()=>fixMovedOut().catch(()=>{}),3500);setTimeout(()=>autoPenalties().catch(()=>{}),5000)}};
-  COLS.forEach(col=>{db.collection(col).onSnapshot(snap=>{S[col]=snap.docs.map(d=>({...d.data(),id:d.id}));DV++;if(col==="staff")staffLoaded=true;if(!snap.metadata.fromCache){fresh.add(col);settle()}queueRender()},
-    err=>{if(col==="staff"){staffLoaded=true;render()}clearTimeout(slow);setStatus("demo","Could not load "+col);fresh.add(col)})});
+  const settle=()=>{if(fresh.size>=COLS.length+1){clearTimeout(slow);try{bootHide()}catch(e){}setStatus("ok",readOnly?"Saved records, view only":"Saved records, synced");setTimeout(autoHistory,1500);setTimeout(()=>smsAuto().catch(()=>{}),4000);setTimeout(()=>applyDueChanges().catch(()=>{}),2500);setTimeout(()=>fixMovedOut().catch(()=>{}),3500);setTimeout(()=>autoPenalties().catch(()=>{}),5000)}};
+  bootShow();
+  COLS.forEach(col=>{db.collection(col).onSnapshot(snap=>{S[col]=snap.docs.map(d=>({...d.data(),id:d.id}));DV++;if(col==="staff")staffLoaded=true;try{bootTick(col,false)}catch(e){}if(!snap.metadata.fromCache){fresh.add(col);settle()}queueRender()},
+    err=>{if(col==="staff"){staffLoaded=true;render()}clearTimeout(slow);setStatus("demo","Could not load "+col);fresh.add(col);try{bootTick(col,false)}catch(e){}})});
   if(ME.admin){try{db.collection("expenses").onSnapshot(s=>{S.expenses=s.docs.map(d=>({...d.data(),id:d.id}));DV++;queueRender()},()=>{})}catch(e){}}
   db.doc("settings/config").onSnapshot(d=>{S.settings=d.exists?{...DEFAULT_SETTINGS,...d.data()}:{...DEFAULT_SETTINGS};DV++;if(!d.metadata.fromCache){fresh.add("settings");settle()}queueRender()},()=>{fresh.add("settings")});
   render();
