@@ -1457,11 +1457,11 @@ async function generate(){
 }
 async function applyPenalties(){
   if(!can("invoices")){toast("You don't have permission to apply penalties.");return}
-  const C=compute(),pct=+S.settings.penaltyPct||0;
-  const due=S.invoices.filter(i=>i.month===month&&!i.adj&&!i.reversed&&catOf(i)==="rent"&&C.inv[i.id]&&C.inv[i.id].bal>0&&todayStr>penaltyFrom(i)&&!i.lines.some(l=>l.kind==="penalty")&&(filters.code==="all"||(get("units",i.unitId)||{}).propertyId===filters.code));
+  const pct=+S.settings.penaltyPct||0;
+  const due=penaltyDue(month,month,filters.code);
   if(!due.length){toast("No overdue invoices need a penalty yet. Each property's due day and grace days are set under Edit property.");return}
-  askConfirm(`Add the late payment penalty (fixed amount where the property sets one, otherwise ${pct}% of rent) to ${due.length} overdue invoice${due.length>1?"s":""} for ${monthLabel(month)}?`,"Apply penalties",async()=>{
-    const objs=due.map(i=>{const pf=penaltyFor(i),amt=pf.amt;const lines=[...i.lines,{desc:pf.label,qty:1,rate:amt,amount:amt,kind:"penalty"}];return {...i,lines,total:lines.reduce((s,l)=>s+l.amount,0)}});
+  askConfirm(`Add the late payment penalty (fixed amount where the property sets one, otherwise ${pct}% of rent) to ${due.length} rent invoice${due.length>1?"s":""} for ${monthLabel(month)} not paid in full by the due day and grace days (including tenants who paid late)?<br><br>${due.slice(0,12).map(i=>{const t=get("tenants",i.tenantId)||{},u=get("units",i.unitId);return esc((propOf(u)||{}).code+" "+unitName(u)+" · "+t.name+" · KES "+n0(penaltyFor(i).amt))}).join("<br>")}${due.length>12?"<br>…":""}`,"Apply penalties",async()=>{
+    const objs=due.map(addPenalty).filter(Boolean);
     const n=await saveMany("invoices",objs);toast("Penalty added to "+n+" invoice"+(n===1?"":"s"))});
 }
 async function saveReadings(){
@@ -3871,15 +3871,21 @@ let penDone=false;
 async function autoPenalties(){
   if(penDone||mode!=="cloud"||!ME.admin)return;penDone=true;const st=S.settings;if(st.autoPenalty===false)return;
   const from=st.autoPenaltyFrom||todayStr.slice(0,7);if(!st.autoPenaltyFrom)await saveSettings({autoPenaltyFrom:from});
-  const C=compute();
-  const due=S.invoices.filter(i=>i.month>=from&&i.month<=todayStr.slice(0,7)&&!i.adj&&!i.reversed&&catOf(i)==="rent"&&C.inv[i.id]&&C.inv[i.id].bal>0.5&&todayStr>penaltyFrom(i)&&!i.lines.some(l=>l.kind==="penalty")&&!propEnded(propOf(get("units",i.unitId)),i.month));
-  const objs=due.map(i=>{const pf=penaltyFor(i);if(!(pf.amt>0))return null;const lines=[...i.lines,{desc:pf.label,qty:1,rate:pf.amt,amount:pf.amt,kind:"penalty",auto:true}];return {...i,lines,total:lines.reduce((s,l)=>s+(+l.amount||0),0)}}).filter(Boolean);
-  if(objs.length){const n=await saveMany("invoices",objs);toast(`Late penalty added to ${n} overdue invoice${n===1?"":"s"} (due day and grace days passed)`)}}
-function penaltyBar(){if(!ME.admin)return "";const on=S.settings.autoPenalty!==false;
-  return `<div class="card"><div class="cb row" style="gap:10px;align-items:center;flex-wrap:wrap"><strong>Late penalties:</strong> ${on?`<span class="pill p-good">Automatic</span> added to unpaid rent once each property's due day plus grace days has passed${S.settings.autoPenaltyFrom?", from "+monthLabel(S.settings.autoPenaltyFrom)+" bills":""}.`:`<span class="pill p-mute">Manual</span> use "Apply late penalties" each month.`}
-   <button class="btn sm" data-a="penAuto">${on?"Switch to manual":"Make automatic"}</button><span class="sub">Penalty amount and grace days are set per property under Edit property.</span></div></div>`}
+  const objs=penaltyDue(from,todayStr.slice(0,7)).map(addPenalty).filter(Boolean);
+  if(objs.length){const n=await saveMany("invoices",objs);toast(`Late penalty added to ${n} rent invoice${n===1?"":"s"} not paid in full by the due day and grace days`)}}
+function penaltyBar(){if(!ME.admin)return "";const on=S.settings.autoPenalty!==false;const waiting=penaltyDue(month,month,filters.code).length;
+  const dates=sortedProps().filter(p=>filters.code==="all"||p.id===filters.code).map(p=>{const c=cfg(p),d=new Date(dueDateFor(month,p)+"T00:00:00");d.setDate(d.getDate()+graceOf(p));return `${esc(p.code)}: due ${ord(dueDayOf(p))}${graceOf(p)?" + "+graceOf(p)+" grace day"+(graceOf(p)>1?"s":""):""}, penalty ${+c.penaltyFlat>0?"KES "+n0(c.penaltyFlat):(c.penaltyPct!==""&&c.penaltyPct!=null?+c.penaltyPct:(+S.settings.penaltyPct||0))+"% of rent"} from ${fmtDate(iso(new Date(d.getTime()+864e5)))}`}).join(" · ");
+  return `<div class="card"><div class="cb row" style="gap:10px;align-items:center;flex-wrap:wrap"><strong>Late penalties:</strong> ${on?`<span class="pill p-good">Automatic</span> added to rent not paid in full by each property's due day plus grace days${S.settings.autoPenaltyFrom?", from "+monthLabel(S.settings.autoPenaltyFrom)+" bills":""}.`:`<span class="pill p-mute">Manual</span> use "Apply late penalties" each month.`}
+   <button class="btn sm" data-a="penAuto">${on?"Switch to manual":"Make automatic"}</button>${waiting?` <span class="pill p-warn">${waiting} waiting</span> <button class="btn sm primary" data-a="penalty">Apply now</button>`:""}<span class="sub" style="width:100%">${dates}. Charged when rent was not paid in full by then, including tenants who paid afterwards. Change amounts and grace days under Edit property.</span></div></div>`}
 document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b||b.dataset.a!=="penAuto"||!ME.admin)return;e.preventDefault();
   const on=S.settings.autoPenalty!==false;await saveSettings({autoPenalty:!on,autoPenaltyFrom:S.settings.autoPenaltyFrom||todayStr.slice(0,7)});toast(on?"Penalties are now manual":"Penalties are now automatic");penDone=false;if(!on)autoPenalties();render()});
+
+
+/* a rent invoice is late if it was not fully paid by the end of its due day plus grace days, even if paid since */
+function paidLate(i){const pf=penaltyFrom(i);if(!(todayStr>pf))return false;if(i.lines.some(l=>l.kind==="deposit"))return false;if((i.issueDate||"")>pf)return false;
+  return paidBy(i.id,pf)<invAmt(i)-0.5}
+function penaltyDue(fromMonth,toMonth,code){return S.invoices.filter(i=>i.month>=fromMonth&&i.month<=toMonth&&!i.adj&&!i.reversed&&catOf(i)==="rent"&&i.cat!=="misc"&&!i.lines.some(l=>l.kind==="penalty")&&!propEnded(propOf(get("units",i.unitId)),i.month)&&(!code||code==="all"||(get("units",i.unitId)||{}).propertyId===code)&&paidLate(i))}
+function addPenalty(i){const pf=penaltyFor(i);if(!(pf.amt>0))return null;const lines=[...i.lines,{desc:pf.label,qty:1,rate:pf.amt,amount:pf.amt,kind:"penalty",auto:true,addedAt:todayStr}];return {...i,lines,total:lines.reduce((s,l)=>s+(+l.amount||0),0)}}
 
 const VIEWS={maint:vMaint,mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
