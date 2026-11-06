@@ -1462,7 +1462,7 @@ async function applyPenalties(){
   if(!due.length){toast("No overdue invoices need a penalty yet. Each property's due day and grace days are set under Edit property.");return}
   askConfirm(`Add the late payment penalty (fixed amount where the property sets one, otherwise ${pct}% of rent) to ${due.length} rent invoice${due.length>1?"s":""} for ${monthLabel(month)} not paid in full by the due day and grace days (including tenants who paid late)?<br><br>${due.slice(0,12).map(i=>{const t=get("tenants",i.tenantId)||{},u=get("units",i.unitId);return esc((propOf(u)||{}).code+" "+unitName(u)+" · "+t.name+" · KES "+n0(penaltyFor(i).amt))}).join("<br>")}${due.length>12?"<br>…":""}`,"Apply penalties",async()=>{
     const objs=due.map(addPenalty).filter(Boolean);
-    const n=await saveMany("invoices",objs);toast("Penalty added to "+n+" invoice"+(n===1?"":"s"))});
+    const n=await saveMany("invoices",objs);toast("Penalty added to "+n+" invoice"+(n===1?"":"s"));setTimeout(()=>{penSmsAsked=false;promptPenaltySms(true).catch(()=>{})},1200)});
 }
 async function saveReadings(){
   if(!can("readings")){toast("You don't have permission to enter readings.");return}
@@ -3872,11 +3872,12 @@ async function autoPenalties(){
   if(penDone||mode!=="cloud"||!ME.admin)return;penDone=true;const st=S.settings;if(st.autoPenalty===false)return;
   const from=st.autoPenaltyFrom||todayStr.slice(0,7);if(!st.autoPenaltyFrom)await saveSettings({autoPenaltyFrom:from});
   const objs=penaltyDue(from,todayStr.slice(0,7)).map(addPenalty).filter(Boolean);
-  if(objs.length){const n=await saveMany("invoices",objs);toast(`Late penalty added to ${n} rent invoice${n===1?"":"s"} not paid in full by the due day and grace days`)}}
+  if(objs.length){const n=await saveMany("invoices",objs);toast(`Late penalty added to ${n} rent invoice${n===1?"":"s"} not paid in full by the due day and grace days`)}
+  setTimeout(()=>promptPenaltySms().catch(()=>{}),objs.length?1500:300)}
 function penaltyBar(){if(!ME.admin)return "";const on=S.settings.autoPenalty!==false;const waiting=penaltyDue(month,month,filters.code).length;
   const dates=sortedProps().filter(p=>filters.code==="all"||p.id===filters.code).map(p=>{const c=cfg(p),d=new Date(dueDateFor(month,p)+"T00:00:00");d.setDate(d.getDate()+graceOf(p));return `${esc(p.code)}: due ${ord(dueDayOf(p))}${graceOf(p)?" + "+graceOf(p)+" grace day"+(graceOf(p)>1?"s":""):""}, penalty ${+c.penaltyFlat>0?"KES "+n0(c.penaltyFlat):(c.penaltyPct!==""&&c.penaltyPct!=null?+c.penaltyPct:(+S.settings.penaltyPct||0))+"% of rent"} from ${fmtDate(iso(new Date(d.getTime()+864e5)))}`}).join(" · ");
   return `<div class="card"><div class="cb row" style="gap:10px;align-items:center;flex-wrap:wrap"><strong>Late penalties:</strong> ${on?`<span class="pill p-good">Automatic</span> added to rent not paid in full by each property's due day plus grace days${S.settings.autoPenaltyFrom?", from "+monthLabel(S.settings.autoPenaltyFrom)+" bills":""}.`:`<span class="pill p-mute">Manual</span> use "Apply late penalties" each month.`}
-   <button class="btn sm" data-a="penAuto">${on?"Switch to manual":"Make automatic"}</button>${waiting?` <span class="pill p-warn">${waiting} waiting</span> <button class="btn sm primary" data-a="penalty">Apply now</button>`:""}<span class="sub" style="width:100%">${dates}. Charged when rent was not paid in full by then, including tenants who paid afterwards. Change amounts and grace days under Edit property.</span></div></div>`}
+   <button class="btn sm" data-a="penAuto">${on?"Switch to manual":"Make automatic"}</button>${waiting?` <span class="pill p-warn">${waiting} waiting</span> <button class="btn sm primary" data-a="penalty">Apply now</button>`:""}${smsReady()&&penaltySmsDocs().length?` <button class="btn sm" data-a="penSms">Text penalty notices (${penaltySmsDocs().length})</button>`:""}<span class="sub" style="width:100%">${dates}. Charged when rent was not paid in full by then, including tenants who paid afterwards. Change amounts and grace days under Edit property.</span></div></div>`}
 document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b||b.dataset.a!=="penAuto"||!ME.admin)return;e.preventDefault();
   const on=S.settings.autoPenalty!==false;await saveSettings({autoPenalty:!on,autoPenaltyFrom:S.settings.autoPenaltyFrom||todayStr.slice(0,7)});toast(on?"Penalties are now manual":"Penalties are now automatic");penDone=false;if(!on)autoPenalties();render()});
 
@@ -3887,6 +3888,22 @@ function paidLate(i){const pf=penaltyFromNow(i);if(!(todayStr>pf))return false;i
   return paidBy(i.id,pf)<invAmt(i)-0.5}
 function penaltyDue(fromMonth,toMonth,code){return S.invoices.filter(i=>i.month>=fromMonth&&i.month<=toMonth&&!i.adj&&!i.reversed&&catOf(i)==="rent"&&i.cat!=="misc"&&!i.lines.some(l=>l.kind==="penalty")&&!propEnded(propOf(get("units",i.unitId)),i.month)&&(!code||code==="all"||(get("units",i.unitId)||{}).propertyId===code)&&paidLate(i))}
 function addPenalty(i){const pf=penaltyFor(i);if(!(pf.amt>0))return null;const lines=[...i.lines,{desc:pf.label,qty:1,rate:pf.amt,amount:pf.amt,kind:"penalty",auto:true,addedAt:todayStr}];return {...i,lines,total:lines.reduce((s,l)=>s+(+l.amount||0),0)}}
+
+
+/* penalty notices: tenants are texted when a late penalty is added (preview first) */
+const penSkip=()=>{try{return JSON.parse(localStorage.getItem("bh_pen_skip")||"[]")}catch(e){return []}};
+function penaltySmsDocs(){const from=S.settings.autoPenaltyFrom||todayStr.slice(0,7),skip=new Set(penSkip()),sent=new Set(S.sms.map(x=>x.id));
+  return S.invoices.filter(i=>i.month>=from&&!i.reversed&&catOf(i)==="rent"&&i.lines.some(l=>l.kind==="penalty")&&!sent.has("pen-"+i.id)&&!skip.has(i.id)).map(i=>{
+    const t=get("tenants",i.tenantId);if(!t||t.noSms||!smsPhone(t.phone))return null;const u=get("units",i.unitId)||get("units",t.unitId),p=propOf(u)||{};
+    const amt=i.lines.filter(l=>l.kind==="penalty").reduce((x,l)=>x+(+l.amount||0),0),v=smsVars(t),bal=(compute().ten[t.id]||{}).balance||0;
+    const text=smsLines([`Dear ${v.name},`,`${p.code||""} House ${unitName(u)}: your ${monthLabel(i.month)} rent was not paid in full by ${fmtDate(dueDateFor(i.month,pForT(t,p)))}.`,`A late payment penalty of KES ${n0(amt)} has been added.`,bal>0?`Balance: KES ${n0(bal)}`:null,"","Paybill {paybill}, Account {account}","{company}"],v);
+    return {...smsDoc("pen-"+i.id,t,text,"Late penalty"),_inv:i.id}}).filter(Boolean)}
+let penSmsAsked=false;
+async function promptPenaltySms(force){if((penSmsAsked&&!force)||!ME.admin||!smsReady()||!smsCfg().on)return;penSmsAsked=true;
+  const docs=penaltySmsDocs();if(!docs.length)return;
+  const n=await smsReview(docs.map(({_inv,...d})=>d),`Text ${docs.length} tenant${docs.length>1?"s":""} about their late penalty`,"Penalty notices");
+  if(!n){try{localStorage.setItem("bh_pen_skip",JSON.stringify([...penSkip(),...docs.map(d=>d._inv)]))}catch(e){}toast("Penalty notices not sent. Use \"Text penalty notices\" on the Invoices page to send them later.")}}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b||b.dataset.a!=="penSms")return;e.preventDefault();try{localStorage.removeItem("bh_pen_skip")}catch(x){}penSmsAsked=false;promptPenaltySms(true)});
 
 const VIEWS={maint:vMaint,mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
