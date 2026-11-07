@@ -2,7 +2,7 @@
    It gives the ledger the same small interface it used inside Claude, so the ledger code itself is unchanged. */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, createUserWithEmailAndPassword, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, memoryLocalCache, terminate, clearIndexedDbPersistence, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getDoc, getDocFromCache, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, memoryLocalCache, terminate, clearIndexedDbPersistence, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getDoc, getDocFromCache, getDocs, query, orderBy, limit, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import * as CFG from "./config.js";
 const { FIREBASE_CONFIG, ADMIN_EMAILS, STORAGE_ON } = CFG;
@@ -23,19 +23,30 @@ const auth = getAuth(app);
 /* security: a login lasts only while the browser is open (closing it signs out) */
 const persistReady = setPersistence(auth, browserSessionPersistence).catch(() => {});
 /* speed on phones: keep a copy of the records on this device (opens instantly next time, only changes are downloaded)
-   and fall back to a slower but steadier connection on networks that block streaming. The copy is wiped on sign-out. */
+   and fall back to a slower but steadier connection on networks that block streaming. The copy stays locked behind the sign-in screen
+   after sign-out (so signing back in only downloads changes) and is wiped when a different person signs in on this device. */
 const fsOpts = { experimentalAutoDetectLongPolling: true, localCache: (() => { try { return persistentLocalCache({ tabManager: persistentMultipleTabManager() }); } catch (e) { return memoryLocalCache(); } })() };
 const fs = (() => { try { return FIRESTORE_DB === "(default)" ? initializeFirestore(app, fsOpts) : initializeFirestore(app, fsOpts, FIRESTORE_DB); } catch (e) { return FIRESTORE_DB === "(default)" ? getFirestore(app) : getFirestore(app, FIRESTORE_DB); } })(), st = STORAGE_ON ? getStorage(app) : null;
 const adminList = ADMIN_EMAILS.map(e => e.toLowerCase());
 const mapErr = e => { const c = (e && e.code) || ""; const x = new Error(e && e.message || c); x.code = c === "permission-denied" ? "invalid_argument" : c.includes("quota") || c === "resource-exhausted" ? "quota_exceeded" : c; throw x; };
 const wrapQ = s => ({ docs: s.docs.map(d => ({ id: d.id, data: () => d.data() })), metadata: { fromCache: s.metadata.fromCache } });
+const SMS_DAYS = 60;
 const segs = path => path.split("/").filter(Boolean);
 
 const db = {
   collection(c) {
     return {
       doc(id) { const r = doc(fs, c, id); return { set: o => setDoc(r, o).catch(mapErr), delete: () => deleteDoc(r).catch(mapErr) }; },
-      onSnapshot(next, err) { return onSnapshot(collection(fs, c), s => next(wrapQ(s)), e => err && err(e)); }
+      onSnapshot(next, err) {
+        if (c !== "sms") return onSnapshot(collection(fs, c), s => next(wrapQ(s)), e => err && err(e));
+        // SMS history grows every day: load only the last 60 days, plus the sender's status record
+        const from = new Date(Date.now() - SMS_DAYS * 864e5).toISOString();
+        let recent = null, status = null;
+        const emit = () => { if (!recent) return; const ds = recent.docs.filter(x => x.id !== "_status"); next({ docs: status ? ds.concat([status]) : ds, metadata: recent.metadata }); };
+        const u1 = onSnapshot(query(collection(fs, "sms"), where("createdAt", ">=", from)), s => { recent = wrapQ(s); emit(); }, e => err && err(e));
+        const u2 = onSnapshot(doc(fs, "sms", "_status"), d => { status = d.exists() ? { id: "_status", data: () => d.data() } : null; emit(); }, () => {});
+        return () => { u1(); u2(); };
+      }
     };
   },
   doc(path) {
@@ -124,7 +135,7 @@ function makeUser(u, isAdmin, active) {
 }
 
 /* ===================== security ===================== */
-const IDLE_MS = (CFG.IDLE_MINUTES || 3) * 60 * 1000, WARN_MS = Math.min(30 * 1000, IDLE_MS / 3), LAST = "bh_last_activity";
+const IDLE_MS = (CFG.IDLE_MINUTES || 3) * 60 * 1000, WARN_MS = Math.min(30 * 1000, IDLE_MS / 3), LAST = "bh_last_activity", LAST_UID = "bh_last_uid";
 let lastLocal = Date.now(), idleTimer = null, warnBox = null, signingOut = false;
 const bc = ("BroadcastChannel" in window) ? new BroadcastChannel("bh-activity") : null;
 const lastShared = () => { try { return Math.max(lastLocal, +localStorage.getItem(LAST) || 0); } catch (e) { return lastLocal; } };
@@ -159,8 +170,8 @@ async function secureSignOut(reason) {
   // hide the records at once, then sign out and reload so nothing stays in memory
   document.body.classList.add("fb-locked"); hideWarn();
   try { await signOut(auth); } catch (e) {}
-  // remove the copy of the records kept on this device
-  try { await terminate(fs); await clearIndexedDbPersistence(fs); } catch (e) {}
+  // the copy of the records on this device stays locked behind the sign-in screen; it is wiped if someone else signs in here
+  try { await terminate(fs); } catch (e) {}
   location.reload();
 }
 function checkIdle() {
@@ -192,6 +203,8 @@ onAuthStateChanged(auth, async u => {
   // a remembered session that has been idle too long (e.g. tab reopened later) is signed out straight away
   const prev = (() => { try { return +localStorage.getItem(LAST) || 0; } catch (e) { return 0; } })();
   if (!window.__justSignedIn && prev && Date.now() - prev > IDLE_MS) { await secureSignOut("idle"); return; }
+  // a different person on this device: wipe the previous person's saved copy first
+  try { const last = localStorage.getItem(LAST_UID); if (last && last !== u.uid) await clearIndexedDbPersistence(fs); localStorage.setItem(LAST_UID, u.uid); } catch (e) {}
   started = true; say("Opening your records…"); lastLocal = 0; touch();
   if (window.__justSignedIn) logEvent(u, "signed in");
   const email = (u.email || "").toLowerCase();
