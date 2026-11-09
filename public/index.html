@@ -1286,7 +1286,7 @@ function formPay(tid){
     const ref=d.ref.trim().toUpperCase(),split=d.split==="on",er=refError(d.method,ref,null,d.tenantId,split);
     if(er){document.getElementById("payErr").textContent=er;return}
     const smsTxt=pySms?pySms.get():null;
-    const obj={id:uid(),tenantId:d.tenantId,amount:+d.amount,date:d.date,method:d.method,ref,...(split?{split:true}:{}),...(smsTxt===""?{smsOff:true}:smsTxt?{smsText:smsTxt.replace("(receipt no.)","{receipt}")}:{}),note:d.note.trim(),receiptNo:(noReserve={},nextNo("RCPT","payments","receiptNo"))};
+    const obj={id:uid(),tenantId:d.tenantId,amount:+d.amount,date:d.date,method:d.method,ref,...(split?{split:true}:{}),...(smsTxt===""?{smsOff:true}:smsTxt?{smsText:smsTxt.replace("(receipt no.)","{receipt}"),...(pySms.at()?{smsAt:pySms.at()}:{})}:{}),note:d.note.trim(),receiptNo:(noReserve={},nextNo("RCPT","payments","receiptNo"))};
     const tt=get("tenants",d.tenantId)||{};
     const r=await submit("payments","Payment "+kes(obj.amount)+" from "+(tt.name||"tenant")+(ref?" ("+ref+(split?", split":"")+")":""),[{op:"set",col:"payments",obj,renum:"RCPT"}],"payments");
     if(r){closeModal();if(r==="done")setTimeout(()=>showReceipt(obj.id),150)}};
@@ -2197,14 +2197,14 @@ function formRemit(id,pid){
    <div class="f"><label for="rm-r" id="rm-rl">Reference</label><input id="rm-r" name="ref" value="${esc(r?r.ref||"":"")}" style="text-transform:uppercase"><span class="hint">Required. It appears on the landlord report.</span></div>
    <div class="f full"><label for="rm-to">Paid to (landlord's account)</label><input id="rm-to" name="paidTo" value="${esc(r?r.paidTo||"":(pt0==="util"?(get("properties",pid)||{}).utilLandlordPay:(get("properties",pid)||{}).landlordPay)||"")}"></div>
    <div class="f"><label for="rm-n">Note</label><input id="rm-n" name="note" value="${esc(r?r.note||"":"")}"></div>
-   ${!r&&smsReady()&&smsCfg().on?smsBox("rmSms",smsCfg().llMsg!==false,"Text the landlord that they have been paid (SMS)"):""}<div class="err full" id="rmErr"></div></form>`,
+   ${!r&&smsReady()?smsBox("rmSms",smsCfg().llMsg!==false,"Text the landlord that they have been paid (SMS)"):""}<div class="err full" id="rmErr"></div></form>`,
    `<button class="btn" data-a="close">Cancel</button><button class="btn primary" type="submit" form="fRm">Save payment</button>`);wireRefLabel("rm-me","rm-rl");
   const fRm=document.getElementById("fRm"),rmSms=wireSmsBox("rmSms",()=>{const d=Object.fromEntries(new FormData(fRm)),m=llPaidMsg({propertyId:pid,month:d.month,amount:+d.amount||0,date:d.date,method:d.method,ref:(d.ref||"").toUpperCase(),paidTo:d.paidTo,part:d.part});return smsPhone(m.ph)?m.text:null});
   fRm.addEventListener("input",()=>rmSms.refresh());fRm.addEventListener("change",()=>rmSms.refresh());
   document.getElementById("fRm").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target)),ref=(d.ref||"").trim().toUpperCase();
     {const er=payRefError(d.method,ref);if(er){document.getElementById("rmErr").textContent=er;return}}
     if(ref&&S.remits.some(x=>(x.ref||"").toUpperCase()===ref&&(!r||x.id!==r.id))){document.getElementById("rmErr").textContent="Reference "+ref+" is already recorded.";return}
-    const obj={...(r||{id:uid()}),propertyId:pid,month:d.month,amount:+d.amount,date:d.date,method:d.method,ref,paidTo:(d.paidTo||"").trim(),note:d.note.trim()};if(!r){const st=rmSms.get();if(st==="")obj.smsOff=true;else if(st)obj.smsText=st}if(LM.split)obj.part=d.part==="util"?"util":"rent";
+    const obj={...(r||{id:uid()}),propertyId:pid,month:d.month,amount:+d.amount,date:d.date,method:d.method,ref,paidTo:(d.paidTo||"").trim(),note:d.note.trim()};if(!r){const st=rmSms.get();if(st==="")obj.smsOff=true;else if(st){obj.smsText=st;if(rmSms.at())obj.smsAt=rmSms.at()}}if(LM.split)obj.part=d.part==="util"?"util":"rent";
     if(await submit("remits",`Remit ${kes(obj.amount)} to ${(get("properties",pid)||{}).landlord||"landlord"} (${(get("properties",pid)||{}).code||""}, ${monthShort(obj.month)})`,[{op:"set",col:"remits",obj}],"landlords"))closeModal()}}
 const LD_SUGG=["Cleaner","Caretaker","Security","Water bill","Electricity bill","Repairs and maintenance","Plumbing","Painting","Soakpit / exhauster","Materials","Advertising vacant house","Letting commission","Legal fees","Land rates","Insurance","Paid landlord cash"];
 function formLded(id,pid){
@@ -2756,7 +2756,7 @@ async function smsOnPayment(p){
   if(!smsReady())return;const c=smsCfg();if(p.method==="Settled before system")return;if(!p.smsText&&(!c.on||!c.payMsg))return;
   const t=get("tenants",p.tenantId);if(!t||t.noSms||!smsPhone(t.phone))return;
   if(p.smsOff)return;
-  await smsQueue([smsDoc("pay-"+p.id,t,p.smsText?String(p.smsText).replace(/\{receipt\}/g,p.receiptNo||""):smsFill(c.tplPay,smsVars(t,{amount:n0(p.amount),receipt:p.receiptNo||"",date:fmtDate(p.date)})),"Payment received")]);
+  await smsQueue(withSched([smsDoc("pay-"+p.id,t,p.smsText?String(p.smsText).replace(/\{receipt\}/g,p.receiptNo||""):smsFill(c.tplPay,smsVars(t,{amount:n0(p.amount),receipt:p.receiptNo||"",date:fmtDate(p.date)})),"Payment received")],p.smsAt&&p.smsAt>new Date().toISOString()?p.smsAt:""));
 }
 
 const SMS_KIND_PILL={"Payment received":"p-good","Late notice":"p-bad"};
@@ -3242,9 +3242,9 @@ function utilSmsState(inv){if(!inv)return "";const xs=S.sms.filter(x=>x.id&&x.id
   if(!x)return `<span class="sub">Not texted</span>`;const cur=x.id.startsWith(utilSmsId(inv));
   return (x.status==="sent"?`<span class="pill p-good" title="${esc(x.text||"")}">SMS sent ${fmtDate((x.sentAt||"").slice(0,10))}</span>`:x.status==="failed"?`<span class="pill p-bad" title="${esc(x.error||"")}">SMS failed</span>`:`<span class="pill">SMS waiting</span>`)+(cur?"":`<span class="sub">Bill changed since</span>`)}
 async function smsLandlordPaid(r){
-  if(!smsReady())return;const c=smsCfg();if(!c.on||c.llMsg===false||r.method==="Settled before system"||r.smsOff)return;
+  if(!smsReady())return;const c=smsCfg();if(r.method==="Settled before system"||r.smsOff)return;if(!r.smsText&&(!c.on||c.llMsg===false))return;
   const m=llPaidMsg(r);if(!smsPhone(m.ph))return;
-  await smsQueue([{id:"llpay-"+r.id,to:smsPhone(m.ph),tenantId:"",landlordId:m.L.id||"",name:m.name,text:r.smsText||m.text,kind:"Landlord payment",status:"queued",createdAt:new Date().toISOString(),by:ME.id||""}]);
+  await smsQueue(withSched([{id:"llpay-"+r.id,to:smsPhone(m.ph),tenantId:"",landlordId:m.L.id||"",name:m.name,text:r.smsText||m.text,kind:"Landlord payment",status:"queued",createdAt:new Date().toISOString(),by:ME.id||""}],r.smsAt&&r.smsAt>new Date().toISOString()?r.smsAt:""));
 }
 /* reverse one item (rent, deposit, garbage, water, electricity, penalty...) on an invoice */
 function reverseLine(id,idx){
@@ -3452,10 +3452,10 @@ function invSmsState(i){const xs=S.sms.filter(x=>x.id&&(x.id.startsWith("inv-"+i
   return x.status==="sent"?`<span class="pill p-good">SMS sent ${fmtDate((x.sentAt||"").slice(0,10))}</span>`:x.status==="failed"?`<span class="pill p-bad">SMS failed</span>`:`<span class="pill">SMS waiting</span>`}
 function sendInvoiceSms(id){const i=get("invoices",id);if(!i)return;const t=get("tenants",i.tenantId)||{};
   if(!smsPhone(t.phone)){toast("This tenant has no valid phone number");return}const text=invoiceSmsText(i);
-  openModal("Send "+esc(i.no)+" by SMS",`<p style="margin:0 0 8px">To <strong>${esc(t.name)}</strong> · ${esc(t.phone)}</p><textarea id="isTxt" rows="10" style="width:100%;font:14px var(--body);padding:10px;border:1px solid var(--line);border-radius:10px">${esc(text)}</textarea><p class="hint" id="isLen">${text.length} characters${text.length>160?" ("+Math.ceil(text.length/153)+" SMS)":""}</p>`,
+  openModal("Send "+esc(i.no)+" by SMS",`<p style="margin:0 0 8px">To <strong>${esc(t.name)}</strong> · ${esc(t.phone)}</p><textarea id="isTxt" rows="10" style="width:100%;font:14px var(--body);padding:10px;border:1px solid var(--line);border-radius:10px">${esc(text)}</textarea><p class="hint" id="isLen">${text.length} characters${text.length>160?" ("+Math.ceil(text.length/153)+" SMS)":""}</p>${schedRow("isS")}`,
    `<button class="btn" data-a="close">Cancel</button><button class="btn primary" id="isGo">Send SMS</button>`);
   const ta=document.getElementById("isTxt");ta.oninput=()=>{const n=ta.value.length;document.getElementById("isLen").textContent=n+" characters"+(n>160?" ("+Math.ceil(n/153)+" SMS)":"")};
-  document.getElementById("isGo").onclick=async()=>{const n=await smsQueue([smsDoc("inv-"+i.id+"-"+Date.now().toString(36),t,ta.value.trim(),"Invoice")]);closeModal();toast(n?"SMS queued; it goes out within a minute":"Couldn't queue the SMS");setTimeout(()=>showInvoice(id),200)}}
+  document.getElementById("isGo").onclick=async()=>{const at=schedAt("isS");const n=await smsQueue(withSched([smsDoc("inv-"+i.id+"-"+Date.now().toString(36),t,ta.value.trim(),"Invoice")],at));closeModal();schedToast(at,n);setTimeout(()=>showInvoice(id),200)}}
 
 /* ---------- scheduled changes to rent, service charge and utilities ---------- */
 const CHG_FIELDS=[["rent","Rent","unit"],["serviceFixed","Service charge (per house)","unit"],["waterFixed","Water, fixed amount (per house)","unit"],["elecFixed","Electricity, fixed amount (per house)","unit"],["garbage","Garbage (whole property)","prop"],["waterFlat","Water flat rate (whole property)","prop"],["waterRate","Water rate per unit (whole property)","prop"],["elecRate","Electricity rate per unit (whole property)","prop"]];
@@ -3695,11 +3695,11 @@ function llPaidMsg(r){const p=get("properties",r.propertyId)||{},U=r.part==="uti
   const text=[`Dear ${String(name).split(" ")[0]},`,`Berlim Homes has paid you KES ${n0(r.amount)}`,`For: ${p.code||""} ${p.name||""}, ${monthLabel(r.month)} ${U?"water and electricity":"rent"}`,`Date: ${fmtDate(r.date)}`,`Via: ${r.method}${r.ref?", ref "+r.ref:""}`,r.paidTo?`To: ${r.paidTo}`:"","Thank you.",`Berlim Homes ${(S.settings.phone||"").split("/")[0].trim()}`].filter(Boolean).join("\n");
   return {ph,name,text,L}}
 function smsBox(id,on,label){return `<div class="f full" style="background:#F4EEDF;border-radius:10px;padding:10px 12px"><label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="${id}-on" ${on?"checked":""}> ${label}</label>
-  <textarea id="${id}-tx" rows="7" style="width:100%;font:14px var(--body);padding:8px;border:1px solid var(--line);border-radius:8px;margin-top:6px"></textarea><span class="hint" id="${id}-h"></span></div>`}
-function wireSmsBox(id,make){const on=document.getElementById(id+"-on"),tx=document.getElementById(id+"-tx"),h=document.getElementById(id+"-h");if(!on)return {get:()=>null,refresh:()=>{}};let edited=false;
+  <textarea id="${id}-tx" rows="7" style="width:100%;font:14px var(--body);padding:8px;border:1px solid var(--line);border-radius:8px;margin-top:6px"></textarea><span class="hint" id="${id}-h"></span>${schedRow(id)}</div>`}
+function wireSmsBox(id,make){const on=document.getElementById(id+"-on"),tx=document.getElementById(id+"-tx"),h=document.getElementById(id+"-h");if(!on)return {get:()=>null,at:()=>"",refresh:()=>{}};let edited=false;
   const refresh=()=>{const v=make();if(v===null){tx.value="";tx.disabled=true;h.textContent="No valid phone number, so no SMS will be sent.";return}tx.disabled=!on.checked;if(!edited)tx.value=v;h.textContent=on.checked?tx.value.length+" characters · "+smsUnits(tx.value)+" SMS. You can edit it before saving.":"No SMS will be sent."};
   tx.oninput=()=>{edited=true;h.textContent=tx.value.length+" characters · "+smsUnits(tx.value)+" SMS"};on.onchange=refresh;refresh();
-  return {get:()=>on.checked&&!tx.disabled&&tx.value.trim()?tx.value.trim():"",refresh}}
+  return {get:()=>on.checked&&!tx.disabled&&tx.value.trim()?tx.value.trim():"",at:()=>on.checked?schedAt(id):"",refresh}}
 
 
 /* ===== statements by year, with notes tracing arrears ===== */
@@ -3851,9 +3851,9 @@ function formMaint(id,tid){
     const obj=x?{...x,propertyId:d.propertyId,unitId:d.unitId||"",tenantId:ten?ten.id:(x.unitId===d.unitId?x.tenantId:""),category:d.category,priority:d.priority,title:d.title.trim(),details:d.details.trim(),reportedBy:d.reportedBy,reportedAt:d.date||x.reportedAt}
       :{id:uid(),no:nextNo("MNTC","maint"),propertyId:d.propertyId,unitId:d.unitId||"",tenantId:ten?ten.id:"",category:d.category,priority:d.priority,title:d.title.trim(),details:d.details.trim(),reportedBy:d.reportedBy,reportedAt:(d.date||todayStr)+"T"+new Date().toTimeString().slice(0,8),status:"Reported",createdBy:ME.id||""};
     if(!x)obj.log=mLog(obj,"Reported",d.reportedBy+": "+obj.title);
-    const txt=sb.get();
+    const txt=sb.get(),at=sb.at();
     if(!(await save("maint",obj)))return;closeModal();toast(x?"Saved":"Issue "+obj.no+" logged");
-    if(txt&&ten)await smsQueue([smsDoc("mnt-"+obj.id+"-b",ten,txt.replace("(new ref.)",obj.no),"Maintenance received")]);}}
+    if(txt&&ten)await smsQueue(withSched([smsDoc("mnt-"+obj.id+"-b",ten,txt.replace("(new ref.)",obj.no),"Maintenance received")],at));}}
 function formMAssign(id){const x=get("maint",id);if(!x)return;
   const techs=[...new Map(S.maint.filter(m=>m.assignee).map(m=>[m.assignee,m.assigneePhone||""])).entries()];
   const staff=S.staff.filter(s=>s.active!==false).map(s=>[s.label||s.email||s.id,s.phone||""]);
@@ -3873,9 +3873,9 @@ function formMAssign(id){const x=get("maint",id);if(!x)return;
   fm.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(fm));
     const obj={...x,assignee:d.who.trim(),assigneePhone:d.phone.trim(),visitDate:d.visit,status:x.status==="In progress"?"In progress":"Assigned",assignedAt:new Date().toISOString()};
     obj.log=mLog(x,"Assigned",`${obj.assignee}${obj.visitDate?", visit "+fmtDate(obj.visitDate):""}${d.note?": "+d.note:""}`);
-    const tt=sT.get(),tw=sW.get();if(!(await save("maint",obj)))return;closeModal();toast(x.no+" assigned to "+obj.assignee);
-    const docs=[];const t=get("tenants",x.tenantId);if(tt&&t)docs.push(smsDoc("mnt-"+x.id+"-a"+Date.now().toString(36),t,tt,"Maintenance assigned"));
-    if(tw)docs.push(smsDoc("mnt-"+x.id+"-j"+Date.now().toString(36),{id:"",name:obj.assignee,phone:obj.assigneePhone},tw,"Maintenance job"));if(docs.length)await smsQueue(docs)}}
+    const tt=sT.get(),tw=sW.get(),atT=sT.at(),atW=sW.at();if(!(await save("maint",obj)))return;closeModal();toast(x.no+" assigned to "+obj.assignee);
+    const docs=[];const t=get("tenants",x.tenantId);if(tt&&t)docs.push(...withSched([smsDoc("mnt-"+x.id+"-a"+Date.now().toString(36),t,tt,"Maintenance assigned")],atT));
+    if(tw)docs.push(...withSched([smsDoc("mnt-"+x.id+"-j"+Date.now().toString(36),{id:"",name:obj.assignee,phone:obj.assigneePhone},tw,"Maintenance job")],atW));if(docs.length)await smsQueue(docs)}}
 function formMResolve(id){const x=get("maint",id);if(!x)return;const {u,p,t}=mWhere(x);
   openModal("Resolve "+esc(x.no)+": "+esc(x.title),`<form id="fMR" class="fg">
    <div class="f full"><label for="mr-n">What was done</label><input id="mr-n" name="note" required placeholder="e.g. Replaced the sink trap and tested"></div>
@@ -3896,7 +3896,7 @@ function formMResolve(id){const x=get("maint",id);if(!x)return;const {u,p,t}=mWh
     ops.push({op:"set",col:"maint",obj});
     if(!(await applyOps(ops)))return;
     if(c&&d.charge==="office"&&ME.admin)await save("expenses",{id:"mnt-"+x.id,date:d.date||todayStr,category:"Repairs and maintenance",details:`${x.no}: ${x.title} (${p.code}${u?" "+unitName(u):""})`,amount:c,paidBy:""});
-    const txt=sb.get();closeModal();toast(x.no+" resolved");if(txt&&t)await smsQueue([smsDoc("mnt-"+x.id+"-r",t,txt,"Maintenance resolved")])}}
+    const txt=sb.get(),at=sb.at();closeModal();toast(x.no+" resolved");if(txt&&t)await smsQueue(withSched([smsDoc("mnt-"+x.id+"-r",t,txt,"Maintenance resolved")],at))}}
 function showMaint(id){const x=get("maint",id);if(!x)return;const {u,p,t}=mWhere(x);
   openModal(esc(x.no)+": "+esc(x.title),`<div class="meta" style="margin-bottom:10px"><div><strong>${esc(p.code||"")} ${esc(p.name||"")}</strong>, ${u?"House "+esc(unitName(u)):"common area"}<br>${t?esc(t.name)+" · "+esc(t.phone||""):"No tenant"}<br>${esc(x.category||"")} · ${esc(x.priority||"Normal")}</div><div style="text-align:right">${mPill(x)}<br>${x.assignee?"Assigned: "+esc(x.assignee)+" "+esc(x.assigneePhone||""):""}${x.visitDate?"<br>Visit "+fmtDate(x.visitDate):""}${x.cost?"<br>Cost KES "+n0(x.cost)+" ("+esc(x.chargeTo||"")+")":""}</div></div>
    ${x.details?`<p style="margin:0 0 10px">${esc(x.details)}</p>`:""}${x.resolution?`<p style="margin:0 0 10px"><strong>Resolution:</strong> ${esc(x.resolution)}</p>`:""}
@@ -4024,6 +4024,15 @@ function propMoneyCard(pid,m){const M=propMoney(pid,m),p=pid==="all"?null:get("p
   ${box("Arrears: moved-out tenants",kes(M.exArrears),M.exOwing+" ex-tenant"+(M.exOwing===1?"":"s")+" owing",M.exArrears?"warn":"")}
   ${box("Overpaid (credit)",kes(M.credit),M.creditN?M.creditN+" tenant"+(M.creditN===1?"":"s")+" paid ahead":"")}</div></div>`}
 /* scheduled SMS */
+function schedRow(id){return `<div class="schedrow" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:8px"><b style="font-size:13px">When:</b>
+  <label style="display:flex;gap:5px;align-items:center;font-weight:400"><input type="radio" name="${id}-when" value="now" checked> Send now</label>
+  <label style="display:flex;gap:5px;align-items:center;font-weight:400"><input type="radio" name="${id}-when" value="later"> Schedule for</label>
+  <input type="datetime-local" id="${id}-at" value="${schedDefault()}" min="${schedMin()}" style="padding:5px 8px;border:1px solid var(--line);border-radius:8px" onfocus="const r=document.querySelector('input[name=&quot;${id}-when&quot;][value=later]');if(r)r.checked=true"></div>`}
+/* the chosen send time: "" = now; a time less than a minute away is sent now */
+function schedAt(id){const r=document.querySelector(`input[name="${id}-when"]:checked`);if(!r||r.value!=="later")return "";const v=(document.getElementById(id+"-at")||{}).value;const d=v?new Date(v):null;
+  return d&&!isNaN(d)&&d.getTime()>Date.now()+60000?d.toISOString():""}
+const withSched=(docs,at)=>at?docs.map(d=>({...d,status:"scheduled",dueAt:at})):docs;
+const schedToast=(at,n)=>toast(at?`SMS scheduled for ${schedLabel(at)}`:(n?"SMS queued; it goes out within a minute":"Couldn't queue the SMS"));
 const pad2=n=>String(n).padStart(2,"0");
 const localDT=d=>d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate())+"T"+pad2(d.getHours())+":"+pad2(d.getMinutes());
 function schedMin(){return localDT(new Date(Date.now()+2*60000))}
