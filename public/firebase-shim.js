@@ -2,7 +2,7 @@
    It gives the ledger the same small interface it used inside Claude, so the ledger code itself is unchanged. */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, createUserWithEmailAndPassword, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, memoryLocalCache, terminate, clearIndexedDbPersistence, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getDoc, getDocFromCache, getDocs, query, orderBy, limit, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, memoryLocalCache, terminate, clearIndexedDbPersistence, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getDoc, getDocFromCache, getDocs, query, orderBy, limit, where, disableNetwork, enableNetwork } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import * as CFG from "./config.js";
 const { FIREBASE_CONFIG, ADMIN_EMAILS, STORAGE_ON } = CFG;
@@ -180,9 +180,17 @@ function checkIdle() {
   if (idle >= IDLE_MS) secureSignOut("idle");
   else if (idle >= IDLE_MS - WARN_MS) showWarn(Math.ceil((IDLE_MS - idle) / 1000));
 }
+/* a ledger tab left open in the background keeps no live connection: after 1 minute hidden it goes
+   offline (no reads), and reconnects as soon as it is looked at again. Saves the free daily read allowance. */
+let hideTimer = null, paused = false;
+function pauseWhenHidden() {
+  clearTimeout(hideTimer);
+  if (document.visibilityState === "hidden") hideTimer = setTimeout(() => { if (document.visibilityState === "hidden" && !paused) { paused = true; disableNetwork(fs).catch(() => {}); } }, 60 * 1000);
+  else if (paused) { paused = false; enableNetwork(fs).catch(() => {}); }
+}
 function startIdleWatch() {
   ["mousemove", "mousedown", "keydown", "touchstart", "scroll", "wheel", "input", "focus"].forEach(ev => window.addEventListener(ev, touch, { passive: true, capture: true }));
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkIdle(); });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkIdle(); pauseWhenHidden(); });
   clearInterval(idleTimer); idleTimer = setInterval(checkIdle, 1000);
 }
 // failed-login lock: 5 wrong passwords on this device = wait 5 minutes
