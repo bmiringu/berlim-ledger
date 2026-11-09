@@ -1266,7 +1266,7 @@ function formPay(tid){
    <div class="f"><label for="py-d">Date received</label><input id="py-d" name="date" type="date" value="${todayStr}" required></div>
    ${payMethodFields("","")}
    <div class="f full"><label for="py-n">Note</label><input id="py-n" name="note"></div>
-   ${smsReady()&&smsCfg().on?smsBox("pySms",smsCfg().payMsg!==false,"Text the tenant that the payment was received (SMS)"):""}<div class="err full" id="payErr"></div></form>`,
+   ${smsReady()?smsBox("pySms",true,"Send the tenant a payment confirmation (SMS)"):""}<div class="err full" id="payErr"></div></form>`,
    `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fPay" type="submit">Save payment</button>`);
   const am=document.getElementById("py-a"),sel=document.getElementById("py-t"),pc=document.getElementById("py-pc"),who=document.getElementById("py-who"),pn=document.getElementById("py-pn");
   let pySms=null;const fill=()=>{if(pySms)pySms.refresh();const t=get("tenants",sel.value);if(!t){who.innerHTML="";am.placeholder="";return}const b=C.ten[t.id]?C.ten[t.id].balance:0,u=get("units",t.unitId);
@@ -2753,7 +2753,7 @@ async function smsAuto(){
 }
 /* after a new payment is saved */
 async function smsOnPayment(p){
-  if(!smsReady())return;const c=smsCfg();if(!c.on||!c.payMsg||p.method==="Settled before system")return;
+  if(!smsReady())return;const c=smsCfg();if(p.method==="Settled before system")return;if(!p.smsText&&(!c.on||!c.payMsg))return;
   const t=get("tenants",p.tenantId);if(!t||t.noSms||!smsPhone(t.phone))return;
   if(p.smsOff)return;
   await smsQueue([smsDoc("pay-"+p.id,t,p.smsText?String(p.smsText).replace(/\{receipt\}/g,p.receiptNo||""):smsFill(c.tplPay,smsVars(t,{amount:n0(p.amount),receipt:p.receiptNo||"",date:fmtDate(p.date)})),"Payment received")]);
@@ -3923,6 +3923,8 @@ document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.c
 
 /* a rent invoice is late if it was not fully paid by the end of its due day plus grace days, even if paid since */
 function penaltyFromNow(i){const t=get("tenants",i.tenantId),u=get("units",i.unitId)||(t&&get("units",t.unitId)),p=propOf(u);const d=new Date(dueDateFor(i.month,pForT(t,p))+"T00:00:00");d.setDate(d.getDate()+graceOf(p));return iso(d)}
+function lateNow(i){const pf=penaltyFromNow(i);if(!(todayStr>pf))return false;if((i.issueDate||"")>pf)return false;
+  const pen=i.lines.filter(l=>l.kind==="penalty").reduce((s,l)=>s+(+l.amount||0),0);return paidBy(i.id,pf)<invAmt(i)-pen-0.5}
 function paidLate(i){const pf=penaltyFromNow(i);if(!(todayStr>pf))return false;if(i.lines.some(l=>l.kind==="deposit"))return false;if((i.issueDate||"")>pf)return false;
   return paidBy(i.id,pf)<invAmt(i)-0.5}
 function penaltyDue(fromMonth,toMonth,code){return S.invoices.filter(i=>i.month>=fromMonth&&i.month<=toMonth&&!i.adj&&!i.reversed&&catOf(i)==="rent"&&i.cat!=="misc"&&!i.lines.some(l=>l.kind==="penalty")&&!propEnded(propOf(get("units",i.unitId)),i.month)&&(!code||code==="all"||(get("units",i.unitId)||{}).propertyId===code)&&paidLate(i))}
@@ -3954,11 +3956,19 @@ function penaltyDay(i){const d=new Date(penaltyFromNow(i)+"T00:00:00");d.setDate
 /* automatic penalty lines follow the property's current penalty setting (until reversed) */
 function penaltyFixes(){const from=S.settings.autoPenaltyFrom||todayStr.slice(0,7),out=[];
   for(const i of S.invoices){if(i.month<from||i.reversed||catOf(i)!=="rent")continue;const k=i.lines.findIndex(l=>l.kind==="penalty"&&l.auto&&!l.rev&&!(+l.reversedAmt));if(k<0)continue;
+    /* not actually late under the tenant's own due day (e.g. due the 10th, or paid on time): take the penalty off */
+    if(!lateNow(i)){const lines=i.lines.filter((x,j)=>j!==k);out.push({...i,lines,total:lines.reduce((s,x)=>s+(+x.amount||0),0),_penOff:true});continue}
     const pf=penaltyFor(i),l=i.lines[k];if(!(pf.amt>0)||Math.round(+l.amount)===Math.round(pf.amt))continue;
     const lines=i.lines.map((x,j)=>j===k?{...x,amount:pf.amt,rate:pf.amt,desc:pf.label,prevAmount:x.amount}:x);out.push({...i,lines,total:lines.reduce((s,x)=>s+(+x.amount||0),0)})}
   return out}
-async function fixPenalties(){if(!ME.admin||mode!=="cloud")return 0;const objs=penaltyFixes();if(!objs.length)return 0;
-  const sentIds=new Set(S.sms.map(x=>x.id));const n=await saveMany("invoices",objs);
+async function fixPenalties(){if(!ME.admin||mode!=="cloud")return 0;const all=penaltyFixes();if(!all.length)return 0;
+  const sentIds=new Set(S.sms.map(x=>x.id)),off=all.filter(i=>i._penOff);all.forEach(i=>delete i._penOff);
+  if(off.length){const n2=await saveMany("invoices",off);toast(`Late penalty removed from ${n2} invoice${n2===1?"":"s"}: not late under the tenant's due day`);
+    /* tenants who were texted a penalty get a short "please ignore" message (preview first) */
+    const docs=off.filter(i=>sentIds.has("pen-"+i.id)&&!sentIds.has("pen0-"+i.id)).map(i=>{const t=get("tenants",i.tenantId);if(!t||!smsPhone(t.phone)||t.noSms)return null;const u=get("units",i.unitId);
+      return smsDoc("pen0-"+i.id,t,`Dear ${(t.name||"").trim().split(/\s+/)[0]},\nPlease ignore the late payment penalty we sent for ${unitName(u)}, ${monthLabel(i.month)}. Our mistake.\n\nYour rent is due by ${fmtDate(penaltyFromNow(i))}.\n\nBerlim Homes Ltd`,"penalty-off")}).filter(Boolean);
+    if(docs.length&&smsReady()&&smsCfg().on)setTimeout(()=>smsReview(docs,"Penalty removed: tell these tenants","Messages queued").catch?.(()=>{}),1200)}
+  const objs=all.filter(i=>!off.includes(i));if(!objs.length)return off.length;const n=await saveMany("invoices",objs);
   /* tenants already texted the old amount get the corrected notice in the next preview */
   const resend=objs.filter(i=>sentIds.has("pen-"+i.id)).map(i=>i.id);if(resend.length){try{localStorage.setItem("bh_pen_resend",JSON.stringify(resend))}catch(e){}}
   toast(`Late penalty corrected on ${n} invoice${n===1?"":"s"} to match the property's penalty setting`);return n}
