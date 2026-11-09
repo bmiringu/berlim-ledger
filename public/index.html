@@ -2763,7 +2763,7 @@ const SMS_KIND_PILL={"Payment received":"p-good","Late notice":"p-bad"};
 function smsCard(){
   if(!window.FB_BUILD)return `<div class="card"><div class="ch"><h2>SMS to tenants</h2></div><div class="cb"><p style="margin:0">Text messages through Mspace work on the Berlim Homes website (berlim-homes-ltd.web.app), not in this Claude copy.</p></div></div>`;
   const c=smsCfg(),st=get("sms","_status")||{},log=S.sms.filter(x=>x.id!=="_status").sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
-  const queued=log.filter(x=>x.status==="queued").length,failed=log.filter(x=>x.status==="failed").length;
+  const queued=log.filter(x=>x.status==="queued").length,failed=log.filter(x=>x.status==="failed").length,sched=log.filter(x=>x.status==="scheduled").sort((a,b)=>(a.dueAt||"").localeCompare(b.dueAt||""));
   const live=st.lastRun&&(Date.now()-new Date(st.lastRun).getTime())<15*60*1000;
   const chk=(k,l)=>`<label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="${k}" ${c[k]?"checked":""}> ${l}</label>`;
   const rem=smsDueList("remind",true).length;
@@ -2772,11 +2772,13 @@ function smsCard(){
    <div class="row" style="gap:18px;flex-wrap:wrap;margin-bottom:12px">
     <div><b style="font-size:22px">${st.balance!=null?n0(st.balance):"—"}</b><span class="sub">SMS credit left${st.balanceAt?" · "+fmtDate(st.balanceAt.slice(0,10)):""}</span></div>
     <div><b style="font-size:22px">${queued}</b><span class="sub">Waiting to send</span></div>
+    <div><b style="font-size:22px">${sched.length}</b><span class="sub">Scheduled</span></div>
     <div><b style="font-size:22px" class="${failed?"neg":""}">${failed}</b><span class="sub">Failed</span></div>
     <div><b style="font-size:22px">${rem}</b><span class="sub">Owe for their next due date</span></div></div>
    <p style="margin:0 0 12px;font-size:13px"><b>Tenants' rent due dates:</b> ${[...S.properties].sort((x,y)=>(x.code||"").localeCompare(y.code||"")).map(p=>`<span class="code">${esc(p.code||"")}</span> ${ord(dueDayOf(p))}${graceOf(p)?" +"+graceOf(p)+"d grace":""}`).join(" · ")||"No properties yet"} <span class="hint">Change in Properties › Edit property › Rent due date.</span></p>
    ${live?"":`<p class="hint" style="margin:0 0 12px">Texts wait here until the Berlim Homes SMS sender (Google Apps Script) is running. ${st.lastRun?"It last checked in "+fmtDate(st.lastRun.slice(0,10))+".":"It hasn't checked in yet."}</p>`}
    ${st.error?`<p class="err" style="margin:0 0 12px">Mspace said: ${esc(st.error)}</p>`:""}
+   ${schedListHTML(sched)}
    <form id="fSms" class="fg">
     <div class="f full">${chk("on","Send texts to tenants")}</div>
     <div class="f full">${chk("payMsg","Text the tenant each time a payment is recorded")}</div>
@@ -2967,7 +2969,8 @@ function smsNotice(opts){
 }
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;
   if(a==="lease"){e.preventDefault();showLease(b.dataset.id)}
-  else if(a==="smsNotice"){e.preventDefault();smsNotice({prop:b.dataset.prop,tid:b.dataset.tid,who:b.dataset.who})}});
+  else if(a==="smsNotice"){e.preventDefault();smsNotice({prop:b.dataset.prop,tid:b.dataset.tid,who:b.dataset.who})}
+  else if(a==="schedCancel"){e.preventDefault();schedCancel(b.dataset.at)}});
 
 
 /* ===== security: recent sign-ins (stand-alone site) ===== */
@@ -3664,15 +3667,26 @@ function smsReview(docs,title,doneMsg){
      <div style="max-height:60vh;overflow:auto;display:grid;gap:10px">${docs.map((d,k)=>`<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px">
       <label style="display:flex;gap:8px;align-items:center;font-weight:600;margin-bottom:6px"><input type="checkbox" class="sr-ck" data-k="${k}" checked> ${esc(d.name||"")} <span class="sub" style="display:inline;font-weight:400">${esc(d.to)}</span></label>
       <textarea class="sr-tx" data-k="${k}" rows="${Math.min(12,Math.max(4,String(d.text).split("\n").length+1))}" style="width:100%;font:14px var(--body);padding:8px;border:1px solid var(--line);border-radius:8px">${esc(d.text)}</textarea>
-      <span class="hint sr-n" data-k="${k}">${String(d.text).length} characters · ${smsUnits(d.text)} SMS</span></div>`).join("")}</div>`,
+      <span class="hint sr-n" data-k="${k}">${String(d.text).length} characters · ${smsUnits(d.text)} SMS</span></div>`).join("")}</div>
+     <div style="margin-top:12px;background:#F4EEDF;border-radius:10px;padding:10px 12px;display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+      <b>When:</b><label style="display:flex;gap:6px;align-items:center"><input type="radio" name="srWhen" value="now" checked> Send now</label>
+      <label style="display:flex;gap:6px;align-items:center"><input type="radio" name="srWhen" value="later"> Schedule for</label>
+      <input type="datetime-local" id="srAt" value="${schedDefault()}" min="${schedMin()}" style="padding:6px 8px;border:1px solid var(--line);border-radius:8px">
+      <span class="hint" id="srAtH"></span></div>`,
      `<button class="btn" data-a="close" id="srNo">Don't send</button><button class="btn primary" id="srGo">Send ${docs.length} SMS</button>`,true);
     const root=document.getElementById("modalRoot"),go=document.getElementById("srGo");
-    const cnt=()=>{const n=[...root.querySelectorAll(".sr-ck")].filter(c=>c.checked).length;go.textContent=n?`Send ${n} SMS`:"Nothing selected";go.disabled=!n};
+    const later=()=>(root.querySelector('input[name="srWhen"]:checked')||{}).value==="later";
+    const cnt=()=>{const n=[...root.querySelectorAll(".sr-ck")].filter(c=>c.checked).length;const at=document.getElementById("srAt").value;
+      go.textContent=n?(later()?`Schedule ${n} SMS`:`Send ${n} SMS`):"Nothing selected";go.disabled=!n;
+      document.getElementById("srAtH").textContent=later()&&at?"Goes out "+schedLabel(new Date(at).toISOString()):""};
+    root.querySelectorAll('input[name="srWhen"]').forEach(r=>r.onchange=cnt);document.getElementById("srAt").oninput=()=>{root.querySelector('input[name="srWhen"][value="later"]').checked=true;cnt()};
     root.querySelectorAll(".sr-ck").forEach(c=>c.onchange=cnt);
     root.querySelectorAll(".sr-tx").forEach(t=>t.oninput=()=>{const n=root.querySelector(`.sr-n[data-k="${t.dataset.k}"]`);n.textContent=t.value.length+" characters · "+smsUnits(t.value)+" SMS"});
     const obs=new MutationObserver(()=>{if(!document.getElementById("srGo")){obs.disconnect();fin(0)}});obs.observe(root,{childList:true,subtree:true});
-    go.onclick=async()=>{go.disabled=true;const pick=docs.map((d,k)=>({...d,text:root.querySelector(`.sr-tx[data-k="${k}"]`).value.trim()})).filter((d,k)=>root.querySelector(`.sr-ck[data-k="${k}"]`).checked&&d.text);
-      const n=await smsQueue(pick);settled=true;obs.disconnect();closeModal();toast(n?(doneMsg||"SMS")+": "+n+" queued; they go out within a minute":"Nothing was sent");res(n)};
+    go.onclick=async()=>{let dueAt="";if(later()){const v=document.getElementById("srAt").value,d=v?new Date(v):null;
+        if(!d||isNaN(d)||d.getTime()<Date.now()+60000){document.getElementById("srAtH").textContent="Pick a time at least a minute from now.";return}dueAt=d.toISOString()}
+      go.disabled=true;const pick=docs.map((d,k)=>({...d,text:root.querySelector(`.sr-tx[data-k="${k}"]`).value.trim(),...(dueAt?{status:"scheduled",dueAt}:{})})).filter((d,k)=>root.querySelector(`.sr-ck[data-k="${k}"]`).checked&&d.text);
+      const n=await smsQueue(pick);settled=true;obs.disconnect();closeModal();toast(n?(dueAt?(doneMsg||"SMS")+": "+n+" scheduled for "+schedLabel(dueAt):(doneMsg||"SMS")+": "+n+" queued; they go out within a minute"):"Nothing was sent");res(n)};
   })}
 /* receipt SMS shown in the payment form */
 function payReceiptText(t,amount,receiptNo){const c=smsCfg(),C=compute(),b=(C.ten[t.id]?C.ten[t.id].balance:0)-(+amount||0);
@@ -4009,6 +4023,22 @@ function propMoneyCard(pid,m){const M=propMoney(pid,m),p=pid==="all"?null:get("p
   ${box("Arrears: current tenants",kes(M.arrears),M.owing+" tenant"+(M.owing===1?"":"s")+" owing",M.arrears?"bad":"")}
   ${box("Arrears: moved-out tenants",kes(M.exArrears),M.exOwing+" ex-tenant"+(M.exOwing===1?"":"s")+" owing",M.exArrears?"warn":"")}
   ${box("Overpaid (credit)",kes(M.credit),M.creditN?M.creditN+" tenant"+(M.creditN===1?"":"s")+" paid ahead":"")}</div></div>`}
+/* scheduled SMS */
+const pad2=n=>String(n).padStart(2,"0");
+const localDT=d=>d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate())+"T"+pad2(d.getHours())+":"+pad2(d.getMinutes());
+function schedMin(){return localDT(new Date(Date.now()+2*60000))}
+function schedDefault(){const d=new Date();d.setDate(d.getDate()+1);d.setHours(9,0,0,0);return localDT(d)}
+function schedLabel(isoT){const d=new Date(isoT);return d.toLocaleString("en-KE",{weekday:"short",day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit",hour12:true})}
+function schedListHTML(sched){if(!sched.length)return "";const groups={};sched.forEach(x=>{(groups[x.dueAt]=groups[x.dueAt]||[]).push(x)});
+  return `<div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 14px"><b>Scheduled messages</b>
+   ${Object.keys(groups).sort().map(at=>{const g=groups[at];return `<div style="display:flex;gap:10px;align-items:flex-start;justify-content:space-between;border-top:1px solid var(--line);padding:8px 0;margin-top:6px">
+     <div><span class="pill p-warn">${esc(schedLabel(at))}</span> <b>${g.length} SMS</b><span class="sub">${g.slice(0,6).map(x=>esc(x.name||x.to)).join(", ")}${g.length>6?" and "+(g.length-6)+" more":""}</span>
+     <span class="sub" style="white-space:pre-wrap">${esc(String(g[0].text||"").slice(0,160))}${String(g[0].text||"").length>160?"…":""}</span></div>
+     <button class="btn sm danger" data-a="schedCancel" data-at="${esc(at)}">Cancel</button></div>`}).join("")}</div>`}
+async function schedCancel(at){const g=S.sms.filter(x=>x.status==="scheduled"&&x.dueAt===at);if(!g.length)return;
+  askConfirm(`Cancel ${g.length} SMS scheduled for ${schedLabel(at)}? They will not be sent.`,"Cancel messages",async()=>{let n=0;
+    for(const x of g){try{await db.collection("sms").doc(x.id).set(JSON.parse(JSON.stringify({...x,status:"cancelled",dueAt:null,cancelledAt:new Date().toISOString(),cancelledBy:ME.id||""})));n++}catch(e){}}
+    toast(n+" scheduled SMS cancelled")})}
 const VIEWS={maint:vMaint,mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
 let _rq=null;function queueRender(){if(_rq)return;_rq=setTimeout(()=>{_rq=null;render()},mode==="cloud"?40:0)}

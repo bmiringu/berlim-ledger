@@ -59,6 +59,20 @@ function update_(id, fields) {
   Object.keys(fields).forEach(k => body.fields[k] = toFs_(fields[k]));
   return fsFetch_(FS + '/sms/' + encodeURIComponent(id) + '?' + mask, 'patch', body);
 }
+/* scheduled texts: status 'scheduled' with dueAt (ISO time). When the time comes they join the queue. */
+function promoteDue_() {
+  const now = new Date().toISOString();
+  const res = fsFetch_(FS + ':runQuery', 'post', { structuredQuery: {
+    from: [{ collectionId: 'sms' }],
+    where: { fieldFilter: { field: { fieldPath: 'dueAt' }, op: 'LESS_THAN_OR_EQUAL', value: { stringValue: now } } },
+    limit: 200
+  } });
+  (res || []).filter(x => x.document).forEach(x => {
+    const d = fromFs_(x.document.fields), id = x.document.name.split('/').pop();
+    if (d.status === 'scheduled') update_(id, { status: 'queued', dueAt: null, createdAt: now });
+    else update_(id, { dueAt: null });
+  });
+}
 function queued_() {
   const res = fsFetch_(FS + ':runQuery', 'post', { structuredQuery: {
     from: [{ collectionId: 'sms' }],
@@ -112,6 +126,7 @@ function processQueue() {
   try {
     const now = new Date(), status = { lastRun: now.toISOString() };
     let list = [];
+    try { promoteDue_(); } catch (e) { console.error('scheduled: ' + e); }
     try { list = queued_(); } catch (e) { console.error(e); return; }
     let sent = 0, failed = 0, lastError = '';
     for (const s of list) {
