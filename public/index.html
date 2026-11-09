@@ -1027,11 +1027,12 @@ function vPayments(){
 function vSetup(){
   const s=S.settings;
   const F=(id,label,val,type="text",hint="")=>`<div class="f"><label for="s-${id}">${label}</label><input id="s-${id}" name="${id}" type="${type}" value="${esc(val)}" ${type==="number"?'min="0" step="any"':""}>${hint?`<span class="hint">${hint}</span>`:""}</div>`;
-  return `<div class="pagehead"><h1>Rates &amp; setup</h1><p>Company details and rent terms that apply across every property.</p></div>
+  return `<div class="pagehead"><h1>Rates &amp; setup</h1><p>Company details, each property's rent terms, and the defaults used where a property has none.</p></div>
+  ${propTermsCard()}
   <form class="card" id="setupForm"><div class="ch"><h2>Company and payment details</h2></div><div class="cb fg">
    ${F("company","Company name",s.company)}${F("phone","Phone numbers",s.phone)}${F("email","Email",s.email)}${F("website","Website",s.website||"")}${F("address","Office address",s.address||"")}${F("preparedBy","Landlord reports prepared by",s.preparedBy||"","text","Default name on landlord reports")}
    ${F("paybill","M-Pesa Paybill",s.paybill,"text","Family Bank paybill")}${F("accPrefix","Account number prefix",s.accPrefix,"text","Tenant account = prefix + property code + house number, e.g. "+esc(s.accPrefix)+"E1A3")}
-  </div><div class="ch" style="border-top:1px solid var(--line)"><h2>Rent terms for all properties</h2></div><div class="cb fg">
+  </div><div class="ch" style="border-top:1px solid var(--line)"><h2>Default rent terms (used only where a property has no term of its own)</h2></div><div class="cb fg">
    ${F("dueDay","Default rent due day",s.dueDay,"number","Used where a property has no due day of its own")}${F("penaltyPct","Default late penalty (% of rent)",s.penaltyPct,"number","Used where a property sets no penalty of its own")}
    ${F("llPayDay","Default day to pay landlords",s.llPayDay??10,"number","Used where a property has no landlord payment day of its own")}
    <div class="f"><label for="s-llPayWhen">Landlords are paid for each month's rent in</label><select id="s-llPayWhen" name="llPayWhen"><option value="same" ${(s.llPayWhen||"same")==="same"?"selected":""}>The same month</option><option value="next" ${s.llPayWhen==="next"?"selected":""}>The following month</option></select></div>
@@ -4048,6 +4049,23 @@ async function schedCancel(at){const g=S.sms.filter(x=>x.status==="scheduled"&&x
   askConfirm(`Cancel ${g.length} SMS scheduled for ${schedLabel(at)}? They will not be sent.`,"Cancel messages",async()=>{let n=0;
     for(const x of g){try{await db.collection("sms").doc(x.id).set(JSON.parse(JSON.stringify({...x,status:"cancelled",dueAt:null,cancelledAt:new Date().toISOString(),cancelledBy:ME.id||""})));n++}catch(e){}}
     toast(n+" scheduled SMS cancelled")})}
+/* each property's own rent terms, side by side */
+function propTermsCard(){const ps=sortedProps();if(!ps.length)return "";const st=S.settings,dflt=v=>`${v} <span class="sub" style="display:inline">(default)</span>`;
+  const blank=v=>v===""||v==null;
+  const rows=ps.map(p0=>{const p=cfg(p0),r=p0;
+    const due=blank(r.dueDay)?dflt(ord(+st.dueDay||5)):ord(+r.dueDay);
+    const exc=S.tenants.filter(t=>t.active&&+t.dueDay>=1&&(get("units",t.unitId)||{}).propertyId===p0.id).map(t=>`${esc(unitName(get("units",t.unitId)))}: ${ord(+t.dueDay)}`);
+    const pen=+r.penaltyFlat>0?"KES "+n0(r.penaltyFlat):blank(r.penaltyPct)?dflt((+st.penaltyPct||0)+"% of rent"):(+r.penaltyPct)+"% of rent";
+    const water=p.waterMode==="metered"?"Metered, KES "+n0(p.waterRate)+"/unit":p.waterMode==="flat"?"Flat KES "+n0(p.waterFlat):"Not charged";
+    const pay=blank(r.llPayDay)?dflt(ord(+st.llPayDay||10)):ord(+r.llPayDay);
+    const pc=v=>blank(v)||!(+v)?"—":(+v)+"%";
+    return `<tr><td><span class="code">${esc(p0.code||"")}</span> <strong>${esc(p0.name||"")}</strong></td>
+     <td>${due}${exc.length?`<span class="sub">Except ${exc.join(", ")}</span>`:""}</td><td>${+r.graceDays?r.graceDays+" day"+(+r.graceDays>1?"s":""):"None"}</td><td>${pen}</td>
+     <td class="num">${+p.garbage?n0(p.garbage):"—"}</td><td>${water}</td><td>${+p.elecRate?"KES "+n0(p.elecRate)+"/unit":"—"}</td><td class="num">${+p.serviceCharge?n0(p.serviceCharge):"—"}</td>
+     <td>${pc(p.commissionPct)}${+p.vatPct?`<span class="sub">+ VAT ${+p.vatPct}%</span>`:""}</td><td>${pc(p.utilCommissionPct)}</td><td>${pc(r.depositCommPct)}</td><td>${pc(r.lettingPct)}</td><td>${pay}</td>
+     <td>${can("props")?`<button class="btn sm" data-a="prop" data-id="${p0.id}">Edit</button>`:""}</td></tr>`}).join("");
+  return `<div class="card"><div class="ch"><h2>Rent terms by property</h2><span style="color:var(--muted);font-size:13px">Each property's own terms. Click Edit to change one property; "(default)" means it uses the default below.</span></div>
+   <div class="tw"><table><thead><tr><th>Property</th><th>Rent due</th><th>Grace</th><th>Late penalty</th><th class="num">Garbage</th><th>Water</th><th>Electricity</th><th class="num">Service charge</th><th>Commission</th><th>On utilities</th><th>On deposits</th><th>Letting fee</th><th>Landlord paid by</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`}
 const VIEWS={maint:vMaint,mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
 let _rq=null;function queueRender(){if(_rq)return;_rq=setTimeout(()=>{_rq=null;render()},mode==="cloud"?40:0)}
