@@ -183,6 +183,10 @@ table.stmt td{font-size:13px}
 #bootL .stp{color:#C9A962;font-size:12px;letter-spacing:3px;text-transform:uppercase;min-height:16px}
 #bootL .tag{color:#9FA9BD;font-size:12px;font-style:italic}
 @media (prefers-reduced-motion:reduce){#bootL .lg{animation:none}}
+.pmc .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;padding:4px 16px 16px}
+.pmc .kpi{border:1px solid var(--line,#e3e7ee);border-radius:10px;padding:10px 12px;background:#fff}
+.pmc .kl{font-size:12px;color:var(--muted)}.pmc .kv{font-size:19px;font-weight:700;margin-top:2px}.pmc .ks{font-size:12px;color:var(--muted);margin-top:2px}
+.pmc .kpi.bad .kv{color:#b42318}.pmc .kpi.warn .kv{color:#b54708}
 </style>
 <style id="modern">
 /* refreshed look: deeper navy masthead with a gold rule, floating icon tabs, rounded cards with soft shadows */
@@ -915,6 +919,7 @@ function vTenants(){
   return `<div class="pagehead"><h1>Tenants</h1><div class="row"><input class="inline" id="tq" placeholder="Search name, phone, code or house" value="${esc(filters.tenantQ)}" aria-label="Search tenants">${window.FB_BUILD?`<button class="btn" data-a="smsNotice" ${filters.code!=="all"?`data-prop="${esc(filters.code)}"`:""}>Send notice (SMS)</button>`:""}${can("tenants")?`<button class="btn primary" data-a="tenant">Add tenant and bill</button>`:""}</div></div>
   ${tenantSeg()}
   ${codeChips()}
+  ${propMoneyCard(filters.code,month)}
   <div class="card"><div class="tw">${list.length?`<table><thead><tr><th>Code</th><th>House number</th><th>House tenant</th><th>Phone number</th><th>Unit type</th><th class="num">Rent</th><th class="num">Deposit held</th><th class="num">Balance</th><th>Status</th><th></th></tr></thead><tbody>
   ${list.map(t=>{const u=get("units",t.unitId),p=propOf(u)||{},b=C.ten[t.id]?C.ten[t.id].balance:0;const st=!t.active?"Moved out":suspOn(t)?"Suspended":b>0?"Arrears":b<0?"Credit":"Clear";
    return `<tr><td><span class="code">${esc(p.code||"—")}</span></td><td><strong>${esc(unitName(u))}</strong></td><td>${esc(t.name)}${t.email?`<span class="sub">${esc(t.email)}</span>`:""}</td><td>${esc(t.phone||"")}</td><td>${esc(u?u.type||"":"")}</td><td class="num">${u?n0(u.rent):""}</td><td class="num">${n0(t.deposit)}</td><td class="num"><strong>${b<0?"("+n0(-b)+")":n0(b)}</strong></td><td>${pill(st)}</td>
@@ -929,7 +934,7 @@ function vUnits(){
   ${propRegister()}
   ${props.length?props.map(p0=>{const p=cfg(p0),us=S.units.filter(u=>u.propertyId===p.id).sort(sortUnits);const occ=us.filter(u=>activeTenantOf(u.id)).length;const roll=us.reduce((s,u)=>s+(+u.rent||0),0);
   const rules=[p.garbage?`Garbage ${n0(p.garbage)}`:"",p.waterMode==="flat"?`Water flat ${n0(p.waterFlat)}`:p.waterMode==="metered"?`Water metered ${n0(p.waterRate)}/unit`:"",p.serviceCharge?`Service charge ${n0(p.serviceCharge)}`:"",p.penaltyFlat?`Penalty ${n0(p.penaltyFlat)}`:"",`Commission ${p.commissionPct}%${p.utilCommissionPct?" + "+p.utilCommissionPct+"% of utility bills":""}${p.vatPct?" + VAT "+p.vatPct+"%":""}`].filter(Boolean).join(" · ");
-  return `<div class="card"><div class="ch"><h2>${propTag(p)}</h2><span style="color:var(--muted);font-size:13px">${esc(p.location||"")}${p.landlord?" · Landlord: "+esc(p.landlord):""} · ${occ}/${us.length} let · Rent roll ${kes(roll)}<br>${rules}<br>${regLine(p)}</span>${can("props")?`<button class="btn sm" data-a="prop" data-id="${p.id}">Edit</button>`:""}<button class="btn sm" data-a="unit" data-prop="${p.id}">Add house</button>${can("props")?`<button class="btn sm gold" data-a="rates" data-prop="${p.id}">Change rent / charges</button>`:""}${can("props")||ME.admin?(propEndPending(p)?'<span class="pill">Ending: waiting for approval</span>':`<button class="btn sm danger" data-a="endProp" data-id="${p.id}">End service</button>`):""}${window.FB_BUILD?`<button class="btn sm" data-a="smsNotice" data-prop="${p.id}">Send notice</button>`:""}</div>
+  return `<div class="card"><div class="ch"><h2>${propTag(p)}</h2><span style="color:var(--muted);font-size:13px">${esc(p.location||"")}${p.landlord?" · Landlord: "+esc(p.landlord):""} · ${occ}/${us.length} let · Rent roll ${kes(roll)}${(()=>{const M=propMoney(p.id,month);return ` · <strong>Arrears ${kes(M.arrears)}</strong> (${M.owing} owing) · Collected ${monthShort(month)} ${kes(M.collected)}`})()}<br>${rules}<br>${regLine(p)}</span>${can("props")?`<button class="btn sm" data-a="prop" data-id="${p.id}">Edit</button>`:""}<button class="btn sm" data-a="unit" data-prop="${p.id}">Add house</button>${can("props")?`<button class="btn sm gold" data-a="rates" data-prop="${p.id}">Change rent / charges</button>`:""}${can("props")||ME.admin?(propEndPending(p)?'<span class="pill">Ending: waiting for approval</span>':`<button class="btn sm danger" data-a="endProp" data-id="${p.id}">End service</button>`):""}${window.FB_BUILD?`<button class="btn sm" data-a="smsNotice" data-prop="${p.id}">Send notice</button>`:""}</div>
    ${schedHTML(p)}<div class="tw">${us.length?`<table><thead><tr><th>House number</th><th>Unit type</th><th class="num">Monthly rent</th><th class="num">Deposit</th><th class="num">Water / Elec.</th><th>Tenant</th><th>M-Pesa account</th><th>Status</th><th></th></tr></thead><tbody>
    ${us.map(u=>{const t=activeTenantOf(u.id);return `<tr><td><strong>${esc(u.label)}</strong></td><td>${esc(u.type||"")}</td><td class="num">${n0(u.rent)}</td><td class="num">${n0(u.deposit)}</td><td class="num">${u.waterFixed!=null&&u.waterFixed!==""?n0(u.waterFixed):"<span class='sub'>property</span>"}${+u.elecFixed?" / "+n0(u.elecFixed):""}${u.serviceFixed!=null&&u.serviceFixed!==""?`<span class="sub">Service ${n0(u.serviceFixed)}</span>`:""}</td><td>${t?esc(t.name):"<span class='sub'>None</span>"}</td><td><span class="sub" style="font-size:13px">${esc(acctFor(u))}</span></td><td>${pill(t?"Occupied":"Vacant")}</td><td class="num" style="white-space:nowrap">${can("props")?`<button class="btn sm" data-a="rates" data-prop="${p.id}" data-id="${u.id}">Change rent</button> `:""}<button class="btn sm" data-a="unit" data-id="${u.id}">Edit</button>${t?"":` <button class="btn sm" data-a="tenant" data-unit="${u.id}">Let</button>`}</td></tr>`}).join("")}</tbody></table>`:`<div class="empty">No houses in this property yet.</div>`}</div></div>`}).join(""):`<div class="card"><div class="empty">Start by adding a property with its code (for example E1), then its houses with their monthly rent.</div></div>`}`;
 }
@@ -3976,6 +3981,24 @@ function bootHide(){if(bootDone)return;bootDone=true;const b=document.getElement
   setTimeout(()=>{b.classList.add("out");setTimeout(()=>{b.hidden=true},500)},wait)}
 
 const goneName=r=>r.gone?`Vacant (${r.t.name} moved out ${fmtDate(r.t.moveOut)})`:r.t.name;
+/* money summary for one property (or all): billed and collected this month, arrears, credits */
+function propMoney(pid,m){const C=compute(),inP=t=>{const u=get("units",t.unitId);return !!u&&(pid==="all"||u.propertyId===pid)};
+  const ts=S.tenants.filter(inP),ids=new Set(ts.map(t=>t.id)),us=S.units.filter(u=>pid==="all"||u.propertyId===pid);
+  const bal=t=>Math.round(C.ten[t.id]?C.ten[t.id].balance:0),cur=ts.filter(t=>t.active),ex=ts.filter(t=>!t.active);
+  const billed=S.invoices.filter(i=>ids.has(i.tenantId)&&i.month===m&&!i.adj&&!i.reversed).reduce((s,i)=>s+(+i.total||0),0);
+  const collected=S.payments.filter(x=>ids.has(x.tenantId)&&(x.date||"").slice(0,7)===m).reduce((s,x)=>s+(+x.amount||0),0);
+  const owingT=cur.filter(t=>bal(t)>0),exOwing=ex.filter(t=>bal(t)>0);
+  return {units:us.length,occ:us.filter(u=>activeTenantOf(u.id)).length,tenants:cur.length,billed:Math.round(billed),collected:Math.round(collected),
+    arrears:owingT.reduce((s,t)=>s+bal(t),0),owing:owingT.length,exArrears:exOwing.reduce((s,t)=>s+bal(t),0),exOwing:exOwing.length,
+    credit:ts.filter(t=>bal(t)<0).reduce((s,t)=>s-bal(t),0),creditN:ts.filter(t=>bal(t)<0).length}}
+function propMoneyCard(pid,m){const M=propMoney(pid,m),p=pid==="all"?null:get("properties",pid),rate=M.billed?Math.round(M.collected/M.billed*100):0;
+  const box=(lbl,val,sub,cls)=>`<div class="kpi${cls?" "+cls:""}"><div class="kl">${lbl}</div><div class="kv">${val}</div>${sub?`<div class="ks">${sub}</div>`:""}</div>`;
+  return `<div class="card pmc"><div class="ch"><h2>${p?esc((p.code||"")+" "+(p.name||"")):"All properties"}: ${monthLabel(m)}</h2><span style="color:var(--muted);font-size:13px">Change the month at the top to see another month. Arrears are what tenants owe today.</span></div>
+  <div class="kpis">${box("Billed this month",kes(M.billed),M.tenants+" current tenants · "+M.occ+"/"+M.units+" houses let")}
+  ${box("Collected this month",kes(M.collected),M.billed?rate+"% of billed":"")}
+  ${box("Arrears: current tenants",kes(M.arrears),M.owing+" tenant"+(M.owing===1?"":"s")+" owing",M.arrears?"bad":"")}
+  ${box("Arrears: moved-out tenants",kes(M.exArrears),M.exOwing+" ex-tenant"+(M.exOwing===1?"":"s")+" owing",M.exArrears?"warn":"")}
+  ${box("Overpaid (credit)",kes(M.credit),M.creditN?M.creditN+" tenant"+(M.creditN===1?"":"s")+" paid ahead":"")}</div></div>`}
 const VIEWS={maint:vMaint,mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
 let _rq=null;function queueRender(){if(_rq)return;_rq=setTimeout(()=>{_rq=null;render()},mode==="cloud"?40:0)}
