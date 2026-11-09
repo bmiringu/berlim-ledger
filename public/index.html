@@ -747,16 +747,19 @@ function monthReport(pid,m){
   const rows=[];
   for(const u of units){
     const ts=S.tenants.filter(t=>t.unitId===u.id&&onReport(t,m)&&(S.invoices.some(i=>i.tenantId===t.id&&i.month===m&&!i.adj)||S.payments.some(x=>x.tenantId===t.id&&(x.date||"").slice(0,7)===m)||(t.active&&(!t.moveIn||t.moveIn<=lastDay(m))&&(!t.billFrom||t.billFrom<=m))));
-    if(!ts.length){rows.push({u,t:null,ch:{},bf:0,paid:0,direct:0,arrears:0});continue}
+    const n0rows=rows.length,sentM=!!(lrep(pid,m)||{}).sentAt;
     for(const t of ts){
+      const gone=!t.active&&!!t.moveOut&&t.moveOut<=lastDay(m);
       const before=S.invoices.filter(i=>i.tenantId===t.id&&(i.month<m||(i.adj&&i.month===m))).reduce((s,i)=>s+invAmt(i),0)-S.payments.filter(x=>x.tenantId===t.id&&(x.date||"")<start).reduce((s,x)=>s+(+x.amount||0),0);
       const ch={};S.invoices.filter(i=>i.tenantId===t.id&&i.month===m&&!i.adj&&!i.reversed).forEach(i=>i.lines.forEach(l=>{const k=COLS_R.some(c=>c[0]===l.kind)?l.kind:"other";ch[k]=(ch[k]||0)+(+l.amount||0)}));
       const chL={};S.invoices.filter(i=>i.tenantId===t.id&&i.month===m&&!i.adj&&!i.reversed).forEach(i=>i.lines.forEach(l=>{if(l.toLandlord===false)return;const k=COLS_R.some(c=>c[0]===l.kind)?l.kind:"other";chL[k]=(chL[k]||0)+(+l.amount||0)}));
       const pays=S.payments.filter(x=>x.tenantId===t.id&&(x.date||"").slice(0,7)===m);
       const paid=pays.reduce((s,x)=>s+(+x.amount||0),0),direct=pays.filter(x=>x.method==="Paid to landlord").reduce((s,x)=>s+(+x.amount||0),0);
       const charges=Object.values(ch).reduce((s,v)=>s+v,0);
-      rows.push({u,t,ch,chL,bf:before,paid,direct,arrears:before+charges-paid});
+      if(gone&&!charges&&!paid&&!sentM)continue;
+      rows.push({u,t,ch,chL,bf:before,paid,direct,arrears:before+charges-paid,gone});
     }
+    if(rows.length===n0rows)rows.push({u,t:null,ch:{},bf:0,paid:0,direct:0,arrears:0});
   }
   const sum=k=>rows.reduce((s,r)=>s+(r.ch[k]||0),0);
   const tot={bf:rows.reduce((s,r)=>s+r.bf,0),paid:rows.reduce((s,r)=>s+r.paid,0),direct:rows.reduce((s,r)=>s+r.direct,0),arrears:rows.reduce((s,r)=>s+r.arrears,0)};
@@ -864,7 +867,7 @@ function vPropReport(pid){
   <div class="card"><div class="ch"><h2>Tenant schedule</h2><span style="color:var(--muted);font-size:13px">Arrears = B/f + charges − paid. Brackets show credit. Click a tenant for their statement.</span></div><div class="tw">
   <table class="sheet"><thead><tr><th>House number</th><th>House tenant</th><th>Phone number</th><th>Unit type</th>${cols.map(c=>`<th class="num">${c[1]}</th>`).join("")}<th class="num">B/f</th><th class="num">Paid amounts</th><th class="num">Arrears</th></tr></thead><tbody>
   ${R.rows.map(r=>!r.t?`<tr class="vac"><td><strong>${esc(r.u.label)}</strong></td><td>${pill("Vacant")} <button class="link" data-a="tenant" data-unit="${r.u.id}">Let</button></td><td></td><td>${esc(r.u.type||"")}</td>${cols.map(c=>`<td class="num">${c[0]==="rent"?`<span class="sub">${n0(r.u.rent)}</span>`:""}</td>`).join("")}<td></td><td></td><td></td></tr>`:
-   `<tr><td><strong>${esc(r.u.label)}</strong></td><td><button class="link tname" data-a="stmt" data-id="${r.t.id}" title="Open statement">${esc(r.t.name)}</button>${r.t.active?"":` <span class="pill p-mute">Moved out</span>`}${r.t.note?`<span class="sub">${esc(r.t.note)}</span>`:""}</td><td>${esc(r.t.phone||"")}</td><td>${esc(r.u.type||"")}</td>${cols.map(c=>td(r.ch[c[0]])).join("")}<td class="num">${r.bf?(r.bf<0?"("+n0(-r.bf)+")":n0(r.bf)):"0"}</td><td class="num">${r.paid?n0(r.paid):""}${r.direct?`<span class="sub">to landlord</span>`:""}</td><td class="num ${r.arrears>0?"neg":r.arrears<0?"pos":""}"><strong>${r.arrears<0?"("+n0(-r.arrears)+")":n0(r.arrears)}</strong></td></tr>`).join("")}
+   `<tr><td><strong>${esc(r.u.label)}</strong></td><td><button class="link tname" data-a="stmt" data-id="${r.t.id}" title="Open statement">${esc(r.t.name)}</button>${r.t.active?"":` <span class="pill p-mute">${r.gone?"Vacant · moved out "+fmtDate(r.t.moveOut):"Moved out"}</span>`}${r.t.note?`<span class="sub">${esc(r.t.note)}</span>`:""}</td><td>${esc(r.t.phone||"")}</td><td>${esc(r.u.type||"")}</td>${cols.map(c=>td(r.ch[c[0]])).join("")}<td class="num">${r.bf?(r.bf<0?"("+n0(-r.bf)+")":n0(r.bf)):"0"}</td><td class="num">${r.paid?n0(r.paid):""}${r.direct?`<span class="sub">to landlord</span>`:""}</td><td class="num ${r.arrears>0?"neg":r.arrears<0?"pos":""}"><strong>${r.arrears<0?"("+n0(-r.arrears)+")":n0(r.arrears)}</strong></td></tr>`).join("")}
   </tbody><tfoot><tr><td></td><td>TOTAL</td><td></td><td></td>${cols.map(c=>`<td class="num">${n0(R.tot[c[0]])}</td>`).join("")}<td class="num">${n0(R.tot.bf)}</td><td class="num">${n0(R.tot.paid)}</td><td class="num">${n0(R.tot.arrears)}</td></tr></tfoot></table></div></div>
   <div class="grid2">
    <div class="card"><div class="ch"><h2>Amount to forward landlord</h2><button class="btn sm" data-a="llOpen" data-id="${p.id}">Landlord account</button></div><div class="tw"><table><tbody>
@@ -2544,7 +2547,7 @@ function landlordMonthAll(pid,m){
 function llStatementHTML(pid,m){
   const L={...landlordMonth(pid,m,llPartOf(pid)),m},p=L.p,cols=L.cols,multi=cols.length>1,n=v=>v?n0(v):"";
   const rows=L.rows.map(r=>!r.t?`<tr class="vac"><td>${esc(r.u.label)}</td><td>Vacant</td><td>${esc(r.u.type||"")}</td>${cols.map(()=>"<td></td>").join("")}${multi?"<td></td>":""}</tr>`:
-    `<tr><td>${esc(r.u.label)}</td><td>${esc(r.t.name)}${r.t.active?"":" <small>(moved out)</small>"}</td><td>${esc(r.u.type||"")}</td>${cols.map(c=>`<td class="num">${n(lrVal(r.lch,c))}</td>`).join("")}${multi?`<td class="num"><strong>${n0(r.ltot)}</strong></td>`:""}</tr>`).join("");
+    `<tr><td>${esc(r.u.label)}</td><td>${r.gone?`Vacant <small>(${esc(r.t.name)} moved out ${fmtDate(r.t.moveOut)})</small>`:esc(r.t.name)+(r.t.active?"":" <small>(moved out)</small>")}</td><td>${esc(r.u.type||"")}</td>${cols.map(c=>`<td class="num">${n(lrVal(r.lch,c))}</td>`).join("")}${multi?`<td class="num"><strong>${n0(r.ltot)}</strong></td>`:""}</tr>`).join("");
   const fees=L.ded.filter(d=>d.fee),others=L.ded.filter(d=>!d.fee);
   return `<div class="doc lr">${lrHead(L)}
   <div class="tw"><table class="sheet"><thead><tr><th>House number</th><th>House tenant</th><th>Unit type</th>${cols.map(c=>`<th class="num">${c[1]}</th>`).join("")}${multi?`<th class="num">Total amounts</th>`:""}</tr></thead><tbody>${rows}</tbody>
@@ -2566,7 +2569,7 @@ function llText(pid,m){const L=landlordMonth(pid,m,llPartOf(pid)),p=L.p;
    `\nTotal collection: KES ${n0(L.total)}\n\nDEDUCTIONS\n`+(L.ded.map(d=>`${d.desc}: KES ${n0(d.amount)}`).join("\n")||"None")+`\nTotal deductions: KES ${n0(L.totalDed)}\n\n*AMOUNT TO FORWARD LANDLORD: KES ${n0(L.forward)}*`+(!L.part&&(L.utilTotal||L.utilDed)?`\nRent${L.T.deposit?" and deposits":""}: KES ${n0(L.fwdRent)}\nUtilities: KES ${n0(L.fwdUtil)}`:"")+(L.rems.length?`\nForwarded: KES ${n0(L.forwarded)} on ${fmtDate(L.rems[L.rems.length-1].date)}`:"")+(L.rep.note?`\n\nNote: ${L.rep.note}`:"")+`\n\n${S.settings.company}\n${S.settings.phone}`}
 function llCSV(pid,m){const L=landlordMonth(pid,m,llPartOf(pid)),p=L.p;
   const rows=[[`Landlord: ${p.landlord||""}`,"","Date: "+fmtDate(todayStr)],[`${p.code}-${(p.name||"").toUpperCase()} PROPERTY ${monthLabel(m).toUpperCase()} ${llWord(L)} COLLECTION REPORT`],["HOUSE NUMBER","HOUSE TENANT","Unit Type",...L.cols.map(c=>c[1]),"TOTAL AMOUNTS"]];
-  L.rows.forEach(r=>rows.push(r.t?[r.u.label,r.t.name,r.u.type,...L.cols.map(c=>lrVal(r.lch,c)||""),r.ltot]:[r.u.label,"Vacant",r.u.type]));
+  L.rows.forEach(r=>rows.push(r.t?[r.u.label,goneName(r),r.u.type,...L.cols.map(c=>lrVal(r.lch,c)||""),r.ltot]:[r.u.label,"Vacant",r.u.type]));
   rows.push(["TOTAL","","",...L.cols.map(c=>L.T[c[0]]),L.total]);if(L.rep.note)rows.push([],["NOTE",L.rep.note]);
   rows.push([],["TOTAL COLLECTIONS"]);[...L.cols].reverse().forEach(c=>{if(L.T[c[0]])rows.push([c[0]==="rent"?"RENT":c[1].toUpperCase(),L.T[c[0]]])});rows.push(["TOTAL COLLECTION",L.total],[],["DEDUCTIONS FROM RENT COLLECTION"]);
   L.ded.forEach(d=>rows.push([d.desc,d.amount]));rows.push(["TOTAL DEDUCTIONS",L.totalDed],[],["TOTAL COLLECTION",L.total],["TOTAL DEDUCTIONS",L.totalDed],["AMOUNTS TO FORWARD LANDLORD",L.forward],["AMOUNTS FORWARDED",L.forwarded],[],["Report prepared by",L.rep.preparedBy||S.settings.preparedBy||""]);return csv(rows)}
@@ -2632,7 +2635,7 @@ async function landlordPDF(pid,m){
   if(L.rep&&L.rep.sentAt){doc.setTextColor(31,122,77);doc.setFontSize(9);doc.text(`REPORT SENT ${ordDate(L.rep.sentAt)}${L.rep.sentVia?" VIA "+L.rep.sentVia.toUpperCase():""}${L.rems.length?"  |  PAYMENT REF "+L.rems.map(r=>r.ref).filter(Boolean).join(", "):""}`,W/2,y,{align:"center"});y+=16}
   doc.setTextColor(...navy);doc.setFontSize(11.5);doc.text(`${p.code}-${(p.name||"").toUpperCase()} PROPERTY ${monthLabel(m).toUpperCase()} ${llWord(L)} COLLECTION REPORT`,W/2,y+4,{align:"center"});y+=16;
   const head=["House","House tenant","Unit type",...cols.map(c=>c[1]),...(multi?["Total"]:[])];
-  const body=L.rows.map(r=>r.t?[r.u.label,r.t.name,r.u.type||"",...cols.map(c=>{const v=lrVal(r.lch,c);return v?n0(v):""}),...(multi?[n0(r.ltot)]:[])]:[r.u.label,"Vacant",r.u.type||"",...cols.map(()=>""),...(multi?[""]:[])]);
+  const body=L.rows.map(r=>r.t?[r.u.label,goneName(r),r.u.type||"",...cols.map(c=>{const v=lrVal(r.lch,c);return v?n0(v):""}),...(multi?[n0(r.ltot)]:[])]:[r.u.label,"Vacant",r.u.type||"",...cols.map(()=>""),...(multi?[""]:[])]);
   const foot=[["TOTAL","","",...cols.map(c=>n0(L.T[c[0]])),...(multi?[n0(L.total)]:[])]];
   const num0=3;
   doc.autoTable({startY:y,margin:{left:40,right:40},head:[head],body,foot,styles:{fontSize:8,cellPadding:3.5,textColor:ink},headStyles:{fillColor:navy,textColor:255},footStyles:{fillColor:[243,237,224],textColor:navy,fontStyle:"bold"},
@@ -3972,6 +3975,7 @@ function bootHide(){if(bootDone)return;bootDone=true;const b=document.getElement
   const st=document.getElementById("bootS");if(st)st.textContent="Ready";const wait=Math.max(0,700-(Date.now()-bootT0));
   setTimeout(()=>{b.classList.add("out");setTimeout(()=>{b.hidden=true},500)},wait)}
 
+const goneName=r=>r.gone?`Vacant (${r.t.name} moved out ${fmtDate(r.t.moveOut)})`:r.t.name;
 const VIEWS={maint:vMaint,mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
 let _rq=null;function queueRender(){if(_rq)return;_rq=setTimeout(()=>{_rq=null;render()},mode==="cloud"?40:0)}
