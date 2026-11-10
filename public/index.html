@@ -3543,7 +3543,7 @@ async function fixMovedOut(){if(moFixed||mode!=="cloud"||!ME.admin)return;moFixe
 /* ===== every landlord deduction editable for the month ===== */
 function llDedCard(pid,m){const L=landlordMonth(pid,m,llPartOf(pid)),sent=!!L.rep.sentAt,ok=can("landlords"),over=L.rep.over||{};
   const removed=Object.keys(over).filter(k=>!k.endsWith("_desc")&&!k.startsWith("add_")&&+over[k]===0);
-  const row=d=>{const act=!ok?"":d.id?`<button class="btn sm" data-a="lded" data-id="${d.id}">Edit</button> <button class="btn sm danger" data-a="delLded" data-id="${d.id}">Delete</button>`:d.ppay?`<button class="btn sm" data-a="ppay" data-id="${d.ppay}">Edit payment</button>`:d.key?`<button class="btn sm" data-a="dedEdit" data-id="${pid}" data-k="${d.key}">Edit</button>`:"";
+  const row=d=>{const act=!ok?"":d.id?`<button class="btn sm" data-a="lded" data-id="${d.id}">Edit</button> <button class="btn sm danger" data-a="delLded" data-id="${d.id}">Delete</button>`:d.ppay?`<button class="btn sm" data-a="ppay" data-id="${d.ppay}">Edit payment</button>`:d.key?`<button class="btn sm" data-a="dedEdit" data-id="${pid}" data-k="${d.key}">Edit</button> <button class="btn sm danger" data-a="dedRemove" data-id="${pid}" data-k="${d.key}">Remove</button>`:"";
     return `<tr><td>${esc(d.desc)}${d.edited?` <span class="pill p-warn">Edited</span><span class="sub">Calculated ${n0(d.calc||0)}</span>`:""}${d.fee?'<span class="sub">Management fee</span>':""}<span class="sub">From ${d.side==="util"?"utilities":"rent"}${d.id&&ok?` · <button class="link" data-a="dedSide" data-id="${d.id}">take from ${d.side==="util"?"rent":"utilities"} instead</button>`:""}</span></td><td class="num">${n0(d.amount)}</td><td class="num" style="white-space:nowrap">${act}</td></tr>`};
   return `<div class="card"><div class="ch"><h2>Deductions for ${monthLabel(m)}</h2><span style="color:var(--muted);font-size:13px">${sent?"Report already sent: changes will alter a sent report":"Edit any line; changes apply to this month only"}</span>${ok?`<button class="btn sm" data-a="lded" data-prop="${pid}">Add deduction</button>`:""}</div>
    <div class="tw"><table><thead><tr><th>Deduction</th><th class="num">Amount</th><th></th></tr></thead><tbody>${L.ded.map(row).join("")||`<tr><td colspan="3" class="empty">No deductions this month.</td></tr>`}
@@ -3559,10 +3559,15 @@ function formDedEdit(pid,key){const m=month,L=landlordMonth(pid,m),d=L.ded.find(
   document.getElementById("fDE").onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target)),r0=lrep(pid,m)||{id:m+"_"+pid,propertyId:pid,month:m},over={...(r0.over||{})};
     over[key]=+f.amount;const ds=f.desc.trim();if(ds&&ds!==d.desc.replace(/^$/,""))over[key+"_desc"]=ds;
     if(await submit("lreports",`${P.code} ${monthShort(m)}: deduction "${ds}" set to ${kes(+f.amount)} (calculated ${kes(calc)})`,[{op:"set",col:"lreports",obj:{...r0,over}}],"landlords"))closeModal()}}
+/* take one calculated deduction (commission, letting fee, caretaker...) off this month's landlord report */
+function dedRemove(pid,key){const m=month,L=landlordMonth(pid,m),d=L.ded.find(x=>x.key===key);if(!d)return;const P=get("properties",pid);
+  askConfirm(`Remove "${d.desc}" (KES ${n0(d.amount)}) from ${P.code}'s ${monthLabel(m)} landlord report? You can put it back later from the same list.`,"Remove",async()=>{
+    const r0=lrep(pid,m)||{id:m+"_"+pid,propertyId:pid,month:m},over={...(r0.over||{}),[key]:0};
+    await submit("lreports",`${P.code} ${monthShort(m)}: removed ${d.desc}`,[{op:"set",col:"lreports",obj:{...r0,over}}],"landlords")})}
 async function dedReset(pid,key){const m=month,r0=lrep(pid,m);if(!r0||!r0.over)return;const over={...r0.over};delete over[key];delete over[key+"_desc"];
   if(await submit("lreports",`${(get("properties",pid)||{}).code} ${monthShort(m)}: deduction back to calculated amount`,[{op:"set",col:"lreports",obj:{...r0,over}}],"landlords"))closeModal()}
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;
-  if(b.dataset.a==="dedEdit"){e.preventDefault();formDedEdit(b.dataset.id,b.dataset.k)}else if(b.dataset.a==="dedReset"){e.preventDefault();dedReset(b.dataset.id,b.dataset.k)}});
+  if(b.dataset.a==="dedEdit"){e.preventDefault();formDedEdit(b.dataset.id,b.dataset.k)}else if(b.dataset.a==="dedRemove"){e.preventDefault();dedRemove(b.dataset.id,b.dataset.k)}else if(b.dataset.a==="dedReset"){e.preventDefault();dedReset(b.dataset.id,b.dataset.k)}});
 
 
 /* ===== correct a billed amount; staff changes always go to the admin for approval ===== */
