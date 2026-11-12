@@ -2708,7 +2708,9 @@ function smsFill(tpl,v){const out=[];for(const raw of String(tpl||"").replace(/\
   if(l&&l!==".")out.push(...l.split("\n"))}
   return out.join("\n").replace(/\n{3,}/g,"\n\n").trim()}
 function smsDoc(id,t,text,kind){return {id,to:smsPhone(t.phone),tenantId:t.id,name:t.name,text,kind,status:"queued",createdAt:new Date().toISOString(),by:ME.id||""}}
-async function smsQueue(docs){let n=0;for(const d of docs){if(!d.to)continue;try{await db.collection("sms").doc(d.id).set(JSON.parse(JSON.stringify(d)));n++}catch(e){}}return n}
+async function smsQueue(docs){let n=0;for(const d of docs){if(!d.to)continue;try{await db.collection("sms").doc(d.id).set(JSON.parse(JSON.stringify(d)));n++}catch(e){}}if(n)smsPoke();return n}
+/* tells the SMS sender there is something to send, so it doesn't have to search the whole message list every minute */
+function smsPoke(){try{db.collection("sms").doc("_pending").set({status:"pending",kind:"pending",queuedAt:new Date().toISOString(),by:ME.id||""})}catch(e){}}
 
 /* reminder days, e.g. "5, 1" = 5 days before and 1 day before the due day ("0" = on the due day) */
 function smsRemindAt(c){const v=[...new Set(String((c||smsCfg()).remindAt??"5, 1").split(/[^0-9]+/).filter(x=>x!=="").map(Number).filter(n=>n>=0&&n<=20))].sort((a,b)=>b-a);return v.length?v:[5,1]}
@@ -2824,7 +2826,7 @@ document.addEventListener("click",async e=>{
   else if(a==="smsRemindNow"){e.preventDefault();const c=smsCfg(),list=smsDueList("remind",true);
     if(!list.length){toast("Everyone with a balance has already had this month's reminder, or no one owes.");return}
     smsReview(list.map(r=>smsDoc(r.id,r.t,smsFill(c.tplRemind,smsVars(r.t,r.vars)),"Reminder "+r.n)),"Rent reminders","Reminders")}
-  else if(a==="smsRetry"){e.preventDefault();const x=get("sms",b.dataset.id);if(x){try{await db.collection("sms").doc(x.id).set({...x,status:"queued",error:"",tries:0});toast("Will try again")}catch(err){toast("Could not retry just now")}}}
+  else if(a==="smsRetry"){e.preventDefault();const x=get("sms",b.dataset.id);if(x){try{await db.collection("sms").doc(x.id).set({...x,status:"queued",error:"",tries:0});smsPoke();toast("Will try again")}catch(err){toast("Could not retry just now")}}}
 });
 document.addEventListener("submit",async e=>{
   if(e.target.id!=="fSms")return;e.preventDefault();const f=new FormData(e.target),c=smsCfg();

@@ -61,7 +61,7 @@ function update_(id, fields) {
 }
 /* scheduled texts: status 'scheduled' with dueAt (ISO time). When the time comes they join the queue. */
 function promoteDue_() {
-  const now = new Date().toISOString();
+  const now = new Date().toISOString(); let n = 0;
   const res = fsFetch_(FS + ':runQuery', 'post', { structuredQuery: {
     from: [{ collectionId: 'sms' }],
     where: { fieldFilter: { field: { fieldPath: 'dueAt' }, op: 'LESS_THAN_OR_EQUAL', value: { stringValue: now } } },
@@ -69,9 +69,10 @@ function promoteDue_() {
   } });
   (res || []).filter(x => x.document).forEach(x => {
     const d = fromFs_(x.document.fields), id = x.document.name.split('/').pop();
-    if (d.status === 'scheduled') update_(id, { status: 'queued', dueAt: null, createdAt: now });
+    if (d.status === 'scheduled') { update_(id, { status: 'queued', dueAt: null, createdAt: now }); n++; }
     else update_(id, { dueAt: null });
   });
+  return n;
 }
 function queued_() {
   const res = fsFetch_(FS + ':runQuery', 'post', { structuredQuery: {
@@ -125,9 +126,21 @@ function processQueue() {
   if (!lock.tryLock(5000)) return;
   try {
     const now = new Date(), status = { lastRun: now.toISOString() };
+    /* Save the free daily database reads: search the message list only when the ledger has flagged
+       new texts (sms/_pending), when the last run left some behind, or every 5 minutes for scheduled texts. */
+    const P = props_();
+    let pendingAt = '';
+    try { const d = fsFetch_(FS + '/sms/_pending', 'get'); pendingAt = (fromFs_(d.fields).queuedAt) || ''; } catch (e) { pendingAt = ''; }
+    let doQueue = P.getProperty('MORE') !== '0' || (pendingAt && pendingAt !== P.getProperty('LAST_PENDING'));
+    if (now.getTime() - Number(P.getProperty('SCHED_AT') || 0) >= 5 * 60 * 1000) {
+      P.setProperty('SCHED_AT', String(now.getTime()));
+      try { if (promoteDue_() > 0) doQueue = true; } catch (e) { console.error('scheduled: ' + e); }
+    }
+    if (!doQueue) { try { update_('_status', { lastRun: now.toISOString(), status: 'status', kind: 'status' }); } catch (e) {} return; }
     let list = [];
-    try { promoteDue_(); } catch (e) { console.error('scheduled: ' + e); }
     try { list = queued_(); } catch (e) { console.error(e); return; }
+    if (pendingAt) P.setProperty('LAST_PENDING', pendingAt);
+    let more = list.length >= MAX_PER_RUN;
     let sent = 0, failed = 0, lastError = '';
     for (const s of list) {
       if (s.id === '_status') continue;
@@ -141,11 +154,12 @@ function processQueue() {
       if (r.ok) { update_(s.id, { status: 'sent', sentAt: new Date().toISOString(), messageId: r.messageId, response: r.text }); sent++; }
       else {
         const tries = (Number(s.tries) || 0) + 1;
-        if (r.transient && tries < 3) update_(s.id, { status: 'queued', tries: tries, error: r.text });
+        if (r.transient && tries < 3) { update_(s.id, { status: 'queued', tries: tries, error: r.text }); more = true; }
         else { update_(s.id, { status: 'failed', tries: tries, error: r.text, response: r.text }); failed++; lastError = r.text; }
       }
     }
-    const p = props_(), lastBal = Number(p.getProperty('BAL_AT') || 0);
+    P.setProperty('MORE', more ? '1' : '0');
+    const p = P, lastBal = Number(p.getProperty('BAL_AT') || 0);
     if (sent || now - lastBal > 30 * 60 * 1000) {
       try { const b = balance_(); if (b !== null) { status.balance = b; status.balanceAt = now.toISOString(); } } catch (e) { lastError = lastError || String(e); }
       p.setProperty('BAL_AT', String(now.getTime()));
