@@ -74,6 +74,17 @@ function promoteDue_() {
   });
   return n;
 }
+/* the earliest scheduled text still waiting, or '' */
+function nextDue_() {
+  const res = fsFetch_(FS + ':runQuery', 'post', { structuredQuery: {
+    from: [{ collectionId: 'sms' }],
+    where: { fieldFilter: { field: { fieldPath: 'dueAt' }, op: 'GREATER_THAN', value: { stringValue: new Date().toISOString() } } },
+    orderBy: [{ field: { fieldPath: 'dueAt' }, direction: 'ASCENDING' }],
+    limit: 1
+  } });
+  const d = (res || []).find(x => x.document);
+  return d ? (fromFs_(d.document.fields).dueAt || '') : '';
+}
 function queued_() {
   const res = fsFetch_(FS + ':runQuery', 'post', { structuredQuery: {
     from: [{ collectionId: 'sms' }],
@@ -129,12 +140,19 @@ function processQueue() {
     /* Save the free daily database reads: search the message list only when the ledger has flagged
        new texts (sms/_pending), when the last run left some behind, or every 5 minutes for scheduled texts. */
     const P = props_();
-    let pendingAt = '';
-    try { const d = fsFetch_(FS + '/sms/_pending', 'get'); pendingAt = (fromFs_(d.fields).queuedAt) || ''; } catch (e) { pendingAt = ''; }
+    let pendingAt = '', nextDue = '';
+    try { const d = fromFs_(fsFetch_(FS + '/sms/_pending', 'get').fields); pendingAt = d.queuedAt || ''; nextDue = d.nextDue || ''; } catch (e) { pendingAt = ''; }
     let doQueue = P.getProperty('MORE') !== '0' || (pendingAt && pendingAt !== P.getProperty('LAST_PENDING'));
-    if (now.getTime() - Number(P.getProperty('SCHED_AT') || 0) >= 5 * 60 * 1000) {
+    /* scheduled texts: the ledger records the earliest send time in _pending.nextDue; look only when it has come
+       (and, as a safety net, every 6 hours) */
+    const safety = now.getTime() - Number(P.getProperty('SCHED_AT') || 0) >= 6 * 3600 * 1000;
+    if ((nextDue && nextDue <= now.toISOString()) || safety) {
       P.setProperty('SCHED_AT', String(now.getTime()));
-      try { if (promoteDue_() > 0) doQueue = true; } catch (e) { console.error('scheduled: ' + e); }
+      try {
+        if (promoteDue_() > 0) doQueue = true;
+        const nd = nextDue_();
+        if (nd !== nextDue) update_('_pending', { nextDue: nd });
+      } catch (e) { console.error('scheduled: ' + e); }
     }
     if (!doQueue) { try { update_('_status', { lastRun: now.toISOString(), status: 'status', kind: 'status' }); } catch (e) {} return; }
     let list = [];

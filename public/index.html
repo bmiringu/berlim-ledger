@@ -2708,9 +2708,11 @@ function smsFill(tpl,v){const out=[];for(const raw of String(tpl||"").replace(/\
   if(l&&l!==".")out.push(...l.split("\n"))}
   return out.join("\n").replace(/\n{3,}/g,"\n\n").trim()}
 function smsDoc(id,t,text,kind){return {id,to:smsPhone(t.phone),tenantId:t.id,name:t.name,text,kind,status:"queued",createdAt:new Date().toISOString(),by:ME.id||""}}
-async function smsQueue(docs){let n=0;for(const d of docs){if(!d.to)continue;try{await db.collection("sms").doc(d.id).set(JSON.parse(JSON.stringify(d)));n++}catch(e){}}if(n)smsPoke();return n}
+async function smsQueue(docs){let n=0;for(const d of docs){if(!d.to)continue;try{await db.collection("sms").doc(d.id).set(JSON.parse(JSON.stringify(d)));n++}catch(e){}}if(n)smsPoke(docs);return n}
 /* tells the SMS sender there is something to send, so it doesn't have to search the whole message list every minute */
-function smsPoke(){try{db.collection("sms").doc("_pending").set({status:"pending",kind:"pending",queuedAt:new Date().toISOString(),by:ME.id||""})}catch(e){}}
+function smsPoke(extra){try{const nowI=new Date().toISOString(),ids=new Set((extra||[]).map(d=>d.id));
+  const due=[...S.sms.filter(x=>!ids.has(x.id)),...(extra||[])].filter(x=>x.status==="scheduled"&&x.dueAt&&x.dueAt>nowI).map(x=>x.dueAt).sort();
+  db.collection("sms").doc("_pending").set({status:"pending",kind:"pending",queuedAt:nowI,nextDue:due[0]||"",by:ME.id||""})}catch(e){}}
 
 /* reminder days, e.g. "5, 1" = 5 days before and 1 day before the due day ("0" = on the due day) */
 function smsRemindAt(c){const v=[...new Set(String((c||smsCfg()).remindAt??"5, 1").split(/[^0-9]+/).filter(x=>x!=="").map(Number).filter(n=>n>=0&&n<=20))].sort((a,b)=>b-a);return v.length?v:[5,1]}
@@ -4055,7 +4057,7 @@ function schedListHTML(sched){if(!sched.length)return "";const groups={};sched.f
 async function schedCancel(at){const g=S.sms.filter(x=>x.status==="scheduled"&&x.dueAt===at);if(!g.length)return;
   askConfirm(`Cancel ${g.length} SMS scheduled for ${schedLabel(at)}? They will not be sent.`,"Cancel messages",async()=>{let n=0;
     for(const x of g){try{await db.collection("sms").doc(x.id).set(JSON.parse(JSON.stringify({...x,status:"cancelled",dueAt:null,cancelledAt:new Date().toISOString(),cancelledBy:ME.id||""})));n++}catch(e){}}
-    toast(n+" scheduled SMS cancelled")})}
+    smsPoke(g.map(x=>({...x,status:"cancelled"})));toast(n+" scheduled SMS cancelled")})}
 /* each property's own rent terms, side by side */
 function propTermsCard(){const ps=sortedProps();if(!ps.length)return "";const st=S.settings,dflt=v=>`${v} <span class="sub" style="display:inline">(default)</span>`;
   const blank=v=>v===""||v==null;
