@@ -735,6 +735,56 @@ html .bars .b.billed{background:#C9CFD8!important;background-image:none!importan
 html .bars .b.coll{background:var(--navy)!important;background-image:none!important}
 html .legend i,html .lg-billed{background:#C9CFD8}
 
+/* ===== phones: compact top bar, app-style tab bar at the bottom, "More" sheet ===== */
+#navMore,#mobSheet{display:none}
+@media (max-width:900px){
+  html header.mast{position:sticky;top:0;z-index:30;display:grid;grid-template-columns:1fr auto;gap:8px 10px;padding:10px 14px 10px;align-items:center}
+  html .brand{margin:0;gap:8px}
+  html .brand svg{width:28px;height:28px}
+  html .brand .wm{font-size:15px}
+  html .brand .sub{display:none}
+  html .status{order:0;grid-column:2;grid-row:1;font-size:0;gap:0}
+  html .status i{width:9px;height:9px}
+  html .monthpick{grid-column:1/-1;grid-row:2;grid-template-columns:36px 1fr 36px}
+  html .monthpick button{width:36px;height:36px}
+  html .monthpick input{height:36px;font-size:14px!important;text-align:center}
+  html .rolebadge,html #fbUser{display:none!important}
+
+  html nav.tabs{position:fixed;top:auto;bottom:0;left:0;right:0;z-index:40;max-height:none;overflow:visible;
+    display:grid;grid-template-columns:repeat(5,1fr);gap:0;padding:4px 4px calc(4px + env(safe-area-inset-bottom));
+    background:var(--paper);border-top:1px solid var(--rule);box-shadow:0 -6px 18px -12px rgba(15,30,58,.25)}
+  html nav.tabs a{display:none;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px 2px;border-radius:8px;
+    color:var(--muted);font-size:11px;font-weight:500;background:none}
+  html nav.tabs a.mob-main:not([hidden]),html nav.tabs #navMore{display:flex}
+  html nav.tabs #navMore{flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:6px 2px;border:0;background:none;color:var(--muted);font:500 11px var(--ui);cursor:pointer;position:relative}
+  html nav.tabs #navMore svg{width:22px;height:22px;fill:currentColor}
+  html nav.tabs #navMore.on::before{content:"";position:absolute;left:30%;right:30%;top:0;height:3px;border-radius:0 0 3px 3px;background:var(--brass)}
+  html nav.tabs a svg{width:22px;height:22px;opacity:1}
+  html nav.tabs a .lg{display:none}html nav.tabs a .sm{display:block;max-width:none}
+  html nav.tabs a:hover{background:none;color:var(--ink)}
+  html nav.tabs a.on,html nav.tabs #navMore.on{color:var(--navy);background:none;font-weight:600}
+  html nav.tabs a.on::before{left:30%;right:30%;top:0;bottom:auto;width:auto;height:3px;border-radius:0 0 3px 3px}
+  html nav.tabs a .badge,html nav.tabs a b{position:absolute;top:2px;left:55%;margin:0;font-size:10px;padding:0 5px}
+  html main{padding:16px 14px calc(92px + env(safe-area-inset-bottom))}
+  html .pagehead h1{font-size:21px}
+  html .pagehead .row{width:100%}
+  html .toast{bottom:calc(84px + env(safe-area-inset-bottom))!important}
+
+  #mobSheet.open{display:block;position:fixed;inset:0;z-index:60}
+  #mobSheet .sc{position:absolute;inset:0;background:rgba(15,30,58,.42)}
+  #mobSheet .pane{position:absolute;left:0;right:0;bottom:0;background:var(--paper);border-radius:14px 14px 0 0;padding:10px 16px calc(18px + env(safe-area-inset-bottom));max-height:80vh;overflow:auto;animation:shUp .18s ease-out}
+  #mobSheet .grip{width:40px;height:4px;border-radius:2px;background:#D5D9E0;margin:0 auto 12px}
+  #mobSheet .who{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:4px 2px 12px;border-bottom:1px solid var(--rule-soft);margin-bottom:10px;font-size:13px;color:var(--muted)}
+  #mobSheet .who b{color:var(--ink);font-weight:600;display:block;font-size:14px}
+  #mobSheet .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  #mobSheet .grid a{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;border-radius:10px;text-decoration:none;color:var(--ink);font-size:12.5px;font-weight:500;border:1px solid var(--rule-soft);text-align:center;position:relative}
+  #mobSheet .grid a svg{width:22px;height:22px;fill:var(--navy)}
+  #mobSheet .grid a.on{border-color:var(--navy);background:#F3F5F9}
+  #mobSheet .grid a .badge,#mobSheet .grid a b{position:absolute;top:6px;right:8px;background:var(--brass);color:var(--navy);border-radius:9px;padding:0 6px;font-size:10.5px}
+  @keyframes shUp{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+}
+@media (max-width:900px) and (prefers-reduced-motion:reduce){#mobSheet .pane{animation:none}}
+
 </style>
 <style id="fb">
 body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
@@ -4259,6 +4309,30 @@ function propTermsCard(){const ps=sortedProps();if(!ps.length)return "";const st
      <td>${can("props")?`<button class="btn sm" data-a="prop" data-id="${p0.id}">Edit</button>`:""}</td></tr>`}).join("");
   return `<div class="card"><div class="ch"><h2>Rent terms by property</h2><span style="color:var(--muted);font-size:13px">Each property's own terms. Click Edit to change one property; "(default)" means it uses the default below.</span></div>
    <div class="tw"><table><thead><tr><th>Property</th><th>Rent due</th><th>Grace</th><th>Late penalty</th><th class="num">Garbage</th><th>Water</th><th>Electricity</th><th class="num">Service charge</th><th>Commission</th><th>On utilities</th><th>On deposits</th><th>Letting fee</th><th>Landlord paid by</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`}
+/* phones: bottom tab bar (four main sections + More) and a sheet with everything else */
+(function mobileNav(){const nav=document.getElementById("tabs");if(!nav||document.getElementById("navMore"))return;
+  const MAIN=["dashboard","tenants","payments","landlords"];
+  const more=document.createElement("button");more.type="button";more.id="navMore";more.setAttribute("aria-label","More sections");
+  more.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg><span class="sm">More</span>';
+  nav.appendChild(more);
+  const sheet=document.createElement("div");sheet.id="mobSheet";sheet.setAttribute("role","dialog");sheet.setAttribute("aria-label","All sections");document.body.appendChild(sheet);
+  const mark=()=>{const links=[...nav.querySelectorAll("a[data-v]")],want=new Set();
+    links.forEach(a=>{if(want.size<4&&MAIN.includes(a.dataset.v)&&!a.hidden)want.add(a)});
+    links.forEach(a=>{if(want.size<4&&!a.hidden)want.add(a)});
+    links.forEach(a=>{const w=want.has(a);if(a.classList.contains("mob-main")!==w)a.classList.toggle("mob-main",w)});
+    const cur=links.find(a=>a.classList.contains("on")),mo=!!cur&&!want.has(cur);if(more.classList.contains("on")!==mo)more.classList.toggle("on",mo)};
+  const close=()=>{sheet.classList.remove("open");sheet.innerHTML=""};
+  const open=()=>{const links=[...nav.querySelectorAll("a[data-v]")].filter(a=>!a.hidden&&!a.classList.contains("mob-main"));
+    const who=(document.getElementById("fbWho")||{}).textContent||"",role=(document.getElementById("rolebadge")||{}).textContent||"";
+    sheet.innerHTML=`<div class="sc" data-close></div><div class="pane"><div class="grip"></div>
+      <div class="who"><div><b>${esc(who||"Signed in")}</b>${esc(role)}</div>${document.getElementById("fbOut")?'<button class="btn sm" data-out>Sign out</button>':""}</div>
+      <div class="grid">${links.map(a=>{const b=a.querySelector(".badge,b");return `<a href="#${a.dataset.v}" class="${a.classList.contains("on")?"on":""}">${(a.querySelector("svg")||{}).outerHTML||""}<span>${esc((a.querySelector(".lg")||a).textContent.trim())}</span>${b&&+b.textContent.trim()>0?`<b>${esc(b.textContent.trim())}</b>`:""}</a>`}).join("")}</div></div>`;
+    sheet.classList.add("open")};
+  more.addEventListener("click",e=>{e.preventDefault();sheet.classList.contains("open")?close():open()});
+  sheet.addEventListener("click",e=>{if(e.target.closest("[data-close]")||e.target.closest(".grid a"))close();if(e.target.closest("[data-out]")){close();document.getElementById("fbOut").click()}});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&sheet.classList.contains("open"))close()});
+  window.addEventListener("hashchange",close);
+  new MutationObserver(mark).observe(nav,{subtree:true,attributes:true,attributeFilter:["class","hidden"]});mark()})();
 const VIEWS={maint:vMaint,mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
 let _rq=null;function queueRender(){if(_rq)return;_rq=setTimeout(()=>{_rq=null;render()},mode==="cloud"?40:0)}
