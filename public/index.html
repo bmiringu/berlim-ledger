@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Berlim Homes Rent Ledger</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Instrument+Sans:wght@400;500;600&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <style>
@@ -552,6 +552,190 @@ table.lrpay{max-width:none}
 <meta property="og:url" content="https://berlim-homes-ltd.web.app/">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
+<style id="skin">
+/* ===== Berlim ledger: working-ledger skin (replaces the earlier layered looks) ===== */
+:root{
+  --navy:#0F1E3A; --navy-2:#1A2C4F; --brass:#B89A5E;
+  --canvas:#F2F3F5; --paper:#FFFFFF; --ink:#1B2330; --muted:#5B6474; --faint:#8A92A0;
+  --rule:#DCDFE4; --rule-soft:#ECEEF1; --hover:#F6F7F9;
+  --bad:#B3261E; --bad-bg:#FBEAE8; --good:#1E6B45; --good-bg:#E5F2EA; --warn:#8A5A00; --warn-bg:#FBF1DC;
+  --gold:#B89A5E; --line:#DCDFE4; --ivory:#F2F3F5;
+  --ui:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --display:var(--ui); --body:var(--ui);
+  --side:232px;
+}
+html body{background:var(--canvas);color:var(--ink);font:14.5px/1.5 var(--ui);-webkit-font-smoothing:antialiased;
+  display:grid;grid-template-columns:var(--side) minmax(0,1fr);grid-template-rows:auto 1fr;min-height:100vh}
+html body::before{content:"";position:fixed;inset:0 auto 0 0;width:var(--side);background:var(--navy);z-index:0}
+html h1,html h2,html h3{font-family:var(--ui);color:var(--ink);letter-spacing:-.01em;font-weight:600}
+html :focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+html .num,html td.num,html th.num,html .tile .v,html .kv{font-variant-numeric:tabular-nums lining-nums}
+
+/* ---- sidebar: masthead + nav stacked in the first column ---- */
+html header.mast{grid-column:1;grid-row:1;position:relative;z-index:2;background:none!important;box-shadow:none!important;border:0;
+  padding:20px 16px 12px;display:flex;flex-direction:column;align-items:stretch;gap:14px;color:#E9ECF2}
+html header.mast::after,html header.mast::before,html nav.tabs::before,html nav.tabs::after{display:none!important;content:none!important;background:none!important}
+html .brand{margin:0 0 4px;gap:10px}
+html .brand svg{width:34px;height:34px}
+html .brand .wm{font-family:"Cormorant Garamond",Georgia,serif;font-size:17px;letter-spacing:.1em;white-space:nowrap;color:#F3EEE2}
+html .brand .sub{font-size:11.5px;letter-spacing:0;text-transform:none;color:#9AA4B8;margin-top:2px}
+html .monthpick{display:grid;grid-template-columns:28px minmax(0,1fr) 28px;gap:4px;align-items:center}
+html .monthpick label{grid-column:1/-1;font-size:12px;letter-spacing:0;text-transform:none;color:#9AA4B8;margin-bottom:2px}
+html .monthpick input{background:var(--navy-2);border:1px solid #2C3F66;color:#fff;border-radius:6px;padding:6px 4px 6px 8px;font-size:13px!important;min-width:0;width:100%;font-size:13.5px}
+html .monthpick button{width:30px;height:32px;border-radius:6px;border:1px solid #2C3F66;background:transparent;color:#C9D0DD;box-shadow:none}
+html .monthpick button:hover:not(:disabled){border-color:var(--brass);color:#fff}
+html .monthpick button:disabled{opacity:.35}
+html .rolebadge{align-self:flex-start;background:transparent!important;background-image:none!important;border:1px solid #3A4C73;color:#D8C9A4!important;border-radius:4px;padding:2px 8px;font-size:11.5px;letter-spacing:0;text-transform:none;box-shadow:none!important;font-weight:500}
+html #fbUser{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px;color:#C9D0DD;order:10;border-top:1px solid #23355A;padding-top:12px}
+html #fbUser[hidden]{display:none}
+html #fbUser button,html #fbUser a{background:transparent;border:1px solid #33466D;color:#E9ECF2;border-radius:6px;padding:3px 9px;font-size:12px;box-shadow:none;letter-spacing:0;text-transform:none}
+html #fbUser button:hover,html #fbUser a:hover{border-color:var(--brass)}
+html .status{order:11;font-size:12px;color:#9AA4B8;background:none;border:0;padding:0;box-shadow:none}
+
+html nav.tabs{grid-column:1;grid-row:2;position:sticky;top:0;align-self:start;z-index:2;max-height:100vh;overflow:auto;
+  background:none;border:0;box-shadow:none;margin:0;padding:6px 10px 24px;display:flex;flex-direction:column;flex-wrap:nowrap;gap:1px;justify-content:flex-start}
+html nav.tabs a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;border:0;color:#C3CAD7;font-weight:500;font-size:14px;
+  background:none;box-shadow:none;transform:none;white-space:nowrap;position:relative}
+html nav.tabs a svg{width:17px;height:17px;fill:currentColor;opacity:.8;flex:none}
+html nav.tabs a .sm{display:none}html nav.tabs a .lg{display:inline}
+html nav.tabs a:hover{background:#16284A;color:#fff}
+html nav.tabs a.on{background:#1B2F55;color:#fff;box-shadow:none}
+html nav.tabs a.on::before{content:"";position:absolute;left:-10px;top:7px;bottom:7px;width:3px;border-radius:0 2px 2px 0;background:var(--brass)}
+html nav.tabs a.on svg{opacity:1}
+html nav.tabs a .badge,html nav.tabs a b{background:var(--brass);color:var(--navy);border-radius:9px;padding:0 6px;font-size:11px;font-weight:600;margin-left:auto}
+
+/* ---- workspace ---- */
+html main{grid-column:2;grid-row:1/span 2;max-width:1240px;width:100%;margin:0;padding:28px 36px 64px;gap:18px;position:relative;z-index:1}
+html .pagehead{align-items:center;gap:10px;padding:0 0 4px;border:0}
+html .pagehead h1{font-size:24px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:10px}
+html .pagehead p{color:var(--muted);font-size:13.5px;margin-top:4px}
+html .code{background:#E9ECF1;color:var(--navy);border:0;border-radius:4px;font-weight:600;font-size:12px;padding:2px 6px;letter-spacing:0;box-shadow:none}
+html .code.big{font-size:15px;padding:3px 8px}
+
+/* panels */
+html .card{background:var(--paper);border:1px solid var(--rule);border-radius:8px;box-shadow:none;overflow:hidden}
+html .card:hover{box-shadow:none;transform:none}
+html .card .ch{padding:14px 18px;border-bottom:1px solid var(--rule-soft);background:none;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+html .card .ch h2{font-size:15.5px;font-weight:600;margin-right:auto}
+html .card .ch>span{font-size:12.5px!important;color:var(--muted)!important}
+html .card .cb{padding:16px 18px}
+html .howto{background:var(--paper)}
+
+/* figure strip: tiles become one ruled panel */
+html .tiles,html .pmc .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;background:var(--paper);border:1px solid var(--rule);border-radius:8px;overflow:hidden;padding:0}
+html .tile,html .pmc .kpi{background:none;border:0;border-left:1px solid var(--rule-soft);border-radius:0;box-shadow:none;padding:14px 18px 15px;transform:none;gap:3px;min-height:0}
+html .tile:first-child,html .pmc .kpi:first-child{border-left:0}
+html .tile::before,html .tile::after{display:none!important;content:none!important}
+html .tile:hover{transform:none;box-shadow:none}
+html .tile .k,html .pmc .kl{font-size:12.5px;letter-spacing:0;text-transform:none;color:var(--muted);font-weight:500}
+html .tile .v,html .pmc .kv{font-family:var(--ui);font-size:24px;font-weight:600;color:var(--ink);letter-spacing:-.015em;line-height:1.2;margin-top:2px}
+html .tile .s,html .pmc .ks{font-size:12.5px;color:var(--faint)}
+html .tile.alert .v,html .pmc .kpi.bad .kv{color:var(--bad)}
+html .pmc .kpi.warn .kv{color:var(--warn)}
+html .tile.accent{border-top:0}
+html .pmc{border:0;background:none;overflow:visible}
+html .pmc .ch{padding:0 0 8px;border:0}
+html .pmc .kpis{padding:0}
+
+/* tables: ruled ledger lines */
+html .tw{overflow-x:auto}
+html table{border-collapse:collapse;width:100%;font-size:13.5px}
+html th{background:#FAFBFC;color:var(--muted);font-weight:500;font-size:12.5px;letter-spacing:0;text-transform:none;text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);white-space:nowrap;position:sticky;top:0}
+html td{padding:9px 12px;border-bottom:1px solid var(--rule-soft);vertical-align:middle}
+html tbody tr:hover td{background:var(--hover)}
+html tbody tr:last-child td{border-bottom:0}
+html tfoot td,html tr.tot td,html tr.total td{border-top:3px double var(--navy);border-bottom:0;font-weight:600;background:#FAFBFC}
+html td .sub{color:var(--faint);font-size:12px}
+html .neg{color:var(--bad);font-weight:600}
+html td .tname,html td:has(>.tname){min-width:150px}
+html .search input{border-color:#CDD2DA!important;background:var(--paper)!important}
+html .link,html .tname{color:var(--ink);text-decoration:underline;text-decoration-color:#B9C0CC;text-underline-offset:3px;background:none;border:0;padding:0;cursor:pointer;font-weight:500}
+html .link:hover,html .tname:hover{text-decoration-color:var(--navy);color:var(--navy)}
+
+/* buttons */
+html .btn{background:var(--paper);color:var(--ink);border:1px solid #CDD2DA;border-radius:6px;padding:7px 13px;font-weight:500;font-size:13.5px;box-shadow:none;transform:none;letter-spacing:0;text-transform:none;line-height:1.3}
+html .btn:hover:not(:disabled){background:var(--hover);border-color:#AEB5C1;transform:none;box-shadow:none}
+html .btn.primary{background:var(--navy);border-color:var(--navy);color:#fff}
+html .btn.primary:hover:not(:disabled){background:#1C305A;border-color:#1C305A}
+html .btn.gold{background:var(--paper);color:var(--ink);border-color:#CDD2DA}
+html .btn.gold:hover:not(:disabled){background:var(--hover)}
+html .btn.danger{color:var(--bad);border-color:#E7C3BF;background:var(--paper)}
+html .btn.danger:hover:not(:disabled){background:var(--bad-bg)}
+html .btn.sm{padding:4px 9px;font-size:12.5px}
+html .btn:disabled{opacity:.5}
+
+/* pills: quiet status labels */
+html .pill{border-radius:4px;padding:1px 7px;font-size:12px;font-weight:500;letter-spacing:0;text-transform:none;border:0;box-shadow:none}
+html .p-good{background:var(--good-bg);color:var(--good)}
+html .p-bad{background:var(--bad-bg);color:var(--bad)}
+html .p-warn{background:var(--warn-bg);color:var(--warn)}
+html .p-mute{background:#EEF0F3;color:var(--muted)}
+
+/* property chips and segmented tabs */
+html .chips{gap:6px}
+html .chip{background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:5px 11px;font-size:13px;color:var(--ink);box-shadow:none;transform:none}
+html .chip b{font-weight:600;margin-right:2px}
+html .chip:hover{border-color:#AEB5C1}
+html .chip.on{background:var(--navy);border-color:var(--navy);color:#fff}
+html .chip.on b{color:#E2D3AE}
+html .seg{background:none;border:0;border-bottom:1px solid var(--rule);border-radius:0;padding:0;gap:18px;box-shadow:none}
+html .seg button{background:none;border:0;border-bottom:2px solid transparent;border-radius:0;padding:6px 0 9px;margin-bottom:-1px;color:var(--muted);font-weight:500;box-shadow:none}
+html .seg button.on{color:var(--ink);border-bottom-color:var(--navy);background:none;box-shadow:none}
+
+/* inputs */
+html input,html select,html textarea{border:1px solid #CDD2DA;border-radius:6px;background:var(--paper);color:var(--ink);padding:7px 10px;box-shadow:none}
+html input:focus,html select:focus,html textarea:focus{border-color:var(--navy);outline:none;box-shadow:0 0 0 3px rgba(15,30,58,.12)}
+html .f label,html .fg label{font-size:13px;font-weight:500;color:var(--ink);letter-spacing:0;text-transform:none}
+html .hint,html .f .hint{color:var(--faint);font-size:12px}
+html .err{color:var(--bad)}
+html .search.card{background:var(--paper)}
+
+/* modal and toast */
+html .scrim{background:rgba(15,30,58,.42);backdrop-filter:none}
+html .modal{border-radius:10px;border:1px solid var(--rule);box-shadow:0 24px 60px -18px rgba(15,30,58,.45)}
+html .modal .mh{border-bottom:1px solid var(--rule-soft);background:none;padding:14px 18px}
+html .modal .mh h2{font-size:16px}
+html .modal .mf{border-top:1px solid var(--rule-soft);background:#FAFBFC}
+html .toast{background:var(--navy);color:#fff;border-radius:6px;box-shadow:0 10px 30px -10px rgba(15,30,58,.5);font-size:13.5px}
+html .banner{border-radius:6px}
+
+/* ---- small screens: sidebar becomes a top bar ---- */
+@media (max-width:900px){
+  html body{display:block}
+  html body::before{display:none}
+  html header.mast{background:var(--navy);flex-direction:row;flex-wrap:wrap;align-items:center;padding:12px 14px;gap:10px}
+  html .brand{margin-right:auto}
+  html .monthpick{grid-template-columns:30px 140px 30px}
+  html .monthpick label{display:none}
+  html #fbUser{order:0;border:0;padding:0}
+  html nav.tabs{position:sticky;top:0;flex-direction:row;overflow-x:auto;max-height:none;background:var(--navy);padding:4px 10px 8px;gap:2px}
+  html nav.tabs a{padding:7px 10px;font-size:13px}
+  html nav.tabs a.on::before{left:8px;right:8px;top:auto;bottom:0;width:auto;height:2px}
+  html main{padding:18px 14px 48px}
+}
+@media (prefers-reduced-motion:reduce){html *{transition:none!important;animation:none!important}}
+
+/* role band (admin / staff to-do strip): same ruled strip as the figures */
+html .roleband,html .roleband.admin,html .roleband.staff{background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-left:1px solid var(--rule);border-radius:8px;box-shadow:none;padding:14px 18px 16px;gap:10px}
+html .roleband h2,html .roleband.admin h2,html .roleband.staff h2{font-size:15.5px;letter-spacing:-.01em;text-transform:none;color:var(--ink);font-family:var(--ui)}
+html .roleband .rb-items{gap:0;border:1px solid var(--rule-soft);border-radius:6px;overflow:hidden}
+html .roleband a.rb,html .roleband.admin a.rb,html .roleband.staff a.rb{background:none;border:0;border-left:1px solid var(--rule-soft);border-radius:0;color:var(--ink);padding:10px 14px}
+html .roleband a.rb:first-child{border-left:0}
+html .roleband a.rb:hover,html .roleband.admin a.rb:hover,html .roleband.staff a.rb:hover{background:var(--hover)}
+html .roleband a.rb b,html .roleband.admin a.rb b,html .roleband.staff a.rb b{font-family:var(--ui);font-size:20px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+html .roleband a.rb span{color:var(--muted)}
+html .p-info{background:#E8EDF6;color:#2B4A7E}
+html .modal input:focus,html .modal select:focus{border-color:var(--navy)!important;box-shadow:0 0 0 3px rgba(15,30,58,.12)!important}
+@media (max-width:900px){
+  html header.mast{background:var(--navy)!important}
+  html .brand .wm{color:#F3EEE2}
+}
+html .bars .b{border-radius:2px 2px 0 0;box-shadow:none}
+html .bars .b.billed{background:#C9CFD8!important;background-image:none!important}
+html .bars .b.coll{background:var(--navy)!important;background-image:none!important}
+html .legend i,html .lg-billed{background:#C9CFD8}
+
+</style>
 <style id="fb">
 body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
 #fbLogin{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;background:radial-gradient(120% 90% at 20% 0%,#1B3563 0%,#0B1730 60%,#070F21 100%)}
