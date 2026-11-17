@@ -785,6 +785,35 @@ html .legend i,html .lg-billed{background:#C9CFD8}
 }
 @media (max-width:900px) and (prefers-reduced-motion:reduce){#mobSheet .pane{animation:none}}
 
+/* layout safety: flex/grid children never force the page wider than the screen */
+html .card,html .grid2>*,html .pagehead>*,html main>*{min-width:0}
+html .pagehead{flex-wrap:wrap}
+html .pagehead>.card{flex:1 1 100%;width:100%;align-self:stretch}
+html .scrim{-webkit-backdrop-filter:none;backdrop-filter:none}
+html button,html .btn,html .chip,html nav.tabs a,html a{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+
+@media (max-width:900px){
+  /* forms open as a full-height sheet above the bottom bar; the Save/Cancel row stays visible */
+  html .scrim{z-index:70;padding:0;align-items:flex-end;overflow:hidden;overscroll-behavior:contain}
+  html .modal,html .modal.wide{max-width:none;width:100%;max-height:calc(100dvh - 24px);border-radius:14px 14px 0 0;display:flex;flex-direction:column;animation:none;box-shadow:none}
+  html .modal .mh{flex:none;padding:12px 16px}
+  html .modal .mb{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:14px 16px}
+  html .modal .mf{flex:none;padding:10px 16px calc(10px + env(safe-area-inset-bottom));position:static}
+  html .modal .mf .btn{flex:1 1 auto;padding:11px 14px;font-size:15px}
+  html .modal .x{width:40px;height:40px;font-size:24px}
+  html body.modal-open{overflow:hidden}
+  html body.modal-open nav.tabs{visibility:hidden}
+  /* phones zoom into inputs under 16px; keep them at 16px */
+  html input,html select,html textarea{font-size:16px}
+  html .btn{min-height:38px}
+  html .btn.sm{min-height:32px}
+  html .chips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+  html .chips::-webkit-scrollbar{display:none}
+  html .chip{flex:none}
+  html header.mast{backdrop-filter:none;-webkit-backdrop-filter:none}
+}
+html .f input,html .f select,html .f textarea,html .fg input,html .fg select,html .fg textarea{border-color:#CDD2DA}
+
 </style>
 <style id="fb">
 body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
@@ -4309,6 +4338,8 @@ function propTermsCard(){const ps=sortedProps();if(!ps.length)return "";const st
      <td>${can("props")?`<button class="btn sm" data-a="prop" data-id="${p0.id}">Edit</button>`:""}</td></tr>`}).join("");
   return `<div class="card"><div class="ch"><h2>Rent terms by property</h2><span style="color:var(--muted);font-size:13px">Each property's own terms. Click Edit to change one property; "(default)" means it uses the default below.</span></div>
    <div class="tw"><table><thead><tr><th>Property</th><th>Rent due</th><th>Grace</th><th>Late penalty</th><th class="num">Garbage</th><th>Water</th><th>Electricity</th><th class="num">Service charge</th><th>Commission</th><th>On utilities</th><th>On deposits</th><th>Letting fee</th><th>Landlord paid by</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></div>`}
+/* lock page scroll and hide the bottom bar while a form is open */
+(function(){const mr=document.getElementById("modalRoot");if(!mr)return;const sync=()=>document.body.classList.toggle("modal-open",!!mr.firstElementChild);new MutationObserver(sync).observe(mr,{childList:true});sync()})();
 /* phones: bottom tab bar (four main sections + More) and a sheet with everything else */
 (function mobileNav(){const nav=document.getElementById("tabs");if(!nav||document.getElementById("navMore"))return;
   const MAIN=["dashboard","tenants","payments","landlords"];
@@ -4335,13 +4366,16 @@ function propTermsCard(){const ps=sortedProps();if(!ps.length)return "";const st
   new MutationObserver(mark).observe(nav,{subtree:true,attributes:true,attributeFilter:["class","hidden"]});mark()})();
 const VIEWS={maint:vMaint,mgmt:vMgmt,dashboard:vDashboard,tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
-let _rq=null;function queueRender(){if(_rq)return;_rq=setTimeout(()=>{_rq=null;render()},mode==="cloud"?40:0)}
+let _rq=null;function smsSig(){return (S.sms||[]).filter(x=>x.id[0]!=="_").map(x=>x.id+":"+x.status).join("|")}
+function queueRender(){if(_rq)return;_rq=setTimeout(()=>{_rq=null;render()},mode==="cloud"?40:0)}
 function render(){
   if(mode==="loading")return;try{clampMonth()}catch(e){}
   const m=document.getElementById("main");
   // keep in-progress meter entries from being wiped by a live update
   if(view==="utilities"&&document.activeElement&&document.activeElement.closest&&document.activeElement.closest("#readTbl")){pendingRender=true;return}
   pendingRender=false;
+  const sameView=render._last===view+"|"+month,keepY=window.scrollY,keepX=[...m.querySelectorAll(".tw,.chips")].map(e=>e.scrollLeft);render._last=view+"|"+month;
+  if(sameView)requestAnimationFrame(()=>{if(Math.abs(window.scrollY-keepY)>2)window.scrollTo(0,keepY);m.querySelectorAll(".tw,.chips").forEach((e,i)=>{if(keepX[i])e.scrollLeft=keepX[i]})});
   if(!monthPinned&&S.invoices.length&&!S.invoices.some(i=>i.month===month)){const last=S.invoices.map(i=>i.month).filter(m=>m<=todayStr.slice(0,7)).sort().pop();if(last&&last!==month){month=last;document.getElementById("month").value=month}}
   const banner=mode==="demo"?`<div class="banner">Demo mode: these are example records and nothing you change here is saved. Open this page from Claude while signed in to keep real records.</div>`:"";
   applyRoleChrome();
@@ -4401,7 +4435,9 @@ loadImportFile();
   const fresh=new Set();
   const settle=()=>{if(fresh.size>=COLS.length+1){clearTimeout(slow);try{bootHide()}catch(e){}setStatus("ok",readOnly?"Saved records, view only":"Saved records, synced");setTimeout(autoHistory,1500);setTimeout(()=>smsAuto().catch(()=>{}),4000);setTimeout(()=>applyDueChanges().catch(()=>{}),2500);setTimeout(()=>fixMovedOut().catch(()=>{}),3500);setTimeout(()=>autoPenalties().catch(()=>{}),5000)}};
   bootShow();
-  COLS.forEach(col=>{db.collection(col).onSnapshot(snap=>{S[col]=snap.docs.map(d=>({...d.data(),id:d.id}));DV++;if(col==="staff")staffLoaded=true;try{bootTick(col,false)}catch(e){}if(!snap.metadata.fromCache){fresh.add(col);settle()}queueRender()},
+  COLS.forEach(col=>{db.collection(col).onSnapshot(snap=>{const prevSig=col==="sms"?smsSig():"";S[col]=snap.docs.map(d=>({...d.data(),id:d.id}));DV++;
+      /* the SMS sender updates its status record every minute: don't redraw the page for that unless the SMS screen is open */
+      if(col==="sms"&&view!=="admin"&&prevSig===smsSig()&&fresh.has("sms"))return;if(col==="staff")staffLoaded=true;try{bootTick(col,false)}catch(e){}if(!snap.metadata.fromCache){fresh.add(col);settle()}queueRender()},
     err=>{if(col==="staff"){staffLoaded=true;render()}clearTimeout(slow);setStatus("demo","Could not load "+col);fresh.add(col);try{bootTick(col,false)}catch(e){}})});
   if(ME.admin){try{db.collection("expenses").onSnapshot(s=>{S.expenses=s.docs.map(d=>({...d.data(),id:d.id}));DV++;queueRender()},()=>{})}catch(e){}}
   db.doc("settings/config").onSnapshot(d=>{S.settings=d.exists?{...DEFAULT_SETTINGS,...d.data()}:{...DEFAULT_SETTINGS};DV++;if(!d.metadata.fromCache){fresh.add("settings");settle()}queueRender()},()=>{fresh.add("settings")});
