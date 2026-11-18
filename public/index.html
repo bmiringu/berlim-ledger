@@ -816,6 +816,7 @@ html .f input,html .f select,html .f textarea,html .fg input,html .fg select,htm
 #toasts{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
 html #toasts .toast{position:static;transform:none;left:auto;bottom:auto;margin:0;animation:none;max-width:min(90vw,520px)}
 @media (max-width:900px){#toasts{bottom:calc(84px + env(safe-area-inset-bottom))}}
+html .modal.wide{max-width:1000px}
 
 </style>
 <style id="fb">
@@ -1284,7 +1285,7 @@ function vPayments(){
   const list=S.payments.filter(p=>(p.date||"").slice(0,7)===month).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
   const tot=list.reduce((s,p)=>s+(+p.amount||0),0);
   const by={};list.forEach(p=>by[p.method]=(by[p.method]||0)+(+p.amount||0));
-  return `<div class="pagehead"><h1>Payments received, ${monthLabel(month)}</h1><div class="row">${downloads?`<button class="btn" data-a="csvPay">Export CSV</button>`:""}<button class="btn primary" data-a="pay">Record payment</button></div>
+  return `<div class="pagehead"><h1>Payments received, ${monthLabel(month)}</h1><div class="row">${downloads?`<button class="btn" data-a="csvPay">Export CSV</button>`:""}${can("payments")?`<button class="btn" data-a="mpImport">Import M-Pesa statement</button>`:""}<button class="btn primary" data-a="pay">Record payment</button></div>
   <p>${Object.entries(by).map(([m,v])=>esc(m)+" "+kes(v)).join(" · ")||"Nothing received this month yet."}</p></div>
   <div class="card"><div class="tw">${list.length?`<table><thead><tr><th>Date</th><th>Receipt</th><th>Tenant</th><th>Method</th><th>M-Pesa / bank code</th><th class="num">Amount</th><th></th></tr></thead><tbody>
   ${list.map(p=>{const t=get("tenants",p.tenantId),u=t?get("units",t.unitId):null;return `<tr><td>${fmtDate(p.date)}</td><td><button class="link" data-a="rct" data-id="${p.id}">${esc(p.receiptNo)}</button></td><td>${esc(t?t.name:"?")}<span class="sub">${esc((propOf(u)||{}).code||"")} ${esc(unitName(u))}</span></td><td>${esc(p.method)}</td><td>${p.ref?`<strong>${esc(p.ref)}</strong>${p.split?' <span class="pill p-warn" title="One payment shared across this tenant\'s houses">Split</span>':""}`:`<button class="link" data-a="editpay" data-id="${p.id}">Add code</button>`}</td><td class="num">${n0(p.amount)}</td><td class="num"><button class="btn sm" data-a="editpay" data-id="${p.id}">Edit</button> <button class="btn sm" data-a="rct" data-id="${p.id}">Receipt</button> <button class="btn sm danger" data-a="delpay" data-id="${p.id}">Delete</button></td></tr>`}).join("")}
@@ -4533,6 +4534,75 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(!b
   else if(a==="scNew"){e.preventDefault();formScExp()}
   else if(a==="scEdit"){e.preventDefault();formScExp(id)}
   else if(a==="scDel"){e.preventDefault();const x=get("scexp",id);if(x)askConfirm(`Delete the ${esc(x.category)} expense of KES ${n0(x.amount)}?`,"Delete",async()=>{await remove("scexp",id);toast("Expense deleted")})}});
+
+/* ===== Stage 2: import an M-Pesa / bank statement and match payments to tenants ===== */
+let MPX=null; // rows being reviewed
+function loadXlsx(){return window.XLSX?Promise.resolve(window.XLSX):new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";s.onload=()=>res(window.XLSX);s.onerror=()=>rej(new Error("Could not load the Excel reader"));document.head.appendChild(s)})}
+function parseCsvText(txt){const rows=[];let row=[],cell="",q=false;txt=String(txt).replace(/\r\n?/g,"\n");const sep=(txt.split("\n")[0].match(/\t/g)||[]).length>(txt.split("\n")[0].match(/,/g)||[]).length?"\t":(txt.split("\n")[0].match(/;/g)||[]).length>(txt.split("\n")[0].match(/,/g)||[]).length?";":",";
+  for(let i=0;i<txt.length;i++){const c=txt[i];if(q){if(c==='"'){if(txt[i+1]==='"'){cell+='"';i++}else q=false}else cell+=c}else if(c==='"')q=true;else if(c===sep){row.push(cell);cell=""}else if(c==="\n"){row.push(cell);rows.push(row);row=[];cell=""}else cell+=c}
+  if(cell!==""||row.length){row.push(cell);rows.push(row)}return rows.filter(r=>r.some(x=>String(x).trim()))}
+const mpNorm=s=>String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+function mpDate(v){if(v instanceof Date&&!isNaN(v))return ymdL(v);if(typeof v==="number"&&v>20000&&v<80000){const d=new Date(Math.round((v-25569)*864e5));return d.toISOString().slice(0,10)}
+  const s=String(v||"").trim();let m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);if(m)return `${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
+  m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/);if(m){const y=m[3].length===2?"20"+m[3]:m[3];return `${y}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`}
+  m=s.match(/^(\d{1,2})[ -]([A-Za-z]{3})[a-z]*[ -,]*(\d{4})/);if(m){const k=["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"].indexOf(m[2].toLowerCase());if(k>=0)return `${m[3]}-${String(k+1).padStart(2,"0")}-${m[1].padStart(2,"0")}`}
+  return ""}
+const mpAmt=v=>{if(typeof v==="number")return v;const n=parseFloat(String(v||"").replace(/[^\d.\-]/g,""));return isNaN(n)?0:n};
+function mpColumns(head){const h=head.map(x=>String(x||"").toLowerCase().trim()),find=(re,not)=>h.findIndex(x=>re.test(x)&&!(not&&not.test(x)));
+  return {code:find(/receipt|transaction id|trans\.? ?id|mpesa ref|m-pesa ref|^ref|reference no|txn/,/account|a\/c|bill/),date:find(/completion|date|time|value date|posted/,/initiation/),
+    amount:find(/paid in|credit|amount|deposit|money in/,/withdraw|debit|balance/),acct:find(/a\/c|account no|account ref|bill ref|bill no|account number|acc no/),
+    details:find(/details|narrative|description|particulars|other party|remarks|naration/),name:find(/other party|name|sender|customer/,/account/)}}
+function mpUnitIndex(){const pre=mpNorm(S.settings.accPrefix||"");return S.units.map(u=>{const p=propOf(u)||{},k=mpNorm((p.code||"")+u.label);return {u,k,full:pre+k}}).filter(x=>x.k).sort((a,b)=>b.k.length-a.k.length)}
+function mpTenantFor(u,date){const ts=S.tenants.filter(t=>t.unitId===u.id);return ts.find(t=>t.active&&(!t.moveIn||t.moveIn<=date))||ts.filter(t=>(t.moveIn||"")<=date&&(!t.moveOut||t.moveOut>=date)).pop()||ts.find(t=>t.active)||null}
+function mpByName(txt){const w=String(txt||"").toUpperCase().split(/[^A-Z]+/).filter(x=>x.length>2);if(w.length<2)return null;
+  const hits=S.tenants.filter(t=>t.active).filter(t=>{const tw=String(t.name||"").toUpperCase().split(/[^A-Z]+/).filter(x=>x.length>2);return tw.filter(x=>w.includes(x)).length>=2});return hits.length===1?hits[0]:null}
+function mpParse(rows){let hi=rows.findIndex(r=>{const c=mpColumns(r);return [c.date,c.amount].every(x=>x>=0)&&(c.code>=0||c.details>=0||c.acct>=0)});
+  if(hi<0)throw new Error("Couldn't find the column headings (date, amount, receipt or details). Use the statement exactly as downloaded.");
+  const c=mpColumns(rows[hi]),idx=mpUnitIndex(),out=[],seen=new Set();
+  for(const r of rows.slice(hi+1)){const amount=mpAmt(r[c.amount]);if(!(amount>0))continue;
+    const details=[c.details>=0?r[c.details]:"",c.name>=0&&c.name!==c.details?r[c.name]:""].filter(Boolean).join(" ").trim();
+    let code=c.code>=0?String(r[c.code]||"").trim().toUpperCase():"";if(!/^[A-Z0-9]{10}$/.test(code)){const m=(details+" "+code).toUpperCase().match(/\b[A-Z]{1,3}[0-9][A-Z0-9]{6,8}\b/g);code=(m||[]).find(x=>x.length===10&&/[A-Z]/.test(x)&&/\d/.test(x))||code}
+    const acctTxt=c.acct>=0?String(r[c.acct]||""):"",date=mpDate(r[c.date])||todayStr;
+    if(code&&seen.has(code))continue;if(code)seen.add(code);
+    let hit=null,how="";const A=mpNorm(acctTxt),D=mpNorm(details);
+    const pre=mpNorm(S.settings.accPrefix||"");
+    for(const x of idx){if(!A)break;const before=A.endsWith(x.k)?A.slice(0,A.length-x.k.length):null;if(A===x.full||A===x.k||(before!==null&&(before===""||before===pre||/^\d+$/.test(before)))){hit=x;how="account";break}}
+    if(!hit&&D)for(const x of idx){if(D.includes(x.full)){hit=x;how="details";break}}
+    let t=hit?mpTenantFor(hit.u,date):null;if(!t){const n=mpByName(details);if(n){t=n;how="name"}}
+    const dup=code?refUses(code,null).length>0:!!t&&S.payments.some(p=>p.tenantId===t.id&&Math.abs((+p.amount||0)-amount)<0.5&&p.date===date);
+    out.push({k:out.length,date,amount:Math.round(amount*100)/100,code,acct:acctTxt,details,tenantId:t?t.id:"",how,dup,pick:!!t&&!dup&&how!=="name"})}
+  return out}
+function formImport(){
+  if(!can("payments")){toast("You don't have permission to record payments.");return}
+  openModal("Import M-Pesa statement",`<div class="fg">
+   <p class="full" style="margin:0;color:var(--muted)">Upload the Paybill or bank statement (Excel or CSV) as downloaded. Payments are matched to tenants by the account number (for example ${esc(acctFor(S.units[0]))}). You review every line before anything is recorded, and codes already in the ledger are skipped.</p>
+   <div class="f full"><label for="mp-f">Statement file</label><input id="mp-f" type="file" accept=".csv,.txt,.xls,.xlsx"></div>
+   <div class="f full"><label for="mp-t">Or paste the rows here</label><textarea id="mp-t" rows="4" placeholder="Copy from the statement, including the heading row"></textarea></div>
+   <div class="err full" id="mp-e"></div></div>`,`<button class="btn" data-a="close">Cancel</button><button class="btn primary" id="mp-go">Read statement</button>`,true);
+  document.getElementById("mp-go").onclick=async()=>{const er=document.getElementById("mp-e");er.textContent="";try{let rows=null;const f=document.getElementById("mp-f").files[0],txt=document.getElementById("mp-t").value;
+    if(f){if(/\.xlsx?$/i.test(f.name)){const X=await loadXlsx(),wb=X.read(await f.arrayBuffer(),{cellDates:true});rows=X.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true,defval:""})}else rows=parseCsvText(await f.text())}
+    else if(txt.trim())rows=parseCsvText(txt);else{er.textContent="Choose the statement file or paste the rows.";return}
+    MPX=mpParse(rows);if(!MPX.length){er.textContent="No money received was found in that statement.";return}mpReview()}catch(e){er.textContent=e.message||String(e)}}}
+function mpReview(){const ts=S.tenants.slice().sort((a,b)=>(b.active-a.active)||sortUnits(get("units",a.unitId)||{label:""},get("units",b.unitId)||{label:""}));
+  const opt=sel=>`<option value="">Not matched: choose tenant</option>`+ts.map(t=>{const u=get("units",t.unitId),p=propOf(u)||{};return `<option value="${t.id}" ${t.id===sel?"selected":""}>${esc(p.code||"")} ${esc(unitName(u))} ${esc(t.name)}${t.active?"":" (moved out)"}</option>`}).join("");
+  const st=x=>x.dup?'<span class="pill p-mute">Already recorded</span>':!x.tenantId?'<span class="pill p-bad">Not matched</span>':x.how==="name"?'<span class="pill p-warn">By name: check</span>':'<span class="pill p-good">Matched</span>';
+  const cnt=()=>MPX.filter(x=>x.pick&&x.tenantId&&!x.dup),tot=()=>cnt().reduce((s,x)=>s+x.amount,0);
+  const sumLine=()=>`${MPX.length} payments read: ${MPX.filter(x=>x.tenantId&&!x.dup&&x.how!=="name").length} matched, ${MPX.filter(x=>x.how==="name"&&!x.dup).length} by name, ${MPX.filter(x=>!x.tenantId&&!x.dup).length} not matched, ${MPX.filter(x=>x.dup).length} already recorded.`;
+  openModal("Review statement payments",`<p style="margin:0 0 6px" id="mp-sum">${sumLine()}</p>
+   <div class="tw" style="max-height:52vh;overflow:auto;border:1px solid var(--rule);border-radius:8px"><table><thead><tr><th></th><th>Date</th><th>Code</th><th class="num">Amount</th><th>Account / details</th><th>Tenant</th><th>Status</th></tr></thead><tbody>
+   ${MPX.map(x=>`<tr><td><input type="checkbox" class="mp-ck" data-k="${x.k}" ${x.pick?"checked":""} ${x.dup?"disabled":""} aria-label="Record this payment"></td><td style="white-space:nowrap">${fmtDate(x.date)}</td><td>${esc(x.code||"")}</td><td class="num">${n0(x.amount)}</td><td style="max-width:260px"><strong>${esc(x.acct||"")}</strong><span class="sub">${esc(x.details.slice(0,60))}${x.details.length>60?"…":""}</span></td><td>${x.dup?"":`<select class="mp-t" data-k="${x.k}" style="max-width:240px">${opt(x.tenantId)}</select>`}</td><td>${st(x)}</td></tr>`).join("")}</tbody></table></div>
+   ${smsReady()?`<label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-weight:500"><input type="checkbox" id="mp-sms" checked> Send each tenant a payment confirmation (SMS)</label>`:""}
+   <div class="err" id="mp-e2"></div>`,`<button class="btn" data-a="close">Cancel</button><button class="btn primary" id="mp-rec"></button>`,true);
+  const go=document.getElementById("mp-rec"),upd=()=>{const n=cnt().length;go.textContent=n?`Record ${n} payment${n>1?"s":""} (KES ${n0(tot())})`:"Nothing selected";go.disabled=!n};upd();
+  document.querySelectorAll(".mp-ck").forEach(c=>c.onchange=()=>{MPX[+c.dataset.k].pick=c.checked;upd()});
+  document.querySelectorAll(".mp-t").forEach(s=>s.onchange=()=>{const x=MPX[+s.dataset.k];x.tenantId=s.value;x.how=s.value?"chosen":"";x.pick=!!s.value;const ck=document.querySelector(`.mp-ck[data-k="${x.k}"]`);if(ck)ck.checked=x.pick;upd()});
+  go.onclick=async()=>{const rows=cnt(),sms=(document.getElementById("mp-sms")||{}).checked;if(!rows.length)return;go.disabled=true;
+    noReserve={};const ops=rows.map(x=>{const t=get("tenants",x.tenantId),mp=/^[A-Z0-9]{10}$/.test(x.code);
+      const obj={id:uid(),tenantId:x.tenantId,amount:x.amount,date:x.date,method:mp?"M-Pesa":"Bank deposit",ref:x.code||"",note:"Imported from statement"+(x.acct?", account "+x.acct:""),receiptNo:nextNo("RCPT","payments","receiptNo"),imported:true,
+        ...(sms&&t&&!t.noSms&&smsPhone(t.phone)?{smsText:payReceiptText(t,x.amount,"{receipt}")}:{smsOff:true})};return {op:"set",col:"payments",obj,renum:"RCPT"}});
+    const r=await submit("payments",`Import ${rows.length} statement payment${rows.length>1?"s":""} (KES ${n0(rows.reduce((s,x)=>s+x.amount,0))})`,ops,"payments");
+    if(r){closeModal();toast(r==="done"?`${rows.length} payments recorded`:`${rows.length} payments sent for approval`);MPX=null}else go.disabled=false}}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(!b)return;if(b.dataset.a==="mpImport"){e.preventDefault();formImport()}});
 
 const VIEWS={leases:vLeases,maint:vMaint,mgmt:vMgmt,dashboard:()=>{const h=vDashboard(),a=leaseAlert(),i=h.indexOf("</div>",h.indexOf("pagehead"));return a&&i>0&&filters.code==="all"?h.slice(0,i+6)+h.slice(i+6).replace(/<\/div>/,"</div>"+a):h},tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
