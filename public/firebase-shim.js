@@ -42,18 +42,23 @@ const loginEmail = raw => {
 };
 window.fbLoginEmail = loginEmail;
 const segs = path => path.split("/").filter(Boolean);
+/* The copy of the records kept on this device is shown first; the ledger then needs to hear when the server has confirmed it,
+   even if nothing changed (otherwise it keeps saying "still connecting" and its daily automatic jobs never start).
+   includeMetadataChanges brings that confirmation; the "saving… / saved" flips after each own write are skipped. */
+const META = { includeMetadataChanges: true };
+const relay = fn => { let lastFC = null; return s => { const fc = s.metadata.fromCache, n = typeof s.docChanges === "function" ? s.docChanges().length : 1; if (lastFC === fc && !n) return; lastFC = fc; fn(s); }; };
 
 const db = {
   collection(c) {
     return {
       doc(id) { const r = doc(fs, c, id); return { set: o => setDoc(r, o).catch(mapErr), delete: () => deleteDoc(r).catch(mapErr) }; },
       onSnapshot(next, err) {
-        if (c !== "sms") return onSnapshot(collection(fs, c), s => next(wrapQ(s)), e => err && err(e));
+        if (c !== "sms") return onSnapshot(collection(fs, c), META, relay(s => next(wrapQ(s))), e => err && err(e));
         // SMS history grows every day: load only the last 60 days, plus the sender's status record
         const from = new Date(Date.now() - SMS_DAYS * 864e5).toISOString();
         let recent = null, status = null;
         const emit = () => { if (!recent) return; const ds = recent.docs.filter(x => x.id !== "_status"); next({ docs: status ? ds.concat([status]) : ds, metadata: recent.metadata }); };
-        const u1 = onSnapshot(query(collection(fs, "sms"), where("createdAt", ">=", from)), s => { recent = wrapQ(s); emit(); }, e => err && err(e));
+        const u1 = onSnapshot(query(collection(fs, "sms"), where("createdAt", ">=", from)), META, relay(s => { recent = wrapQ(s); emit(); }), e => err && err(e));
         const u2 = onSnapshot(doc(fs, "sms", "_status"), d => { status = d.exists() ? { id: "_status", data: () => d.data() } : null; emit(); }, () => {});
         return () => { u1(); u2(); };
       }
@@ -63,7 +68,9 @@ const db = {
     const r = doc(fs, ...segs(path));
     return {
       set: o => setDoc(r, o).catch(mapErr),
-      onSnapshot(next, err) { return onSnapshot(r, d => next({ exists: d.exists(), data: () => d.data(), metadata: { fromCache: d.metadata.fromCache } }), e => err && err(e)); }
+      onSnapshot(next, err) { let lastFC = null, lastKey = null;
+        return onSnapshot(r, META, d => { const fc = d.metadata.fromCache, key = JSON.stringify(d.exists() ? d.data() : null); if (fc === lastFC && key === lastKey) return; lastFC = fc; lastKey = key;
+          next({ exists: d.exists(), data: () => d.data(), metadata: { fromCache: fc } }); }, e => err && err(e)); }
     };
   }
 };
