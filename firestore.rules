@@ -20,6 +20,20 @@ service cloud.firestore {
     // Sign-in log: each person adds their own entries; nobody can change or delete them; only admins read them.
     match /logins/{id} { allow create: if signedIn() && request.resource.data.uid == request.auth.uid; allow read: if isAdmin(); allow update, delete: if false; }
     match /accessRequests/{uid} { allow read: if isAdmin() || (signedIn() && request.auth.uid == uid); allow write: if isAdmin() || (signedIn() && request.auth.uid == uid); }
+    // Landlord and tenant portal: each portal login reads only its own page summary, which the office's ledger writes.
+    function myPortal() { return /databases/$(database)/documents/portal/$(request.auth.uid); }
+    match /portal/{uid} { allow get: if signedIn() && request.auth.uid == uid; }
+    // Requests sent from a portal: the sender adds them for their own account only and reads only their own.
+    match /portalMsgs/{id} {
+      allow create: if signedIn() && exists(myPortal())
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.kind == get(myPortal()).data.kind
+        && request.resource.data.refId == get(myPortal()).data.refId
+        && request.resource.data.status == 'new'
+        && request.resource.data.keys().hasOnly(['uid', 'kind', 'refId', 'name', 'at', 'status', 'type', 'text', 'date', 'maintId', 'subject'])
+        && request.resource.data.text is string && request.resource.data.text.size() <= 2000;
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+    }
     // Office expenses and profit/loss: administrators only.
     match /expenses/{id} { allow read, write: if isAdmin(); }
     // All business records (properties, tenants, invoices, payments, landlords, providers, approvals, settings...).

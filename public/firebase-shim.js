@@ -1,7 +1,7 @@
 /* Connects the Berlim Homes Rent Ledger to Firebase: sign-in, records (Firestore), uploads (Storage) and downloads.
    It gives the ledger the same small interface it used inside Claude, so the ledger code itself is unchanged. */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, createUserWithEmailAndPassword, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendPasswordResetEmail, createUserWithEmailAndPassword, setPersistence, browserSessionPersistence, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, memoryLocalCache, terminate, clearIndexedDbPersistence, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getDoc, getDocFromCache, getDocs, query, orderBy, limit, where, disableNetwork, enableNetwork } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import * as CFG from "./config.js";
@@ -31,6 +31,16 @@ const adminList = ADMIN_EMAILS.map(e => e.toLowerCase());
 const mapErr = e => { const c = (e && e.code) || ""; const x = new Error(e && e.message || c); x.code = c === "permission-denied" ? "invalid_argument" : c.includes("quota") || c === "resource-exhausted" ? "quota_exceeded" : c; throw x; };
 const wrapQ = s => ({ docs: s.docs.map(d => ({ id: d.id, data: () => d.data() })), metadata: { fromCache: s.metadata.fromCache } });
 const SMS_DAYS = 60;
+/* tenants and landlords without email sign in with their phone number and a PIN; the login is kept as <2547xxxxxxxx>@phone.berlim-homes-ltd.web.app
+   (a new PIN gives a new login ending, e.g. 0712345678-2) */
+const PHONE_DOMAIN = "phone.berlim-homes-ltd.web.app";
+const loginEmail = raw => {
+  const s = String(raw || "").trim(); if (s.includes("@")) return s;
+  const m = s.replace(/[\s()]/g, "").match(/^(\+?\d{9,13})(?:-(\d{1,2}))?$/); if (!m) return s;
+  let d = m[1].replace(/^\+/, ""); if (d.startsWith("0")) d = "254" + d.slice(1); else if (/^[17]\d{8}$/.test(d)) d = "254" + d;
+  return d + (m[2] && m[2] !== "1" ? "-" + m[2] : "") + "@" + PHONE_DOMAIN;
+};
+window.fbLoginEmail = loginEmail;
 const segs = path => path.split("/").filter(Boolean);
 
 const db = {
@@ -205,7 +215,7 @@ window.fbSignOutNow = () => secureSignOut("manual");
 let started = false;
 onAuthStateChanged(auth, async u => {
   if (!u) { if (started) { location.reload(); return; } showLogin(true);
-    try { const r = sessionStorage.getItem("bh_out_reason"); if (r) { sessionStorage.removeItem("bh_out_reason"); say(r === "idle" ? "You were signed out after " + Math.round(IDLE_MS / 60000) + " minutes without activity. Sign in again to continue." : r === "elsewhere" ? "You signed out in another tab." : "You have signed out."); } } catch (e) {}
+    try { const r = sessionStorage.getItem("bh_out_reason"); if (r) { sessionStorage.removeItem("bh_out_reason"); say(r === "portal-off" ? "Your page is not available right now. Please contact Berlim Homes." : r === "idle" ? "You were signed out after " + Math.round(IDLE_MS / 60000) + " minutes without activity. Sign in again to continue." : r === "elsewhere" ? "You signed out in another tab." : "You have signed out."); } } catch (e) {}
     return; }
   if (started) return;
   // a remembered session that has been idle too long (e.g. tab reopened later) is signed out straight away
@@ -225,6 +235,12 @@ onAuthStateChanged(auth, async u => {
   clearTimeout(slow);
   const isAdmin = adminList.includes(email) || (!!staff && staff.active !== false && staff.role === "admin");
   const active = !!staff && staff.active !== false;
+  /* a tenant or landlord with a portal login: show their own page, never the ledger */
+  if (!isAdmin && !active) {
+    let P = null; try { const d = await getDoc(doc(fs, "portal", u.uid)); P = d.exists() ? d.data() : null; } catch (e) { P = null; }
+    if (P) { startPortal(u, P); return; }
+    if (String(u.email || "").endsWith("@" + PHONE_DOMAIN)) { try { sessionStorage.setItem("bh_out_reason", "portal-off"); } catch (e) {} try { await signOut(auth); } catch (e) {} location.reload(); return; }
+  }
   setDoc(doc(fs, "people", u.uid), { email: u.email, name: (staff && staff.label) || u.displayName || "", lastLogin: new Date().toISOString() }, { merge: true }).catch(() => {});
   watchPeople();
   showLogin(false);
@@ -233,17 +249,33 @@ onAuthStateChanged(auth, async u => {
   window.__fbResolve({ db, user: makeUser(u, isAdmin, active), assets: STORAGE_ON && (isAdmin || active) ? assets : null, downloads, mcp: null });
 });
 
+function startPortal(u, P) {
+  document.body.classList.add("portal-mode"); showLogin(false); startIdleWatch();
+  const api = {
+    login: String(u.email || "").endsWith("@" + PHONE_DOMAIN) ? "0" + u.email.split("@")[0].slice(3) : u.email,
+    signOut: () => secureSignOut("manual"),
+    reload: async () => { const d = await getDoc(doc(fs, "portal", u.uid)); return d.exists() ? d.data() : null; },
+    send: async m => { const id = Date.now().toString(36) + "-" + u.uid.slice(0, 6) + Math.random().toString(36).slice(2, 6);
+      await setDoc(doc(fs, "portalMsgs", id), { ...m, uid: u.uid, kind: P.kind, refId: P.refId, name: P.name || "", at: new Date().toISOString(), status: "new" }); return id; },
+    myMsgs: async () => { const q = await getDocs(query(collection(fs, "portalMsgs"), where("uid", "==", u.uid))); return q.docs.map(d => ({ ...d.data(), id: d.id })); },
+    changePin: async (cur, nw) => { await reauthenticateWithCredential(u, EmailAuthProvider.credential(u.email, cur)); await updatePassword(u, nw); }
+  };
+  const go = () => { if (window.startPortal) window.startPortal(P, api); else setTimeout(go, 100); }; go();
+}
+window.fbResetEmail = email => sendPasswordResetEmail(auth, email);
+
 $("fbForm").addEventListener("submit", async e => {
   e.preventDefault();
   const lk = lockedFor(); if (lk) { say("Too many wrong passwords. Try again in " + lk + " minute" + (lk > 1 ? "s" : "") + ", or use Forgot password.", true); return; }
   say("Signing in…");
-  const email = $("fbEmail").value.trim(), pw = $("fbPass").value;
+  const email = loginEmail($("fbEmail").value), pw = $("fbPass").value;
   try { await persistReady; window.__justSignedIn = true; await signInWithEmailAndPassword(auth, email, pw); clearFails(); $("fbPass").value = ""; }
   catch (x) { window.__justSignedIn = false; const c = (x && x.code) || ""; const left = c.includes("network") || c.includes("too-many") ? null : noteFail();
-    say(c.includes("too-many-requests") ? "Too many attempts. Wait a few minutes, or reset your password." : c.includes("network") ? "No internet connection. Check your data or Wi-Fi." : left === 0 ? "Too many wrong passwords. Sign-in is locked on this device for 5 minutes." : "Wrong email or password." + (left != null && left <= 2 ? " " + left + " more tr" + (left === 1 ? "y" : "ies") + " before a 5-minute lock." : ""), true); }
+    say(c.includes("too-many-requests") ? "Too many attempts. Wait a few minutes, or reset your password." : c.includes("network") ? "No internet connection. Check your data or Wi-Fi." : left === 0 ? "Too many wrong passwords. Sign-in is locked on this device for 5 minutes." : "Wrong login or password." + (left != null && left <= 2 ? " " + left + " more tr" + (left === 1 ? "y" : "ies") + " before a 5-minute lock." : ""), true); }
 });
 $("fbForgot").addEventListener("click", async () => {
-  const email = $("fbEmail").value.trim(); if (!email) { say("Type your email first, then press Forgot password.", true); return; }
+  const email = loginEmail($("fbEmail").value); if (!email) { say("Type your email first, then press Forgot password.", true); return; }
+  if (!email.includes("@") || email.endsWith("@" + PHONE_DOMAIN)) { say("Signing in with a phone number? Ask Berlim Homes for a new PIN.", true); return; }
   try { await sendPasswordResetEmail(auth, email); say("If that email has a login, a reset link is on its way. Check the inbox and spam folder."); }
   catch (x) { say("Couldn't send the reset email. Check the address.", true); }
 });

@@ -818,6 +818,89 @@ html #toasts .toast{position:static;transform:none;left:auto;bottom:auto;margin:
 @media (max-width:900px){#toasts{bottom:calc(84px + env(safe-area-inset-bottom))}}
 html .modal.wide{max-width:1000px}
 
+/* ---- landlord and tenant portal (what a tenant or landlord sees after signing in) ---- */
+html body.portal-mode{display:block;background:var(--canvas)}
+html body.portal-mode::before{display:none}
+body.portal-mode>header,body.portal-mode>nav,body.portal-mode>main,body.portal-mode #mobSheet,body.portal-mode #bootL,body.portal-mode #fbUser{display:none!important}
+.pt{max-width:880px;margin:0 auto;padding:0 18px 48px}
+.pt-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0 14px}
+.pt-brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;color:var(--navy);letter-spacing:.01em}
+.pt-brand svg{width:32px;height:32px;flex:none}
+.pt-who{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);min-width:0}
+.pt-who>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pt-hero{background:var(--navy);color:#fff;border-radius:14px;padding:22px 22px 18px;display:grid;gap:16px}
+.pt-place{color:#C3CAD7;font-size:14px}
+.pt-bal .k{display:block;font-size:13px;color:#C3CAD7}
+.pt-bal .v{display:block;font-weight:600;font-size:44px;line-height:1.05;letter-spacing:-.02em;font-variant-numeric:tabular-nums lining-nums}
+.pt-bal.owe .k{color:#E9C98F}
+.pt-pay{display:grid;grid-template-columns:1fr 1.4fr;gap:1px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.16);border-radius:10px;overflow:hidden}
+.pt-pay>div{background:var(--navy-2);padding:12px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:2px 10px}
+.pt-pay .k{grid-column:1/-1;font-size:12px;color:#C3CAD7}
+.pt-pay .v{font-weight:600;font-size:21px;letter-spacing:.03em;font-variant-numeric:tabular-nums lining-nums;overflow-wrap:anywhere}
+.pt-pay button{appearance:none;background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:5px 12px;font:600 12px var(--ui);cursor:pointer;min-height:32px}
+.pt-pay button:hover{background:rgba(255,255,255,.1)}
+.pt-due{margin:0;font-size:13px;color:#C3CAD7}
+.pt-figs{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.16);border-radius:10px;overflow:hidden}
+.pt-figs>div{background:var(--navy-2);padding:12px 14px}
+.pt-figs .k{display:block;font-size:12px;color:#C3CAD7}
+.pt-figs .v{display:block;font-weight:600;font-size:22px;font-variant-numeric:tabular-nums lining-nums}
+.pt-note{margin:14px 0 0;background:var(--warn-bg);border-left:3px solid var(--brass);padding:11px 14px;border-radius:0 8px 8px 0;white-space:pre-wrap;color:var(--ink)}
+.pt-tabs{display:flex;gap:2px;margin:20px 0 14px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--rule);-webkit-overflow-scrolling:touch}
+.pt-tabs::-webkit-scrollbar{display:none}
+.pt-tabs button{appearance:none;background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:11px 12px;font:600 14px var(--ui);color:var(--muted);white-space:nowrap;cursor:pointer;min-height:44px}
+.pt-tabs button[aria-selected="true"]{color:var(--navy);border-bottom-color:var(--brass)}
+.pt-card{background:var(--paper);border:1px solid var(--rule);border-radius:12px}
+.pt-card+.pt-card{margin-top:12px}
+.pt-empty{margin:0;padding:22px 16px;color:var(--muted);text-align:center}
+.pt-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
+.pt-list{list-style:none;margin:0;padding:0}
+.pt-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;padding:13px 16px;border-top:1px solid var(--rule-soft);align-items:center}
+.pt-list li:first-child{border-top:0}
+.pt-list .t{font-weight:600;font-variant-numeric:tabular-nums}
+.pt-list .s{grid-column:1;font-size:13px;color:var(--muted)}
+.pt-list .a{grid-column:2;grid-row:1/span 2;display:flex;gap:6px;justify-content:flex-end}
+.pt-list .pt-msg{color:var(--ink);white-space:pre-wrap;font-size:14px}
+.pt-list .pt-reply{color:var(--ink);white-space:pre-wrap;background:var(--hover);border-left:3px solid var(--brass);padding:8px 10px;border-radius:0 6px 6px 0;margin-top:4px}
+.pt-doc{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.pt-card.pt-doc{padding:4px}
+.pt-doc .doc{min-width:620px;border:0;box-shadow:none;margin:0}
+.pt-kv>div{display:flex;justify-content:space-between;gap:16px;padding:12px 16px;border-top:1px solid var(--rule-soft)}
+.pt-kv>div:first-child{border-top:0}
+.pt-kv span{color:var(--muted)}
+.pt-kv strong{text-align:right;font-variant-numeric:tabular-nums}
+.pt-form{padding:16px}
+.pt-h{font-size:15px;margin:22px 0 10px}
+.pt-prop{padding:16px}
+.pt-prop .h{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.pt-prop .h .s,.pt-prop>.s{display:block;font-size:13px;color:var(--muted);margin:2px 0 0}
+.pt-prop>.s{margin:10px 0}
+.pt-prop .occ{display:grid;gap:6px;justify-items:end;font-size:13px;color:var(--muted);min-width:150px}
+.pt-prop .bar{display:block;width:150px;height:6px;border-radius:3px;background:var(--rule-soft);overflow:hidden}
+.pt-prop .bar i{display:block;height:100%;background:var(--navy)}
+.pt-prop table{width:100%;border-collapse:collapse;font-size:13.5px}
+.pt-prop th,.pt-prop td{padding:8px 8px;border-top:1px solid var(--rule-soft);text-align:left}
+.pt-prop th{font-size:12px;color:var(--muted);font-weight:600;border-top:0}
+.pt-prop .num{text-align:right}
+.pt-foot{margin-top:28px;font-size:12px;color:var(--faint);text-align:center}
+@media (max-width:600px){
+  .pt{padding:0 12px 40px}
+  .pt-hero{padding:18px 16px 16px;border-radius:12px}
+  .pt-bal .v{font-size:36px}
+  .pt-pay{grid-template-columns:1fr}
+  .pt-figs{grid-template-columns:1fr 1fr}
+  .pt-who>span{display:none}
+  .pt-prop .occ{justify-items:start}
+}
+@media print{body.portal-mode .pt-bar,body.portal-mode .pt-tabs,body.portal-mode .pt-foot{display:none}}
+.pt-sp{flex:1}
+.pt-stmt .a{flex-direction:column;align-items:flex-end;gap:2px;text-align:right;font-variant-numeric:tabular-nums}
+.pt-stmt .pt-dr{font-weight:600}
+.pt-stmt .pt-cr{font-weight:600;color:var(--good)}
+.pt-stmt .pt-run{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.pt-stmt .t{font-weight:500}
+@media (max-width:600px){.pt-sp{display:none}}
+.pt-form [hidden],.pt [hidden]{display:none!important}
+
 </style>
 <style id="fb">
 body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
@@ -867,6 +950,7 @@ body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
   <a href="#dashboard" data-v="dashboard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z"/></svg><span class="lg">Dashboard</span><span class="sm">Home</span></a>
   <a href="#tenants" data-v="tenants"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm-8 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm0 2c-2.3 0-7 1.2-7 3.5V19h7v-2.5c0-.9.4-1.8 1.1-2.5A11 11 0 0 0 8 13zm8 0c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4z"/></svg><span class="lg">Tenants</span><span class="sm">Tenants</span></a>
   <a href="#leases" data-v="leases" id="leasesTab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM8 12h8v1.5H8zm0 3.5h8V17H8zm0-7h4V10H8z"/></svg><span class="lg">Leases</span><span class="sm">Leases</span></a>
+  <a href="#portal" data-v="portal" id="portalTab" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h11a2 2 0 0 1 2 2v3h-2V5H4v14h11v-3h2v3a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm12.6 5.4L21.2 13l-4.6 4.6-1.4-1.4 2.2-2.2H9v-2h8.4l-2.2-2.2z"/></svg><span class="lg">Portal</span><span class="sm">Portal</span><b class="navbadge" id="ptCount" hidden></b></a>
   <a href="#units" data-v="units"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 11h3v9h6v-6h2v6h6v-9h3z"/></svg><span class="lg">Properties</span><span class="sm">Houses</span></a>
   <a href="#utilities" data-v="utilities"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C8 7 6 10.2 6 13a6 6 0 0 0 12 0c0-2.8-2-6-6-11zm1 17.9V18a3 3 0 0 0 3-3h1.9A5 5 0 0 1 13 19.9z"/></svg><span class="lg">Utilities</span><span class="sm">Utilities</span></a>
   <a href="#maint" data-v="maint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22.7 19.3l-6.1-6.1a6.5 6.5 0 0 0-8.4-8.4l3.6 3.6-2.8 2.8-3.6-3.6a6.5 6.5 0 0 0 8.4 8.4l6.1 6.1a1 1 0 0 0 1.4 0l1.4-1.4a1 1 0 0 0 0-1.4z"/></svg><span class="lg">Maintenance</span><span class="sm">Repairs</span></a>
@@ -886,10 +970,10 @@ body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
 <script>
 "use strict";
 /* ---------- state ---------- */
-const COLS=["properties","units","tenants","readings","invoices","payments","providers","pbills","ppays","approvals","staff","accessRequests","remits","ldeds","linvoices","landlords","lreports","sms","maint","scexp"];
+const COLS=["properties","units","tenants","readings","invoices","payments","providers","pbills","ppays","approvals","staff","accessRequests","remits","ldeds","linvoices","landlords","lreports","sms","maint","scexp","portalUsers","portalMsgs"];
 const DEFAULT_SETTINGS={company:"Berlim Homes Limited",phone:"0791 025 078 / 0731 220 221",email:"info@berlimhomes.com",website:"www.berlimhomes.com",address:"Nairoview Plaza, 1st Floor, Room 205, Ruiru",preparedBy:"",
   paybill:"222111",accPrefix:"2371748#",waterRate:150,elecRate:0,garbage:300,serviceCharge:0,dueDay:5,penaltyPct:10,llPayDay:10,llPayWhen:"same"};
-const S={settings:{...DEFAULT_SETTINGS},properties:[],units:[],tenants:[],readings:[],invoices:[],payments:[],providers:[],pbills:[],ppays:[],approvals:[],staff:[],accessRequests:[],remits:[],ldeds:[],linvoices:[],landlords:[],lreports:[],maint:[],scexp:[]};
+const S={settings:{...DEFAULT_SETTINGS},properties:[],units:[],tenants:[],readings:[],invoices:[],payments:[],providers:[],pbills:[],ppays:[],approvals:[],staff:[],accessRequests:[],remits:[],ldeds:[],linvoices:[],landlords:[],lreports:[],maint:[],scexp:[],portalUsers:[],portalMsgs:[]};
 let DV=0;
 let mode="loading", db=null, downloads=null, mcp=null, readOnly=false, assets=null, USER=null;
 const ME={id:null,admin:true,staff:null,email:"",name:"",ready:false};
@@ -1977,7 +2061,7 @@ function applyRoleChrome(){
   const rb=document.getElementById("rolebadge");
   if(mode==="cloud"||mode==="demo"){rb.hidden=false;rb.innerHTML=ME.admin?`Admin console`:ME.staff?`Staff <small>${esc((ROLES[ME.staff.role]||{}).label||"")}</small>`:`No access yet`}
   document.getElementById("adminTab").hidden=!ME.admin;{const mt=document.getElementById("mgmtTab");if(mt)mt.hidden=!ME.admin}
-  const st=document.querySelector('#tabs a[data-v="setup"]');if(st)st.hidden=!can("props");{const lt=document.getElementById("leasesTab");if(lt)lt.hidden=!(ME.admin||can("tenants")||can("landlords"))}
+  const st=document.querySelector('#tabs a[data-v="setup"]');if(st)st.hidden=!can("props");{const lt=document.getElementById("leasesTab");if(lt)lt.hidden=!(ME.admin||can("tenants")||can("landlords"))}{const pt=document.getElementById("portalTab");if(pt)pt.hidden=!(ME.admin||can("tenants")||can("landlords"));const pc=document.getElementById("ptCount");if(pc){const n=(S.portalMsgs||[]).filter(m=>m.status==="new").length;pc.hidden=!n||!!(pt&&pt.hidden);pc.textContent=n}}
   const pend=S.approvals.filter(a=>a.status==="pending"&&(ME.admin||a.by===ME.id)).length+(canApproveTenantSusp()?S.tenants.filter(suspPending).length:0)+(ME.admin?S.properties.filter(propEndPending).length:0);
   const c=document.getElementById("apCount");c.hidden=!pend;c.textContent=pend;
   document.getElementById("apLabel").textContent=ME.admin?"Approvals":"My requests";document.getElementById("apLabelSm").textContent=ME.admin?"Approvals":"Requests";
@@ -4604,7 +4688,314 @@ function mpReview(){const ts=S.tenants.slice().sort((a,b)=>(b.active-a.active)||
     if(r){closeModal();toast(r==="done"?`${rows.length} payments recorded`:`${rows.length} payments sent for approval`);MPX=null}else go.disabled=false}}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(!b)return;if(b.dataset.a==="mpImport"){e.preventDefault();formImport()}});
 
-const VIEWS={leases:vLeases,maint:vMaint,mgmt:vMgmt,dashboard:()=>{const h=vDashboard(),a=leaseAlert(),i=h.indexOf("</div>",h.indexOf("pagehead"));return a&&i>0&&filters.code==="all"?h.slice(0,i+6)+h.slice(i+6).replace(/<\/div>/,"</div>"+a):h},tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
+/* ===== Stage 3: landlord and tenant portals =====
+   Each portal login (portalUsers/{uid}) gets one summary record (portal/{uid}) that only that login can read.
+   The office's ledger rebuilds a summary whenever that person's figures change; portal users never load the ledger's records.
+   Portal users send requests (portalMsgs); the office answers them on the Portal page. */
+const PT_SITE="https://berlim-homes-ltd.web.app";
+const PT_TYPES={tenant:[["repair","Repair or maintenance"],["complaint","Complaint"],["vacate","Notice to vacate"],["details","Update my details"],["other","Something else"]],
+  landlord:[["message","Message to the office"],["approve","Approve a repair"],["query","Question about a repair"],["statement","Question about a statement"],["details","Update my details"]]};
+const ptTypeLabel=k=>(PT_TYPES.tenant.concat(PT_TYPES.landlord).find(x=>x[0]===k)||[k,"Message"])[1];
+const PT_STAT={new:["New","p-warn"],open:["In progress","p-mute"],done:["Done","p-good"]};
+const ptPill=s=>{const x=PT_STAT[s]||PT_STAT.new;return `<span class="pill ${x[1]}">${x[0]}</span>`};
+const ptWhen=iso=>{const d=new Date(iso||"");return isNaN(d)?"":fmtDate(ymdL(d))+", "+d.toTimeString().slice(0,5)};
+const ptPhoneShow=ph=>{const n=smsPhone(ph);return n?"0"+n.slice(3):""};
+
+/* documents shown on a portal carry nothing clickable from the ledger */
+function ptClean(html){if(!html)return "";const d=new DOMParser().parseFromString("<div id='ptx'>"+html+"</div>","text/html"),r=d.getElementById("ptx");if(!r)return "";
+  r.querySelectorAll("script,button,iframe,object,embed,form,input,select,textarea,link,meta,base").forEach(e=>e.remove());
+  r.querySelectorAll("*").forEach(e=>[...e.attributes].forEach(a=>{const n=a.name.toLowerCase(),v=a.value||"";
+    if(n.startsWith("on")||n.startsWith("data-")||((n==="href"||n==="xlink:href"||n==="action")&&/^\s*(javascript|data|vbscript):/i.test(v))||(n==="src"&&/^\s*(javascript|vbscript):/i.test(v)))e.removeAttribute(a.name)}));
+  return r.innerHTML}
+function ptHash(s){let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677)}
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return (h2>>>0).toString(36)+(h1>>>0).toString(36)}
+const ptOffice=()=>({name:S.settings.company||"Berlim Homes Ltd",phone:S.settings.phone||"",email:S.settings.email||""});
+
+function ptTenant(t){
+  const u=get("units",t.unitId)||{},p0=propOf(u)||{},p=cfg(p0),C=compute(),s=S.settings,c=C.ten[t.id],yr=curYear(),N=s.portalNotices||{};
+  const D=statementData(t.id),prev=[...new Set((D?D.rows:[]).map(r=>(r.d||"").slice(0,4)))].filter(y=>y&&y<yr).sort().pop();
+  const pays=S.payments.filter(x=>x.tenantId===t.id).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,24)
+    .map(x=>({date:x.date||"",amount:+x.amount||0,method:x.method||"",ref:x.ref||"",no:x.receiptNo||"",html:ptClean(receiptHTML(x))}));
+  const invs=S.invoices.filter(i=>i.tenantId===t.id&&!i.adj&&!i.reversed).sort((a,b)=>(b.issueDate||"").localeCompare(a.issueDate||"")).slice(0,12)
+    .map(i=>({no:i.no||"",month:i.month||"",total:+i.total||0,bal:Math.round(C.inv[i.id]?C.inv[i.id].bal:0),due:i.dueDate||"",html:ptClean(invoiceHTML(i))}));
+  const L=leaseInfo(t);
+  return {kind:"tenant",name:t.name||"",house:u.id?unitName(u):"",code:p0.code||"",prop:p0.name||"",active:t.active!==false,moveOut:t.moveOut||"",
+    balance:Math.round(c?c.balance:0),rent:+u.rent||0,deposit:+t.deposit||0,dueDay:dueDayOf(p0),paybill:p.paybill||s.paybill||"",acct:u.id?acctFor(u):"",
+    lease:{start:L.start||"",end:L.end||"",status:L.status||""},leaseDoc:(t.lease||{}).generatedAt?ptClean(leaseHTML(t)):"",
+    stmts:[yr,prev].filter(Boolean).map(y=>{const SL=D?stmtSlice(D,y):{rows:[],open:0};return {yr:y,open:Math.round(SL.open||0),rows:(SL.rows||[]).map(r=>({d:r.d||"",ref:r.ref||"",desc:r.desc||"",dr:Math.round(r.dr||0),cr:Math.round(r.cr||0),bal:Math.round(r.bal||0)})),html:ptClean(statementHTML(t.id,y))}}),pays,invs,
+    notes:[N.tenants,N["p_"+p0.id]].filter(x=>x&&String(x).trim()),office:ptOffice()};
+}
+function ptLandlord(L){
+  const s=S.settings,N=s.portalNotices||{},pids=(L.propertyIds||[]).filter(id=>get("properties",id)),m0=todayStr.slice(0,7),keep=filters.llPart;filters.llPart="";
+  try{
+    const props=sortedProps().filter(p=>pids.includes(p.id)).map(p=>{const us=S.units.filter(u=>u.propertyId===p.id).sort(sortUnits);
+      const months=[];for(let k=0;k<6;k++){const m=monthAdd(m0,-k),LM=landlordMonth(p.id,m,llPartOf(p.id));if(k&&!LM.total&&!LM.totalDed&&!LM.forwarded)continue;
+        months.push({m,total:Math.round(LM.total),ded:Math.round(LM.totalDed),fwd:Math.round(LM.forward),done:Math.round(LM.forwarded),out:Math.round(LM.outstanding),html:ptClean(llStatementHTML(p.id,m))})}
+      return {id:p.id,code:p.code||"",name:p.name||"",loc:p.location||"",units:us.length,occ:us.filter(u=>activeTenantOf(u.id)).length,vacant:us.filter(u=>!activeTenantOf(u.id)).map(u=>unitName(u)),months}});
+    const remits=S.remits.filter(r=>pids.includes(r.propertyId)).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,24)
+      .map(r=>({date:r.date||"",amount:+r.amount||0,month:r.month||"",code:(get("properties",r.propertyId)||{}).code||"",method:r.method||"",ref:r.ref||""}));
+    const maint=S.maint.filter(x=>pids.includes(x.propertyId)).sort((a,b)=>(b.reportedAt||"").localeCompare(a.reportedAt||"")).slice(0,30)
+      .map(x=>{const u=x.unitId?get("units",x.unitId):null;return {id:x.id,no:x.no||"",title:x.title||"",code:(get("properties",x.propertyId)||{}).code||"",house:u?unitName(u):"",status:x.status||"",
+        priority:x.priority||"",at:(x.reportedAt||"").slice(0,10),done:x.resolvedAt||"",cost:+x.cost||0,open:M_OPEN.includes(x.status),approved:x.llApprovedAt||""}});
+    return {kind:"landlord",name:L.name||"",props,remits,maint,notes:[N.landlords].filter(x=>x&&String(x).trim()),office:ptOffice()};
+  }finally{filters.llPart=keep}
+}
+/* a summary record may hold up to 1 MB: drop older document copies if a big landlord gets close */
+function ptFit(data){let js=JSON.stringify(data);const MAX=850000;if(js.length<MAX)return js;
+  if(data.kind==="landlord"){for(let k=5;k>=1&&js.length>=MAX;k--){data.props.forEach(p=>{if(p.months[k])p.months[k].html=""});js=JSON.stringify(data)}}
+  else{data.pays.forEach((x,i)=>{if(i>=6)x.html=""});data.invs.forEach((x,i)=>{if(i>=3)x.html=""});js=JSON.stringify(data)}
+  return js}
+
+let ptBusy=false,ptDV=-1,ptReady=false;
+const ptCanPublish=()=>!!window.FB_BUILD&&mode==="cloud"&&ptReady&&!readOnly&&(ME.admin||(can("tenants")&&can("payments")));
+async function ptPublish(pu,force){
+  const ref=get(pu.kind==="landlord"?"landlords":"tenants",pu.refId);if(!ref)return false;
+  const js=ptFit(pu.kind==="landlord"?ptLandlord(ref):ptTenant(ref)),h=ptHash(js);if(h===pu.h&&!force)return false;
+  const at=new Date().toISOString(),data=JSON.parse(js),{id,...rest}=pu;
+  await db.collection("portal").doc(pu.id).set({uid:pu.id,kind:pu.kind,refId:pu.refId,login:pu.login||"",method:pu.method||"",name:data.name,at,data});
+  await db.collection("portalUsers").doc(pu.id).set(JSON.parse(JSON.stringify({...rest,h,at})));
+  return true}
+async function portalSync(){
+  if(ptBusy||!ptCanPublish())return 0;ptBusy=true;let n=0;
+  try{for(const pu of S.portalUsers){if(pu.off||pu.replacedBy)continue;try{if(await ptPublish(pu))n++}catch(e){}if(n>=20)break;await new Promise(r=>setTimeout(r,40)) /* keep the page responsive */}}finally{ptBusy=false}
+  return n}
+setInterval(()=>{if(document.visibilityState!=="visible"||DV===ptDV)return;ptDV=DV;portalSync().catch(()=>{})},180000);
+
+/* ---------- office side: Portal page ---------- */
+function ptWho(m){
+  if(m.kind==="landlord"){const L=get("landlords",m.refId);return {name:L?L.name:m.name||"Landlord",sub:"Landlord"+(L?" · "+(L.propertyIds||[]).map(id=>(get("properties",id)||{}).code).filter(Boolean).join(", "):""),phone:L?L.phone:"",L}}
+  const t=get("tenants",m.refId),u=t?get("units",t.unitId):null,p=propOf(u)||{};return {name:t?t.name:m.name||"Tenant",sub:"Tenant"+(u?` · ${p.code||""} House ${unitName(u)}`:""),phone:t?t.phone:"",t}}
+function vPortal(){
+  const tab=filters.ptTab||"req",nNew=S.portalMsgs.filter(m=>m.status==="new").length,live=S.portalUsers.filter(x=>!x.off&&!x.replacedBy);
+  const seg=`<div class="seg" role="tablist">${[["req","Requests"+(nNew?` (${nNew} new)`:"")],["users",`Logins (${live.length})`],["notes","Notices"]].map(([k,l])=>`<button class="${tab===k?"on":""}" data-a="ptTab" data-id="${k}">${l}</button>`).join("")}</div>`;
+  const head=`<div class="pagehead"><h1>Landlord and tenant portal</h1><p>Tenants and landlords sign in at ${esc(PT_SITE.replace("https://",""))} with their own login. They see only their own balances, statements and receipts, and they can send requests here. Their pages update automatically a few minutes after a change, while the ledger is open on an administrator's or manager's device.</p></div>`;
+  let body="";
+  if(tab==="req"){
+    const ms=[...S.portalMsgs].sort((a,b)=>((a.status==="done")-(b.status==="done"))||(b.at||"").localeCompare(a.at||""));
+    body=`<div class="card"><div class="tw"><table><thead><tr><th>Received</th><th>From</th><th>Request</th><th>Status</th><th></th></tr></thead><tbody>${ms.map(m=>{const w=ptWho(m),mt=m.maintId?get("maint",m.maintId):null;
+      return `<tr><td style="white-space:nowrap">${esc(ptWhen(m.at))}</td><td><strong>${esc(w.name)}</strong><span class="sub">${esc(w.sub)}</span></td>
+       <td><strong>${esc(ptTypeLabel(m.type))}</strong>${m.date?` · move-out ${fmtDate(m.date)}`:""}${mt?` · ${esc(mt.no)} ${esc(mt.title)}`:m.subject?` · ${esc(m.subject)}`:""}<span class="sub" style="white-space:pre-wrap">${esc(m.text||"")}</span>${m.reply?`<span class="sub" style="white-space:pre-wrap"><b>Reply:</b> ${esc(m.reply)}</span>`:""}${m.maintNo?`<span class="sub">Logged as ${esc(m.maintNo)}</span>`:""}</td>
+       <td>${ptPill(m.status)}</td><td class="num" style="white-space:nowrap"><button class="btn sm" data-a="ptReply" data-id="${m.id}">${m.reply?"Edit reply":"Reply"}</button>${m.type==="repair"&&!m.maintNo&&w.t&&canMaint()?`<button class="btn sm gold" data-a="ptMaint" data-id="${m.id}">Log repair</button>`:""}${m.type==="approve"&&mt&&!mt.llApprovedAt&&canMaint()?`<button class="btn sm gold" data-a="ptApprove" data-id="${m.id}">Record approval</button>`:""}</td></tr>`}).join("")||`<tr><td colspan="5" class="empty">No requests yet. Tenants and landlords send them from their portal.</td></tr>`}</tbody></table></div></div>`;
+  }else if(tab==="users"){
+    const us=[...S.portalUsers].filter(x=>!x.replacedBy).sort((a,b)=>(a.off-b.off)||(a.kind||"").localeCompare(b.kind||"")||(a.name||"").localeCompare(b.name||""));
+    body=`${ME.admin?`<div class="row" style="margin:0 0 12px"><button class="btn primary" data-a="ptNew" data-id="tenant">Give a tenant a login</button><button class="btn" data-a="ptNew" data-id="landlord">Give a landlord a login</button></div>`:`<p class="hint">Only an administrator can create or change portal logins.</p>`}
+     <div class="card"><div class="tw"><table><thead><tr><th>Name</th><th>For</th><th>Signs in with</th><th>Page updated</th><th></th></tr></thead><tbody>${us.map(x=>{const w=ptWho(x);
+      return `<tr${x.off?' style="opacity:.6"':""}><td><strong>${esc(w.name)}</strong>${x.off?' <span class="pill p-mute">Turned off</span>':""}</td><td>${esc(w.sub)}</td><td>${esc(x.login||"")}<span class="sub">${x.method==="phone"?"Phone number and PIN":"Email and password"}</span></td><td>${x.at?esc(ptWhen(x.at)):"<span class='sub'>Waiting</span>"}</td>
+       <td class="num" style="white-space:nowrap">${ME.admin?(x.off?`<button class="btn sm" data-a="ptOn" data-id="${x.id}">Turn on</button>`:`${x.method==="phone"?`<button class="btn sm" data-a="ptPin" data-id="${x.id}">New PIN</button>`:`<button class="btn sm" data-a="ptPin" data-id="${x.id}">Send password email</button>`}<button class="btn sm danger" data-a="ptOff" data-id="${x.id}">Turn off</button>`):""}</td></tr>`}).join("")||`<tr><td colspan="5" class="empty">No portal logins yet.</td></tr>`}</tbody></table></div></div>`;
+  }else{
+    const N=S.settings.portalNotices||{},pid=filters.ptNP||(sortedProps()[0]||{}).id||"";
+    body=`<div class="card"><div class="cb"><form id="fPtN" class="fg">
+     <div class="f full"><label for="pn-t">Notice on every tenant's page</label><textarea id="pn-t" name="tenants" rows="3" maxlength="600" placeholder="e.g. Water will be off on Saturday from 9am to 1pm for tank cleaning.">${esc(N.tenants||"")}</textarea></div>
+     <div class="f full"><label for="pn-l">Notice on every landlord's page</label><textarea id="pn-l" name="landlords" rows="3" maxlength="600">${esc(N.landlords||"")}</textarea></div>
+     <div class="f"><label for="pn-p">Notice for one property's tenants</label><select id="pn-p" name="pid">${sortedProps().map(p=>`<option value="${p.id}" ${p.id===pid?"selected":""}>${esc(p.code)} ${esc(p.name)}${N["p_"+p.id]?" (has a notice)":""}</option>`).join("")}</select></div>
+     <div class="f full"><label for="pn-x">Notice text for that property</label><textarea id="pn-x" name="ptext" rows="3" maxlength="600">${esc(N["p_"+pid]||"")}</textarea><span class="hint">Leave a box empty to remove that notice. Notices appear at the top of the portal page within a minute.</span></div>
+     </form><div class="row" style="margin-top:12px"><button class="btn primary" type="submit" form="fPtN">Save notices</button></div></div></div>`;
+  }
+  return head+seg+body;
+}
+function ptPin6(){const a=new Uint32Array(1);crypto.getRandomValues(a);return String(100000+a[0]%900000)}
+function ptPw(){const a=new Uint8Array(18);crypto.getRandomValues(a);return [...a].map(x=>x.toString(36).padStart(2,"0")).join("")+"Aa1!"}
+const ptAlready=e=>/email-already-in-use/.test(String((e&&(e.code||e.message))||""));
+async function ptPhoneAccount(display,pin){for(let v=1;v<=9;v++){const login=display+(v>1?"-"+v:"");try{const id=await USER.createAccount(window.fbLoginEmail(login),pin);return {id,login,v,loginEmail:window.fbLoginEmail(login)}}catch(e){if(!ptAlready(e))throw e}}throw new Error("No free login for this phone number")}
+function ptSmsFor(pu,ref,text){if(!smsReady())return null;
+  if(pu.kind==="tenant")return smsDoc("ptl-"+pu.id,ref,text,"Portal login");
+  return {id:"ptl-"+pu.id,to:smsPhone(ref.phone),tenantId:"",landlordId:ref.id,name:ref.name,text,kind:"Portal login",status:"queued",createdAt:new Date().toISOString(),by:ME.id||""}}
+function ptLoginText(pu,ref,pin){const first=String(ref.name||"").split(/\s+/)[0]||"",co=S.settings.company||"Berlim Homes Ltd";
+  return pu.method==="phone"?`Dear ${first},\nYour Berlim Homes ${pu.kind} page is ready.\nOpen: ${PT_SITE}\nLogin: ${pu.login}\nPIN: ${pin}\nPlease change the PIN after you sign in.\n${co}`
+    :`Dear ${first},\nYour Berlim Homes ${pu.kind} page is ready. We have emailed ${pu.loginEmail} a link to set your password. Then sign in at ${PT_SITE}\n${co}`}
+function ptDone(pu,ref,pin,smsN){
+  openModal("Portal login ready",`<p style="margin:0 0 10px"><strong>${esc(ref.name)}</strong> can now sign in at <strong>${esc(PT_SITE.replace("https://",""))}</strong>.</p>
+   <div class="kvs" style="display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:15px"><span>Login</span><strong>${esc(pu.login)}</strong>${pin?`<span>PIN</span><strong style="letter-spacing:.12em">${esc(pin)}</strong>`:""}</div>
+   <p class="hint" style="margin:12px 0 0">${pu.method==="phone"?(smsN?"The login and PIN were sent by SMS. ":"SMS was not sent: give the login and PIN to them yourself. ")+"This PIN is shown only once. If it is lost, use New PIN on the Logins tab.":`A link to set a password was emailed to ${esc(pu.loginEmail)}.${smsN?" They were also told by SMS to check their email.":""} If the email doesn't arrive, check the spam folder, or use Send password email on the Logins tab.`}</p>`,
+   `<button class="btn primary" data-a="close">Done</button>`)}
+function formPtLogin(kind){
+  if(!ME.admin||!USER||!USER.createAccount){toast("Only an administrator can create portal logins.");return}
+  const has=id=>S.portalUsers.some(x=>x.refId===id&&!x.off&&!x.replacedBy);
+  const lab=t=>{const u=get("units",t.unitId),p=propOf(u)||{};return `${p.code||""} ${u?unitName(u):""} · ${t.name}`};
+  const list=kind==="landlord"?[...S.landlords].sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(l=>[l,`${l.name} (${(l.propertyIds||[]).map(id=>(get("properties",id)||{}).code).filter(Boolean).join(", ")})`])
+    :S.tenants.filter(t=>t.active!==false).map(t=>[t,lab(t)]).sort((a,b)=>a[1].localeCompare(b[1]));
+  if(!list.length){toast(kind==="landlord"?"Add a landlord profile first (Landlords page).":"No current tenants.");return}
+  openModal(kind==="landlord"?"Give a landlord a portal login":"Give a tenant a portal login",`<form id="fPtL" class="fg">
+   <div class="f full"><label for="pl-r">${kind==="landlord"?"Landlord":"Tenant"}</label><select id="pl-r" name="ref">${list.map(([o,l])=>`<option value="${o.id}" ${has(o.id)?"disabled":""}>${esc(l)}${has(o.id)?" (has a login)":""}</option>`).join("")}</select></div>
+   <div class="f full"><label>They sign in with</label><div class="row" style="gap:18px"><label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="radio" name="method" value="phone" checked> Phone number and a PIN</label><label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="radio" name="method" value="email"> Email and their own password</label></div></div>
+   <div class="f"><label for="pl-ph">Phone number</label><input id="pl-ph" name="phone" inputmode="tel" placeholder="07XX XXX XXX"></div>
+   <div class="f"><label for="pl-em">Email</label><input id="pl-em" name="email" type="email" placeholder="name@example.com"></div>
+   ${smsReady()?`<label class="full" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="sms" checked> Text them the login details (SMS)</label>`:""}
+   <p class="full hint" style="margin:0" id="pl-h"></p><div class="err full" id="plErr"></div></form>`,
+   `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fPtL" type="submit" id="plGo">Create login</button>`,true);
+  const fm=document.getElementById("fPtL"),sel=document.getElementById("pl-r"),err=document.getElementById("plErr");
+  const first=list.find(([o])=>!has(o.id));if(first)sel.value=first[0].id;
+  const fill=()=>{const o=get(kind==="landlord"?"landlords":"tenants",sel.value)||{};fm.phone.value=ptPhoneShow(o.phone)||o.phone||"";fm.email.value=o.email||"";hint()};
+  const hint=()=>{const m=new FormData(fm).get("method");document.getElementById("pl-h").textContent=m==="phone"?"A 6-digit PIN is made for them. They sign in with the phone number and the PIN, then can change the PIN.":"They get an email from Berlim Homes with a link to set their own password. Use this only for an email they check.";};
+  sel.onchange=fill;fm.addEventListener("change",e=>{if(e.target.name==="method")hint()});fill();
+  fm.onsubmit=async e=>{e.preventDefault();err.textContent="";const d=Object.fromEntries(new FormData(fm)),col=kind==="landlord"?"landlords":"tenants",ref=get(col,d.ref);
+    if(!ref){err.textContent="Choose who the login is for.";return}if(has(ref.id)){err.textContent=ref.name+" already has a login. Use New PIN on the Logins tab.";return}
+    const go=document.getElementById("plGo");go.disabled=true;go.textContent="Creating…";
+    try{let pu,pin="";
+      if(d.method==="phone"){const ph=smsPhone(d.phone);if(!ph)throw new Error("Enter a valid mobile number, e.g. 0712 345 678.");pin=ptPin6();
+        const A=await ptPhoneAccount("0"+ph.slice(3),pin);pu={id:A.id,login:A.login,loginEmail:A.loginEmail,v:A.v,method:"phone"}}
+      else{const em=String(d.email||"").trim().toLowerCase();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em))throw new Error("Enter a valid email address.");
+        let id=null;try{id=await USER.createAccount(em,ptPw())}catch(x){if(!ptAlready(x))throw x;const old=S.portalUsers.find(y=>y.loginEmail===em);if(!old)throw new Error("That email already has a Berlim Homes login (perhaps a team login). Use the phone option or another email.");id=old.id}
+        await window.fbResetEmail(em);pu={id,login:em,loginEmail:em,method:"email"}}
+      pu={...pu,kind,refId:ref.id,name:ref.name||"",createdAt:new Date().toISOString(),createdBy:ME.id||"",h:"",off:false};
+      await db.collection("portalUsers").doc(pu.id).set(JSON.parse(JSON.stringify(pu)));await ptPublish(pu,true);
+      let n=0;if(d.sms){const s=ptSmsFor(pu,ref,ptLoginText(pu,ref,pin));if(s&&s.to)n=await smsQueue([s])}
+      ptDone(pu,ref,pin,n)}
+    catch(x){go.disabled=false;go.textContent="Create login";err.textContent=(x&&x.message&&!/^Firebase/.test(x.message)?x.message:"Couldn't create the login. Check the internet connection and try again.")}}}
+async function ptNewPin(id){const pu=S.portalUsers.find(x=>x.id===id);if(!pu||!ME.admin)return;const ref=get(pu.kind==="landlord"?"landlords":"tenants",pu.refId);if(!ref){toast("That record no longer exists.");return}
+  if(pu.method!=="phone"){try{await window.fbResetEmail(pu.loginEmail);toast("Password email sent to "+pu.loginEmail)}catch(e){toast("Couldn't send the email just now.")}return}
+  askConfirm(`Make a new PIN for <strong>${esc(ref.name)}</strong>? The old PIN stops working, and their login changes to a new number ending (for example ${esc(String(pu.login).replace(/-\d+$/,""))}-${(pu.v||1)+1}).`,"Make new PIN",async()=>{
+    try{const pin=ptPin6(),A=await ptPhoneAccount(String(pu.login).replace(/-\d+$/,""),pin),now=new Date().toISOString();
+      const np={kind:pu.kind,refId:pu.refId,name:ref.name||"",id:A.id,login:A.login,loginEmail:A.loginEmail,v:A.v,method:"phone",createdAt:now,createdBy:ME.id||"",h:"",off:false};
+      await db.collection("portalUsers").doc(np.id).set(JSON.parse(JSON.stringify(np)));await ptPublish(np,true);
+      const {id:_,...rest}=pu;await db.collection("portalUsers").doc(pu.id).set(JSON.parse(JSON.stringify({...rest,off:true,replacedBy:np.id,h:""})));try{await db.collection("portal").doc(pu.id).delete()}catch(e){}
+      let n=0;const s=ptSmsFor(np,ref,ptLoginText(np,ref,pin));if(s&&s.to)n=await smsQueue([s]);ptDone(np,ref,pin,n)}
+    catch(e){toast("Couldn't make a new PIN just now. Try again.")}})}
+function ptSetOff(id,off){const pu=S.portalUsers.find(x=>x.id===id);if(!pu||!ME.admin)return;const w=ptWho(pu);
+  const run=async()=>{const {id:_,...rest}=pu;try{await db.collection("portalUsers").doc(pu.id).set(JSON.parse(JSON.stringify({...rest,off,h:""})));
+    if(off){await db.collection("portal").doc(pu.id).delete()}else await ptPublish({...pu,off:false,h:""},true);toast(off?"Portal turned off for "+w.name:"Portal turned on for "+w.name)}catch(e){toast("Couldn't change it just now.")}};
+  if(off)askConfirm(`Turn off <strong>${esc(w.name)}</strong>'s portal? They won't be able to see their page until you turn it on again.`,"Turn off",run);else run()}
+function ptReplyForm(id){const m=S.portalMsgs.find(x=>x.id===id);if(!m)return;const w=ptWho(m);
+  openModal("Reply to "+esc(w.name),`<p style="margin:0 0 10px"><strong>${esc(ptTypeLabel(m.type))}</strong>${m.date?" · move-out "+fmtDate(m.date):""} · ${esc(ptWhen(m.at))}<br><span style="white-space:pre-wrap">${esc(m.text||"")}</span></p>
+   <form id="fPtR" class="fg"><div class="f full"><label for="pr-x">Reply (shown on their page)</label><textarea id="pr-x" name="reply" rows="4" maxlength="1500" required>${esc(m.reply||"")}</textarea></div>
+   <div class="f"><label for="pr-s">Status</label><select id="pr-s" name="status">${[["open","In progress"],["done","Done"],["new","New"]].map(([k,l])=>`<option value="${k}" ${(m.status==="new"?"open":m.status)===k?"selected":""}>${l}</option>`).join("")}</select></div>
+   ${smsReady()&&smsPhone(w.phone)?`<label class="full" style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="sms"> Also text the reply to ${esc(ptPhoneShow(w.phone))}</label>`:""}</form>`,
+   `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fPtR" type="submit">Save reply</button>`,true);
+  const fm=document.getElementById("fPtR");fm.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(fm));
+    const obj={...m,reply:d.reply.trim(),status:d.status,repliedAt:new Date().toISOString(),repliedBy:ME.label||ME.email||ME.id||""};
+    if(!(await save("portalMsgs",obj)))return;closeModal();toast("Reply saved");
+    if(d.sms){const first=String(w.name||"").split(/\s+/)[0]||"",text=`Dear ${first},\nReply to your ${ptTypeLabel(m.type).toLowerCase()} request:\n${obj.reply}\n${S.settings.company||"Berlim Homes Ltd"}`;
+      const s=w.t?smsDoc("ptr-"+m.id+"-"+Date.now().toString(36),w.t,text,"Portal reply"):{id:"ptr-"+m.id+"-"+Date.now().toString(36),to:smsPhone(w.phone),tenantId:"",landlordId:m.refId,name:w.name,text,kind:"Portal reply",status:"queued",createdAt:new Date().toISOString(),by:ME.id||""};await smsQueue([s])}}}
+async function ptToMaint(id){const m=S.portalMsgs.find(x=>x.id===id);if(!m)return;const t=get("tenants",m.refId),u=t?get("units",t.unitId):null;if(!t||!u){toast("That tenant's house wasn't found.");return}
+  const title=String(m.text||"Repair request").split(/\n/)[0].slice(0,80),now=new Date().toISOString();
+  const obj={id:uid(),no:nextNo("MNTC","maint"),propertyId:u.propertyId,unitId:u.id,tenantId:t.id,category:"Other",priority:"Normal",title,details:String(m.text||""),reportedBy:"Tenant",reportedAt:(m.at||now).slice(0,19),status:"Reported",createdBy:ME.id||"",portalMsg:m.id};
+  obj.log=mLog(obj,"Reported","Tenant portal: "+title);
+  if(!(await save("maint",obj)))return;await save("portalMsgs",{...m,status:"open",maintId:obj.id,maintNo:obj.no,reply:m.reply||`Logged as ${obj.no}. We will let you know when someone is coming.`,repliedAt:now,repliedBy:ME.label||ME.email||ME.id||""});
+  toast(obj.no+" logged on the Maintenance page")}
+async function ptApprove(id){const m=S.portalMsgs.find(x=>x.id===id),x=m&&m.maintId?get("maint",m.maintId):null;if(!x)return;const now=new Date().toISOString(),w=ptWho(m);
+  if(!(await save("maint",{...x,llApprovedAt:now,llApproval:String(m.text||""),log:mLog(x,x.status,`Approved by ${w.name} on the landlord portal`)})))return;
+  await save("portalMsgs",{...m,status:"done",reply:m.reply||`Thank you. Your approval for ${x.no} is recorded.`,repliedAt:now,repliedBy:ME.label||ME.email||ME.id||""});toast("Approval recorded on "+x.no)}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(!b||document.body.classList.contains("portal-mode"))return;const a=b.dataset.a,id=b.dataset.id;
+  if(a==="ptTab"){e.preventDefault();filters.ptTab=id;render()}
+  else if(a==="ptNew")formPtLogin(id);
+  else if(a==="ptPin")ptNewPin(id);
+  else if(a==="ptOff")ptSetOff(id,true);
+  else if(a==="ptOn")ptSetOff(id,false);
+  else if(a==="ptReply")ptReplyForm(id);
+  else if(a==="ptMaint")ptToMaint(id);
+  else if(a==="ptApprove")ptApprove(id)});
+document.addEventListener("change",e=>{if(e.target.id==="pn-p"){filters.ptNP=e.target.value;const N=S.settings.portalNotices||{};const x=document.getElementById("pn-x");if(x)x.value=N["p_"+e.target.value]||""}});
+document.addEventListener("submit",async e=>{if(e.target.id!=="fPtN")return;e.preventDefault();const d=Object.fromEntries(new FormData(e.target)),N={...(S.settings.portalNotices||{})};
+  const put=(k,v)=>{v=String(v||"").trim();if(v)N[k]=v;else delete N[k]};put("tenants",d.tenants);put("landlords",d.landlords);if(d.pid)put("p_"+d.pid,d.ptext);
+  if(await saveSettings({...S.settings,portalNotices:N}))toast("Notices saved")});
+
+/* ---------- the portal itself (what a tenant or landlord sees after signing in) ---------- */
+let PT=null;
+window.startPortal=function(P,api){
+  PT={P,api,tab:P.kind==="landlord"?"props":"home",msgs:null,pre:null,yr:null};
+  let root=document.getElementById("portalRoot");if(!root){root=document.createElement("div");root.id="portalRoot";document.body.appendChild(root)}
+  document.body.classList.add("portal-mode");document.title=(P.kind==="landlord"?"Landlord":"Tenant")+" page · Berlim Homes";
+  root.addEventListener("click",ptClick);root.addEventListener("submit",ptSubmit);root.addEventListener("change",e=>{if(e.target.id==="pq-t"){const w=document.getElementById("pq-dw");if(w)w.hidden=e.target.value!=="vacate"}});
+  document.addEventListener("visibilitychange",async()=>{if(document.visibilityState!=="visible")return;try{const n=await api.reload();if(n&&n.at!==PT.P.at){PT.P=n;ptRender()}}catch(e){}});
+  ptRender();
+};
+const ptTabsFor=k=>k==="landlord"?[["props","Properties"],["pays","Payments to you"],["maint","Repairs"],["req","Messages"],["acct","My login"]]
+  :[["home","Statement"],["pays","Receipts"],["invs","Invoices"],["lease","Lease"],["req","Requests"],["acct","My login"]];
+function ptRender(){
+  const P=PT.P,D=P.data||{},O=D.office||{},root=document.getElementById("portalRoot");if(!root)return;
+  const tabs=ptTabsFor(P.kind);if(!tabs.some(t=>t[0]===PT.tab))PT.tab=tabs[0][0];
+  root.innerHTML=`<div class="pt"><header class="pt-bar"><div class="pt-brand">${logoSVG(32)}<span>Berlim Homes</span></div><div class="pt-who"><span>${esc(D.name||"")}</span><button class="btn sm" data-pa="out">Sign out</button></div></header>
+   ${P.kind==="landlord"?ptHeroL(D):ptHeroT(D)}
+   ${(D.notes||[]).map(n=>`<div class="pt-note" role="note">${esc(n)}</div>`).join("")}
+   <nav class="pt-tabs" role="tablist" aria-label="Sections">${tabs.map(([k,l])=>`<button role="tab" aria-selected="${PT.tab===k}" data-pa="tab" data-id="${k}">${l}</button>`).join("")}</nav>
+   <section class="pt-body" role="tabpanel">${ptBody(P,D)}</section>
+   <footer class="pt-foot">Figures as at ${esc(ptWhen(P.at))}. ${esc(O.name||"Berlim Homes Ltd")}${O.phone?" · "+esc(O.phone):""}${O.email?" · "+esc(O.email):""}</footer></div>`;
+  if(PT.tab==="req")ptMsgsFill();
+}
+function ptHeroT(D){const b=+D.balance||0;
+  return `<section class="pt-hero"><div class="pt-place">House ${esc(D.house)} · ${esc(D.prop)}${D.code?" ("+esc(D.code)+")":""}${D.active?"":" · moved out"+(D.moveOut?" "+fmtDate(D.moveOut):"")}</div>
+   <div class="pt-bal${b>0?" owe":""}"><span class="k">${b>0?"Amount owing":b<0?"In credit":"Your account is clear"}</span><span class="v">KES ${n0(Math.abs(b))}</span></div>
+   ${D.paybill?`<div class="pt-pay"><div><span class="k">M-Pesa Paybill</span><span class="v">${esc(D.paybill)}</span><button type="button" data-pa="copy" data-v="${esc(D.paybill)}" aria-label="Copy paybill number">Copy</button></div><div><span class="k">Account number</span><span class="v">${esc(D.acct)}</span><button type="button" data-pa="copy" data-v="${esc(D.acct)}" aria-label="Copy account number">Copy</button></div></div>`:""}
+   ${D.active&&D.rent?`<p class="pt-due">Rent KES ${n0(D.rent)} a month, due by the ${ord(+D.dueDay||5)}. Payments show here once Berlim Homes records them.</p>`:""}</section>`}
+function ptHeroL(D){const m0=todayStr.slice(0,7),cur=(D.props||[]).map(p=>p.months.find(x=>x.m===m0)).filter(Boolean),S2=k=>cur.reduce((s,x)=>s+(+x[k]||0),0);
+  const units=(D.props||[]).reduce((s,p)=>s+p.units,0),occ=(D.props||[]).reduce((s,p)=>s+p.occ,0);
+  return `<section class="pt-hero"><div class="pt-place">${(D.props||[]).length} propert${(D.props||[]).length===1?"y":"ies"} · ${occ} of ${units} houses let · ${monthLabel(m0)} so far</div>
+   <div class="pt-figs"><div><span class="k">Collected</span><span class="v">${n0(S2("total"))}</span></div><div><span class="k">Deductions</span><span class="v">${n0(S2("ded"))}</span></div><div><span class="k">To forward</span><span class="v">${n0(S2("fwd"))}</span></div><div><span class="k">Forwarded</span><span class="v">${n0(S2("done"))}</span></div></div>
+   <p class="pt-due">Amounts in KES. A month's statement is final once Berlim Homes sends it.</p></section>`}
+const ptEmpty=t=>`<div class="pt-card"><p class="pt-empty">${t}</p></div>`;
+function ptBody(P,D){const tab=PT.tab;
+  if(tab==="home"){const st=D.stmts||[];if(!st.length)return ptEmpty("No statement yet.");const yr=PT.yr&&st.some(s=>s.yr===PT.yr)?PT.yr:st[0].yr,s=st.find(x=>x.yr===yr);
+    const rows=[...(s.rows||[])].reverse(),bt=v=>v<0?"Credit "+n0(-v):n0(v);
+    return `<div class="pt-row">${st.length>1?st.map(x=>`<button class="btn sm${x.yr===yr?" primary":""}" data-pa="yr" data-id="${esc(x.yr)}" aria-pressed="${x.yr===yr}">${esc(x.yr)}</button>`).join(""):""}<span class="pt-sp"></span><button class="btn sm" data-pa="doc" data-id="stmt:${esc(yr)}">Full statement</button><button class="btn sm" data-pa="print" data-id="stmt:${esc(yr)}">Print or save as PDF</button></div>
+     <div class="pt-card"><ul class="pt-list pt-stmt">${rows.map(r=>`<li><span class="t">${esc(r.desc)}</span><span class="s">${fmtDate(r.d)}${r.ref?" · "+esc(r.ref):""}</span><span class="a"><span class="${r.cr?"pt-cr":"pt-dr"}">${r.cr?"Paid "+n0(r.cr):r.dr?n0(r.dr):""}</span><span class="pt-run">Balance ${bt(r.bal)}</span></span></li>`).join("")}
+      ${s.open?`<li><span class="t">Brought forward from ${+yr-1}</span><span class="s">Balance at 1 January</span><span class="a"><span class="pt-run">${bt(s.open)}</span></span></li>`:""}
+      ${!rows.length&&!s.open?`<li><span class="t">No entries in ${esc(yr)}.</span></li>`:""}</ul></div>`}
+  if(tab==="pays"&&P.kind==="tenant"){const xs=D.pays||[];if(!xs.length)return ptEmpty("No payments recorded yet.");
+    return `<div class="pt-card"><ul class="pt-list">${xs.map((x,i)=>`<li><span class="t">KES ${n0(x.amount)}</span><span class="s">${fmtDate(x.date)} · ${esc(x.method)}${x.ref?" "+esc(x.ref):""}${x.no?" · receipt "+esc(x.no):""}</span><span class="a">${x.html?`<button class="btn sm" data-pa="doc" data-id="pays:${i}">Receipt</button>`:""}</span></li>`).join("")}</ul></div>`}
+  if(tab==="invs"){const xs=D.invs||[];if(!xs.length)return ptEmpty("No invoices yet.");
+    return `<div class="pt-card"><ul class="pt-list">${xs.map((x,i)=>`<li><span class="t">${esc(monthLabel(x.month))} · KES ${n0(x.total)} ${x.bal>0?`<span class="pill p-bad">Unpaid ${n0(x.bal)}</span>`:`<span class="pill p-good">Paid</span>`}</span><span class="s">${esc(x.no)}${x.due?" · due "+fmtDate(x.due):""}</span><span class="a">${x.html?`<button class="btn sm" data-pa="doc" data-id="invs:${i}">Invoice</button>`:""}</span></li>`).join("")}</ul></div>`}
+  if(tab==="lease"){const L=D.lease||{};
+    return `<div class="pt-card pt-kv"><div><span>House</span><strong>${esc(D.house)}, ${esc(D.prop)}</strong></div><div><span>Lease start</span><strong>${L.start?fmtDate(L.start):"Not recorded"}</strong></div><div><span>Lease end</span><strong>${L.end?fmtDate(L.end):"No end date"}</strong></div><div><span>Monthly rent</span><strong>KES ${n0(D.rent)}</strong></div><div><span>Deposit held</span><strong>KES ${n0(D.deposit)}</strong></div>
+     ${D.leaseDoc?`<div class="pt-row" style="padding:12px 16px"><button class="btn" data-pa="doc" data-id="lease:0">View tenancy agreement</button></div>`:`<p class="pt-empty" style="padding:0 16px 14px;text-align:left">Ask Berlim Homes for a copy of your tenancy agreement.</p>`}</div>`}
+  if(tab==="props"){const ps=D.props||[];if(!ps.length)return ptEmpty("No properties linked to your login yet.");
+    return ps.map((p,pi)=>{const pct=p.units?Math.round(p.occ/p.units*100):0;return `<div class="pt-card pt-prop"><div class="h"><div><strong>${esc(p.code)} ${esc(p.name)}</strong><span class="s">${esc(p.loc||"")}</span></div><div class="occ"><span>${p.occ} of ${p.units} let</span><span class="bar" aria-hidden="true"><i style="width:${pct}%"></i></span></div></div>
+      <p class="s">${p.vacant.length?"Vacant: "+p.vacant.map(esc).join(", "):"No vacant houses."}</p>
+      <div class="tw"><table><thead><tr><th>Month</th><th class="num">Collected</th><th class="num">Deductions</th><th class="num">To forward</th><th class="num">Forwarded</th><th></th></tr></thead><tbody>${p.months.map((m,mi)=>`<tr><td>${esc(monthLabel(m.m))}</td><td class="num">${n0(m.total)}</td><td class="num">${n0(m.ded)}</td><td class="num">${n0(m.fwd)}</td><td class="num">${n0(m.done)}${m.out>0&&m.m<todayStr.slice(0,7)?` <span class="pill p-warn">${n0(m.out)} due</span>`:""}</td><td class="num">${m.html?`<button class="btn sm" data-pa="doc" data-id="ll:${pi}:${mi}">Statement</button>`:""}</td></tr>`).join("")}</tbody></table></div></div>`}).join("")}
+  if(tab==="pays"){const xs=D.remits||[];if(!xs.length)return ptEmpty("No payments to you recorded yet.");
+    return `<div class="pt-card"><ul class="pt-list">${xs.map(x=>`<li><span class="t">KES ${n0(x.amount)}</span><span class="s">${fmtDate(x.date)} · ${esc(x.code)} ${esc(monthLabel(x.month))}${x.method?" · "+esc(x.method):""}${x.ref?" "+esc(x.ref):""}</span></li>`).join("")}</ul></div>`}
+  if(tab==="maint"){const xs=D.maint||[];if(!xs.length)return ptEmpty("No repairs recorded for your properties.");
+    return `<div class="pt-card"><ul class="pt-list">${xs.map(x=>`<li><span class="t">${esc(x.title)} <span class="pill ${x.open?"p-warn":"p-good"}">${esc(x.status)}</span>${x.approved?' <span class="pill p-good">You approved</span>':""}</span><span class="s">${esc(x.no)} · ${esc(x.code)}${x.house?" House "+esc(x.house):""} · reported ${fmtDate(x.at)}${x.done?" · resolved "+fmtDate(x.done):""}${x.cost?" · cost KES "+n0(x.cost):""}</span>
+      <span class="a">${x.open&&!x.approved?`<button class="btn sm" data-pa="ask" data-t="approve" data-id="${esc(x.id)}">Approve</button>`:""}<button class="btn sm" data-pa="ask" data-t="query" data-id="${esc(x.id)}">Ask</button></span></li>`).join("")}</ul></div>`}
+  if(tab==="req"){const types=PT_TYPES[P.kind]||PT_TYPES.tenant,pre=PT.pre||{},mt=pre.maintId?(D.maint||[]).find(x=>x.id===pre.maintId):null,ty=pre.type||types[0][0];
+    return `<form id="ptReq" class="pt-card fg pt-form"><div class="f"><label for="pq-t">What is it about?</label><select id="pq-t" name="type">${types.map(([k,l])=>`<option value="${k}" ${k===ty?"selected":""}>${l}</option>`).join("")}</select></div>
+      <div class="f" id="pq-dw" ${ty==="vacate"?"":"hidden"}><label for="pq-d">Planned move-out date</label><input id="pq-d" name="date" type="date" min="${todayStr}"></div>
+      ${mt?`<p class="full hint" style="margin:0">About ${esc(mt.no)}: ${esc(mt.title)} (${esc(mt.code)}${mt.house?" House "+esc(mt.house):""})</p><input type="hidden" name="maintId" value="${esc(mt.id)}"><input type="hidden" name="subject" value="${esc(mt.no+" "+mt.title)}">`:""}
+      <div class="f full"><label for="pq-x">Details</label><textarea id="pq-x" name="text" rows="4" maxlength="2000" required placeholder="${P.kind==="landlord"?"Write your message to Berlim Homes":"e.g. The kitchen tap is leaking. I am home after 5pm."}"></textarea></div>
+      <div class="full pt-row"><button class="btn primary" type="submit" id="pqGo">Send to Berlim Homes</button></div></form>
+      <h2 class="pt-h">Your ${P.kind==="landlord"?"messages":"requests"}</h2><div id="ptMsgs"><div class="pt-card"><p class="pt-empty">Loading…</p></div></div>`}
+  if(tab==="acct"){const ph=P.method==="phone";
+    return `<div class="pt-card pt-kv"><div><span>You sign in with</span><strong>${esc(P.login||PT.api.login||"")}</strong></div></div>
+     <form id="ptPin" class="pt-card fg pt-form" style="margin-top:12px"><div class="f full"><h2 class="pt-h" style="margin:0">Change your ${ph?"PIN":"password"}</h2></div>
+      <div class="f"><label for="pp-c">Current ${ph?"PIN":"password"}</label><input id="pp-c" name="cur" type="password" autocomplete="current-password" required ${ph?'inputmode="numeric"':""}></div>
+      <div class="f"><label for="pp-n">New ${ph?"PIN":"password"}</label><input id="pp-n" name="nw" type="password" autocomplete="new-password" minlength="6" required ${ph?'inputmode="numeric"':""}><span class="hint">At least 6 ${ph?"digits":"characters"}.</span></div>
+      <div class="f"><label for="pp-r">Type it again</label><input id="pp-r" name="nw2" type="password" autocomplete="new-password" minlength="6" required ${ph?'inputmode="numeric"':""}></div>
+      <div class="err full" id="ppErr"></div><div class="full pt-row"><button class="btn primary" type="submit">Change ${ph?"PIN":"password"}</button></div></form>`}
+  return ""}
+function ptDocOf(id){const D=PT.P.data||{},[k,a,b]=String(id).split(":");
+  if(k==="stmt"){const s=(D.stmts||[]).find(x=>x.yr===a);return s?["Statement "+a,s.html]:null}
+  if(k==="pays"){const x=(D.pays||[])[+a];return x?["Receipt "+(x.no||""),x.html]:null}
+  if(k==="invs"){const x=(D.invs||[])[+a];return x?["Invoice "+(x.no||""),x.html]:null}
+  if(k==="lease")return D.leaseDoc?["Tenancy agreement",D.leaseDoc]:null;
+  if(k==="ll"){const p=(D.props||[])[+a],m=p&&p.months[+b];return m?[`${p.code} statement ${monthLabel(m.m)}`,m.html]:null}
+  return null}
+function ptPrint(id){const d=ptDocOf(id);if(!d)return;const w=window.open("","_blank");if(!w){toast("Allow pop-ups for this site to print");return}
+  w.document.write(standalone(d[0],d[1]).replace("</body>","<script>setTimeout(()=>print(),600)<\/script></body>"));w.document.close()}
+async function ptMsgsFill(){const box=()=>document.getElementById("ptMsgs");if(!box())return;
+  if(!PT.msgs){try{const xs=await PT.api.myMsgs();PT.msgs=xs.sort((a,b)=>(b.at||"").localeCompare(a.at||""))}catch(e){if(box())box().innerHTML=`<div class="pt-card"><p class="pt-empty">Couldn't load your ${PT.P.kind==="landlord"?"messages":"requests"}. Check your internet and open this tab again.</p></div>`;return}}
+  if(!box())return;const xs=PT.msgs;
+  box().innerHTML=xs.length?`<div class="pt-card"><ul class="pt-list">${xs.map(m=>`<li><span class="t">${esc(ptTypeLabel(m.type))} ${ptPill(m.status)}</span><span class="s">${esc(ptWhen(m.at))}${m.date?" · move-out "+fmtDate(m.date):""}${m.subject?" · "+esc(m.subject):""}</span><span class="s pt-msg">${esc(m.text||"")}</span>${m.reply?`<span class="s pt-reply"><b>Berlim Homes:</b> ${esc(m.reply)}</span>`:""}</li>`).join("")}</ul></div>`:`<div class="pt-card"><p class="pt-empty">Nothing sent yet.</p></div>`}
+async function ptClick(e){const b=e.target.closest("[data-pa]");if(!b)return;const a=b.dataset.pa,id=b.dataset.id;
+  if(a==="tab"){PT.tab=id;if(id!=="req")PT.pre=null;else PT.msgs=null;ptRender();return}
+  if(a==="out"){PT.api.signOut();return}
+  if(a==="copy"){const v=b.dataset.v||"";try{await navigator.clipboard.writeText(v);toast("Copied "+v)}catch(x){toast(v)}return}
+  if(a==="yr"){PT.yr=id;ptRender();return}
+  if(a==="print"){ptPrint(id);return}
+  if(a==="doc"){const d=ptDocOf(id);if(!d)return;openModal(esc(d[0]),`<div class="pt-doc">${d[1]}</div>`,`<button class="btn" data-a="close">Close</button><button class="btn primary" id="ptPr">Print or save as PDF</button>`,true);
+    const pr=document.getElementById("ptPr");if(pr)pr.onclick=()=>ptPrint(id);return}
+  if(a==="ask"){PT.tab="req";PT.pre={type:b.dataset.t,maintId:id};PT.msgs=null;ptRender();const x=document.getElementById("pq-x");if(x)x.focus();return}}
+async function ptSubmit(e){
+  if(e.target.id==="ptReq"){e.preventDefault();const d=Object.fromEntries(new FormData(e.target)),text=String(d.text||"").trim();if(!text){toast("Write a few words first.");return}
+    if(d.type==="vacate"&&!d.date){toast("Choose the date you plan to move out.");return}
+    const m={type:d.type,text:text.slice(0,2000)};if(d.type==="vacate"&&d.date)m.date=d.date;if(d.maintId)m.maintId=d.maintId;if(d.subject)m.subject=String(d.subject).slice(0,120);
+    const go=document.getElementById("pqGo");if(go){go.disabled=true;go.textContent="Sending…"}
+    try{await PT.api.send(m);PT.pre=null;PT.msgs=null;ptRender();toast("Sent. Berlim Homes will reply here.")}catch(x){if(go){go.disabled=false;go.textContent="Send to Berlim Homes"}toast("Couldn't send just now. Check your internet and try again.")}return}
+  if(e.target.id==="ptPin"){e.preventDefault();const d=Object.fromEntries(new FormData(e.target)),er=document.getElementById("ppErr");er.textContent="";
+    if(String(d.nw).length<6){er.textContent="Use at least 6 characters.";return}if(d.nw!==d.nw2){er.textContent="The two new entries don't match.";return}
+    if(PT.P.method==="phone"&&!/^\d{6,}$/.test(d.nw)){er.textContent="A PIN is numbers only, at least 6 digits.";return}
+    try{await PT.api.changePin(d.cur,d.nw);e.target.reset();toast(PT.P.method==="phone"?"PIN changed":"Password changed")}
+    catch(x){const c=String((x&&x.code)||"");er.textContent=/wrong-password|invalid-credential|invalid-login/.test(c)?"The current "+(PT.P.method==="phone"?"PIN":"password")+" is wrong.":/too-many/.test(c)?"Too many tries. Wait a few minutes.":"Couldn't change it just now. Try again."}}}
+
+const VIEWS={leases:vLeases,portal:vPortal,maint:vMaint,mgmt:vMgmt,dashboard:()=>{const h=vDashboard(),a=leaseAlert(),i=h.indexOf("</div>",h.indexOf("pagehead"));return a&&i>0&&filters.code==="all"?h.slice(0,i+6)+h.slice(i+6).replace(/<\/div>/,"</div>"+a):h},tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
 let _rq=null;function smsSig(){return (S.sms||[]).filter(x=>x.id[0]!=="_").map(x=>x.id+":"+x.status).join("|")}
 function queueRender(){if(_rq)return;_rq=setTimeout(()=>{_rq=null;render()},mode==="cloud"?40:0)}
@@ -4623,6 +5014,7 @@ function render(){
   if(view==="admin"&&!ME.admin)view="dashboard";
   if(view==="mgmt"&&!ME.admin)view="dashboard";
   if(view==="setup"&&!can("props"))view="dashboard";
+  if(view==="portal"&&!(ME.admin||can("tenants")||can("landlords")))view="dashboard";
   m.innerHTML=banner+(VIEWS[view]||vDashboard)();fillProfiles();
   document.querySelectorAll("#tabs a").forEach(a=>a.classList.toggle("on",a.dataset.v===view));
 }
@@ -4673,7 +5065,7 @@ loadImportFile();
   await identify(user);
   const slow=setTimeout(()=>setStatus("demo","Records may be out of date, still connecting"),10000);
   const fresh=new Set();
-  const settle=()=>{if(fresh.size>=COLS.length+1){clearTimeout(slow);try{bootHide()}catch(e){}setStatus("ok",readOnly?"Saved records, view only":"Saved records, synced");setTimeout(autoHistory,1500);setTimeout(()=>smsAuto().catch(()=>{}),4000);setTimeout(()=>applyDueChanges().catch(()=>{}),2500);setTimeout(()=>fixMovedOut().catch(()=>{}),3500);setTimeout(()=>autoPenalties().catch(()=>{}),5000)}};
+  const settle=()=>{if(fresh.size>=COLS.length+1){clearTimeout(slow);try{bootHide()}catch(e){}setStatus("ok",readOnly?"Saved records, view only":"Saved records, synced");setTimeout(autoHistory,1500);setTimeout(()=>smsAuto().catch(()=>{}),4000);setTimeout(()=>applyDueChanges().catch(()=>{}),2500);setTimeout(()=>fixMovedOut().catch(()=>{}),3500);setTimeout(()=>autoPenalties().catch(()=>{}),5000);ptReady=true;setTimeout(()=>portalSync().catch(()=>{}),9000)}};
   bootShow();
   COLS.forEach(col=>{db.collection(col).onSnapshot(snap=>{const prevSig=col==="sms"?smsSig():"";S[col]=snap.docs.map(d=>({...d.data(),id:d.id}));DV++;
       /* the SMS sender updates its status record every minute: don't redraw the page for that unless the SMS screen is open */
@@ -4685,9 +5077,9 @@ loadImportFile();
 })();
 </script>
 <div id="fbLogin" hidden><div class="fb-card"><div class="fb-brand"><svg width="46" height="46" viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="8" fill="#0F1E3A"/><path d="M10 42V22.5a14 14 0 0 1 28 0V42" fill="none" stroke="#B89A5E" stroke-width="2.2"/><path d="M21.5 6.5h5l-.9 4h-3.2z" fill="#B89A5E"/><path d="M7 42h34" stroke="#B89A5E" stroke-width="1.6"/><text x="24" y="33.5" text-anchor="middle" font-family="Georgia,serif" font-size="13" font-weight="700" fill="#F3EEE2">BH</text></svg><div><div class="wm">BERLIM HOMES</div><div class="sub">Rent &amp; billing ledger</div></div></div>
- <h1>Sign in</h1><p>Use the email and password Berlim Homes gave you.</p>
- <form id="fbForm" novalidate><label for="fbEmail">Email</label><input id="fbEmail" type="email" autocomplete="username" required>
- <label for="fbPass">Password</label><input id="fbPass" type="password" autocomplete="current-password" required>
+ <h1>Sign in</h1><p>Use the email, or the phone number, that Berlim Homes registered for you.</p>
+ <form id="fbForm" novalidate><label for="fbEmail">Email or phone number</label><input id="fbEmail" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+ <label for="fbPass">Password or PIN</label><input id="fbPass" type="password" autocomplete="current-password" required>
  <button class="go" type="submit">Sign in</button></form>
  <button class="link2" id="fbForgot" type="button">Forgot password?</button><div class="fb-msg" id="fbMsg" role="status"></div>
  <div class="fb-foot">Berlim Homes Ltd · Where your dream resides</div></div></div>
