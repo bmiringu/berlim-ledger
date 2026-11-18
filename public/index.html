@@ -930,6 +930,36 @@ body.portal-mode>header,body.portal-mode>nav,body.portal-mode>main,body.portal-m
 .ld-log li{padding:6px 10px;background:var(--hover);border-radius:6px}
 .ld-log b{font-weight:600;margin-right:4px}
 
+/* ---- inspections ---- */
+.in-row{display:grid;grid-template-columns:minmax(160px,1.2fr) auto minmax(160px,1.4fr);gap:6px 12px;align-items:center;padding:8px 0;border-top:1px solid var(--rule-soft)}
+.in-row:first-child{border-top:0}
+.in-n input{border:0;background:none;font:500 14px var(--ui);color:var(--ink);padding:4px 0;width:100%}
+.in-n input:not([readonly]){border-bottom:1px dashed var(--rule)}
+.in-r{display:flex;gap:4px}
+.in-r label{position:relative;cursor:pointer}
+.in-r input{position:absolute;opacity:0;width:1px;height:1px}
+.in-r span{display:inline-flex;align-items:center;justify-content:center;min-width:52px;min-height:36px;padding:0 10px;border:1px solid var(--rule);border-radius:8px;font-size:13px;color:var(--muted);background:var(--paper)}
+.in-r input:focus-visible+span{outline:2px solid var(--brass);outline-offset:2px}
+.in-r .in-good input:checked+span{background:var(--good-bg);border-color:var(--good);color:var(--good);font-weight:600}
+.in-r .in-fair input:checked+span{background:var(--warn-bg);border-color:var(--warn);color:var(--warn);font-weight:600}
+.in-r .in-poor input:checked+span{background:var(--bad-bg);border-color:var(--bad);color:var(--bad);font-weight:600}
+.in-r .in-na input:checked+span{background:var(--rule-soft);color:var(--ink);font-weight:600}
+.in-note{width:100%}
+.in-sig{position:relative;border:1px dashed var(--rule);border-radius:10px;background:#fff;max-width:600px}
+.in-sig canvas{display:block;width:100%;height:auto;aspect-ratio:600/180;touch-action:none;cursor:crosshair}
+.in-sig img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
+@media (max-width:760px){.in-row{grid-template-columns:1fr}.in-r{display:grid;grid-template-columns:repeat(4,1fr)}.in-r label{display:block}.in-r span{display:flex;width:100%;min-width:0}}
+
+/* ---- funds ---- */
+.fd .ch{flex-wrap:wrap}
+.fd-sub{color:var(--muted);font-size:13px}
+.fd-figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.fd-figs>div{background:var(--paper);padding:10px 14px}
+.fd-figs span{display:block;font-size:12px;color:var(--muted)}
+.fd-figs b{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums}
+.fd-figs .good b{color:var(--good)}.fd-figs .bad b{color:var(--bad)}.fd-figs .warn b{color:var(--warn)}
+.fd .cb>.tw+.tw{margin-top:12px}
+
 </style>
 <style id="fb">
 body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
@@ -984,6 +1014,7 @@ body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
   <a href="#units" data-v="units"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 11h3v9h6v-6h2v6h6v-9h3z"/></svg><span class="lg">Properties</span><span class="sm">Houses</span></a>
   <a href="#utilities" data-v="utilities"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C8 7 6 10.2 6 13a6 6 0 0 0 12 0c0-2.8-2-6-6-11zm1 17.9V18a3 3 0 0 0 3-3h1.9A5 5 0 0 1 13 19.9z"/></svg><span class="lg">Utilities</span><span class="sm">Utilities</span></a>
   <a href="#maint" data-v="maint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22.7 19.3l-6.1-6.1a6.5 6.5 0 0 0-8.4-8.4l3.6 3.6-2.8 2.8-3.6-3.6a6.5 6.5 0 0 0 8.4 8.4l6.1 6.1a1 1 0 0 0 1.4 0l1.4-1.4a1 1 0 0 0 0-1.4z"/></svg><span class="lg">Maintenance</span><span class="sm">Repairs</span></a>
+  <a href="#inspect" data-v="inspect" id="inspectTab" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h6v2h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h3zm0 2v2h6V4zm-1.4 9.6L6.2 15l3.3 3.3 6.3-6.3-1.4-1.4-4.9 4.9z"/></svg><span class="lg">Inspections</span><span class="sm">Inspect</span></a>
   <a href="#invoices" data-v="invoices"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM9 12h8v1.5H9zm0 3.5h8V17H9zm0-7h4V10H9z"/></svg><span class="lg">Invoices</span><span class="sm">Invoices</span></a>
   <a href="#payments" data-v="payments"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v12H3zm2 2v2h14V8zm0 6v2h5v-2z"/></svg><span class="lg">Payments</span><span class="sm">Payments</span></a>
   <a href="#providers" data-v="providers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM10 5h4v2h-4zm3 10h-2v-2H9v-2h2V9h2v2h2v2h-2z"/></svg><span class="lg">Providers</span><span class="sm">Providers</span></a>
@@ -991,6 +1022,7 @@ body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
   <a href="#approvals" data-v="approvals"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg><span class="lg" id="apLabel">Approvals</span><span class="sm" id="apLabelSm">Approvals</span><b class="navbadge" id="apCount" hidden></b></a>
   <a href="#setup" data-v="setup"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3h-4l-.4 2.7a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1L11 21h4l.4-2.7a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5A3.5 3.5 0 1 1 16.5 12 3.5 3.5 0 0 1 13 15.5z"/></svg><span class="lg">Setup</span><span class="sm">Setup</span></a>
   <a href="#mgmt" data-v="mgmt" id="mgmtTab" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h2v16h16v2H3zm4 10h3v5H7zm5-5h3v10h-3zm5-4h3v14h-3z"/></svg><span class="lg">Management</span><span class="sm">Mgmt</span></a>
+  <a href="#funds" data-v="funds" id="fundsTab" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v3H3zm1 4h16v9H4zm3 2v5h2v-5zm4 0v5h2v-5zm4 0v5h2v-5zM12 1l9 4H3z"/></svg><span class="lg">Funds</span><span class="sm">Funds</span></a>
   <a href="#admin" data-v="admin" id="adminTab" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1 3 5v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V5zm0 6a3 3 0 1 1-3 3 3 3 0 0 1 3-3zm0 13.2a8.9 8.9 0 0 1-5.4-3.9c0-1.8 3.6-2.8 5.4-2.8s5.4 1 5.4 2.8a8.9 8.9 0 0 1-5.4 3.9z"/></svg><span class="lg">Admin</span><span class="sm">Admin</span></a>
 </nav>
 <main id="main"><div class="empty">Loading records…</div></main>
@@ -1000,10 +1032,10 @@ body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
 <script>
 "use strict";
 /* ---------- state ---------- */
-const COLS=["properties","units","tenants","readings","invoices","payments","providers","pbills","ppays","approvals","staff","accessRequests","remits","ldeds","linvoices","landlords","lreports","sms","maint","scexp","portalUsers","portalMsgs","leads","listings"];
+const COLS=["properties","units","tenants","readings","invoices","payments","providers","pbills","ppays","approvals","staff","accessRequests","remits","ldeds","linvoices","landlords","lreports","sms","maint","scexp","portalUsers","portalMsgs","leads","listings","inspections"];
 const DEFAULT_SETTINGS={company:"Berlim Homes Limited",phone:"0791 025 078 / 0731 220 221",email:"info@berlimhomes.com",website:"www.berlimhomes.com",address:"Nairoview Plaza, 1st Floor, Room 205, Ruiru",preparedBy:"",
   paybill:"222111",accPrefix:"2371748#",waterRate:150,elecRate:0,garbage:300,serviceCharge:0,dueDay:5,penaltyPct:10,llPayDay:10,llPayWhen:"same"};
-const S={settings:{...DEFAULT_SETTINGS},properties:[],units:[],tenants:[],readings:[],invoices:[],payments:[],providers:[],pbills:[],ppays:[],approvals:[],staff:[],accessRequests:[],remits:[],ldeds:[],linvoices:[],landlords:[],lreports:[],maint:[],scexp:[],portalUsers:[],portalMsgs:[],leads:[],listings:[]};
+const S={settings:{...DEFAULT_SETTINGS},properties:[],units:[],tenants:[],readings:[],invoices:[],payments:[],providers:[],pbills:[],ppays:[],approvals:[],staff:[],accessRequests:[],remits:[],ldeds:[],linvoices:[],landlords:[],lreports:[],maint:[],scexp:[],portalUsers:[],portalMsgs:[],leads:[],listings:[],inspections:[]};
 let DV=0;
 let mode="loading", db=null, downloads=null, mcp=null, readOnly=false, assets=null, USER=null;
 const ME={id:null,admin:true,staff:null,email:"",name:"",ready:false};
@@ -2091,7 +2123,7 @@ function applyRoleChrome(){
   const rb=document.getElementById("rolebadge");
   if(mode==="cloud"||mode==="demo"){rb.hidden=false;rb.innerHTML=ME.admin?`Admin console`:ME.staff?`Staff <small>${esc((ROLES[ME.staff.role]||{}).label||"")}</small>`:`No access yet`}
   document.getElementById("adminTab").hidden=!ME.admin;{const mt=document.getElementById("mgmtTab");if(mt)mt.hidden=!ME.admin}
-  const st=document.querySelector('#tabs a[data-v="setup"]');if(st)st.hidden=!can("props");{const lt=document.getElementById("leasesTab");if(lt)lt.hidden=!(ME.admin||can("tenants")||can("landlords"))}{const pt=document.getElementById("portalTab");if(pt)pt.hidden=!(ME.admin||can("tenants")||can("landlords"));const pc=document.getElementById("ptCount");if(pc){const n=(S.portalMsgs||[]).filter(m=>m.status==="new").length;pc.hidden=!n||!!(pt&&pt.hidden);pc.textContent=n}}{const st=document.getElementById("salesTab");if(st)st.hidden=!canSales();const sc=document.getElementById("slCount");if(sc){const n=(S.leads||[]).filter(ldDue).length;sc.hidden=!n||!canSales();sc.textContent=n}}
+  const st=document.querySelector('#tabs a[data-v="setup"]');if(st)st.hidden=!can("props");{const lt=document.getElementById("leasesTab");if(lt)lt.hidden=!(ME.admin||can("tenants")||can("landlords"))}{const pt=document.getElementById("portalTab");if(pt)pt.hidden=!(ME.admin||can("tenants")||can("landlords"));const pc=document.getElementById("ptCount");if(pc){const n=(S.portalMsgs||[]).filter(m=>m.status==="new").length;pc.hidden=!n||!!(pt&&pt.hidden);pc.textContent=n}}{const it=document.getElementById("inspectTab");if(it)it.hidden=!canMaint();const ft=document.getElementById("fundsTab");if(ft)ft.hidden=!ME.admin}{const st=document.getElementById("salesTab");if(st)st.hidden=!canSales();const sc=document.getElementById("slCount");if(sc){const n=(S.leads||[]).filter(ldDue).length;sc.hidden=!n||!canSales();sc.textContent=n}}
   const pend=S.approvals.filter(a=>a.status==="pending"&&(ME.admin||a.by===ME.id)).length+(canApproveTenantSusp()?S.tenants.filter(suspPending).length:0)+(ME.admin?S.properties.filter(propEndPending).length:0);
   const c=document.getElementById("apCount");c.hidden=!pend;c.textContent=pend;
   document.getElementById("apLabel").textContent=ME.admin?"Approvals":"My requests";document.getElementById("apLabelSm").textContent=ME.admin?"Approvals":"Requests";
@@ -4753,6 +4785,7 @@ function ptTenant(t){
     balance:Math.round(c?c.balance:0),rent:+u.rent||0,deposit:+t.deposit||0,dueDay:dueDayOf(p0),paybill:p.paybill||s.paybill||"",acct:u.id?acctFor(u):"",
     lease:{start:L.start||"",end:L.end||"",status:L.status||""},leaseDoc:(t.lease||{}).generatedAt?ptClean(leaseHTML(t)):"",
     stmts:[yr,prev].filter(Boolean).map(y=>{const SL=D?stmtSlice(D,y):{rows:[],open:0};return {yr:y,open:Math.round(SL.open||0),rows:(SL.rows||[]).map(r=>({d:r.d||"",ref:r.ref||"",desc:r.desc||"",dr:Math.round(r.dr||0),cr:Math.round(r.cr||0),bal:Math.round(r.bal||0)})),html:ptClean(statementHTML(t.id,y))}}),pays,invs,
+    insp:S.inspections.filter(x=>x.status==="Done"&&x.tenantId===t.id).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,6).map(x=>({no:x.no||"",kind:x.kind,date:x.date||"",html:ptClean(inReportHTML(x))})),
     notes:[N.tenants,N["p_"+p0.id]].filter(x=>x&&String(x).trim()),office:ptOffice()};
 }
 function ptLandlord(L){
@@ -4767,11 +4800,14 @@ function ptLandlord(L){
     const maint=S.maint.filter(x=>pids.includes(x.propertyId)).sort((a,b)=>(b.reportedAt||"").localeCompare(a.reportedAt||"")).slice(0,30)
       .map(x=>{const u=x.unitId?get("units",x.unitId):null;return {id:x.id,no:x.no||"",title:x.title||"",code:(get("properties",x.propertyId)||{}).code||"",house:u?unitName(u):"",status:x.status||"",
         priority:x.priority||"",at:(x.reportedAt||"").slice(0,10),done:x.resolvedAt||"",cost:+x.cost||0,open:M_OPEN.includes(x.status),approved:x.llApprovedAt||""}});
-    return {kind:"landlord",name:L.name||"",props,remits,maint,notes:[N.landlords].filter(x=>x&&String(x).trim()),office:ptOffice()};
+    const insp=S.inspections.filter(x=>x.status==="Done"&&pids.includes(x.propertyId)).sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,12)
+      .map(x=>({no:x.no||"",kind:x.kind,date:x.date||"",where:inWhere(x),poor:inPoor(x).length,html:ptClean(inReportHTML(x))}));
+    return {kind:"landlord",name:L.name||"",props,remits,maint,insp,notes:[N.landlords].filter(x=>x&&String(x).trim()),office:ptOffice()};
   }finally{filters.llPart=keep}
 }
 /* a summary record may hold up to 1 MB: drop older document copies if a big landlord gets close */
 function ptFit(data){let js=JSON.stringify(data);const MAX=850000;if(js.length<MAX)return js;
+  (data.insp||[]).forEach((x,i)=>{if(i>=3)x.html=""});js=JSON.stringify(data);if(js.length<MAX)return js;
   if(data.kind==="landlord"){for(let k=5;k>=1&&js.length>=MAX;k--){data.props.forEach(p=>{if(p.months[k])p.months[k].html=""});js=JSON.stringify(data)}}
   else{data.pays.forEach((x,i)=>{if(i>=6)x.html=""});data.invs.forEach((x,i)=>{if(i>=3)x.html=""});js=JSON.stringify(data)}
   return js}
@@ -4929,7 +4965,7 @@ window.startPortal=function(P,api){
   document.addEventListener("visibilitychange",async()=>{if(document.visibilityState!=="visible")return;try{const n=await api.reload();if(n&&n.at!==PT.P.at){PT.P=n;ptRender()}}catch(e){}});
   ptRender();
 };
-const ptTabsFor=k=>k==="landlord"?[["props","Properties"],["pays","Payments to you"],["maint","Repairs"],["req","Messages"],["acct","My login"]]
+const ptTabsFor=k=>k==="landlord"?[["props","Properties"],["pays","Payments to you"],["maint","Repairs"],["insp","Inspections"],["req","Messages"],["acct","My login"]]
   :[["home","Statement"],["pays","Receipts"],["invs","Invoices"],["lease","Lease"],["req","Requests"],["acct","My login"]];
 function ptRender(){
   const P=PT.P,D=P.data||{},O=D.office||{},root=document.getElementById("portalRoot");if(!root)return;
@@ -4966,7 +5002,8 @@ function ptBody(P,D){const tab=PT.tab;
     return `<div class="pt-card"><ul class="pt-list">${xs.map((x,i)=>`<li><span class="t">${esc(monthLabel(x.month))} · KES ${n0(x.total)} ${x.bal>0?`<span class="pill p-bad">Unpaid ${n0(x.bal)}</span>`:`<span class="pill p-good">Paid</span>`}</span><span class="s">${esc(x.no)}${x.due?" · due "+fmtDate(x.due):""}</span><span class="a">${x.html?`<button class="btn sm" data-pa="doc" data-id="invs:${i}">Invoice</button>`:""}</span></li>`).join("")}</ul></div>`}
   if(tab==="lease"){const L=D.lease||{};
     return `<div class="pt-card pt-kv"><div><span>House</span><strong>${esc(D.house)}, ${esc(D.prop)}</strong></div><div><span>Lease start</span><strong>${L.start?fmtDate(L.start):"Not recorded"}</strong></div><div><span>Lease end</span><strong>${L.end?fmtDate(L.end):"No end date"}</strong></div><div><span>Monthly rent</span><strong>KES ${n0(D.rent)}</strong></div><div><span>Deposit held</span><strong>KES ${n0(D.deposit)}</strong></div>
-     ${D.leaseDoc?`<div class="pt-row" style="padding:12px 16px"><button class="btn" data-pa="doc" data-id="lease:0">View tenancy agreement</button></div>`:`<p class="pt-empty" style="padding:0 16px 14px;text-align:left">Ask Berlim Homes for a copy of your tenancy agreement.</p>`}</div>`}
+     ${D.leaseDoc?`<div class="pt-row" style="padding:12px 16px"><button class="btn" data-pa="doc" data-id="lease:0">View tenancy agreement</button></div>`:`<p class="pt-empty" style="padding:0 16px 14px;text-align:left">Ask Berlim Homes for a copy of your tenancy agreement.</p>`}</div>
+     ${(D.insp||[]).length?`<h2 class="pt-h">Inspection reports</h2><div class="pt-card"><ul class="pt-list">${D.insp.map((x,i)=>`<li><span class="t">${esc(x.kind)} inspection</span><span class="s">${fmtDate(x.date)} · ${esc(x.no)}</span><span class="a">${x.html?`<button class="btn sm" data-pa="doc" data-id="insp:${i}">Report</button>`:""}</span></li>`).join("")}</ul></div>`:""}`}
   if(tab==="props"){const ps=D.props||[];if(!ps.length)return ptEmpty("No properties linked to your login yet.");
     return ps.map((p,pi)=>{const pct=p.units?Math.round(p.occ/p.units*100):0;return `<div class="pt-card pt-prop"><div class="h"><div><strong>${esc(p.code)} ${esc(p.name)}</strong><span class="s">${esc(p.loc||"")}</span></div><div class="occ"><span>${p.occ} of ${p.units} let</span><span class="bar" aria-hidden="true"><i style="width:${pct}%"></i></span></div></div>
       <p class="s">${p.vacant.length?"Vacant: "+p.vacant.map(esc).join(", "):"No vacant houses."}</p>
@@ -4976,6 +5013,8 @@ function ptBody(P,D){const tab=PT.tab;
   if(tab==="maint"){const xs=D.maint||[];if(!xs.length)return ptEmpty("No repairs recorded for your properties.");
     return `<div class="pt-card"><ul class="pt-list">${xs.map(x=>`<li><span class="t">${esc(x.title)} <span class="pill ${x.open?"p-warn":"p-good"}">${esc(x.status)}</span>${x.approved?' <span class="pill p-good">You approved</span>':""}</span><span class="s">${esc(x.no)} · ${esc(x.code)}${x.house?" House "+esc(x.house):""} · reported ${fmtDate(x.at)}${x.done?" · resolved "+fmtDate(x.done):""}${x.cost?" · cost KES "+n0(x.cost):""}</span>
       <span class="a">${x.open&&!x.approved?`<button class="btn sm" data-pa="ask" data-t="approve" data-id="${esc(x.id)}">Approve</button>`:""}<button class="btn sm" data-pa="ask" data-t="query" data-id="${esc(x.id)}">Ask</button></span></li>`).join("")}</ul></div>`}
+  if(tab==="insp"){const xs=D.insp||[];if(!xs.length)return ptEmpty("No inspection reports yet.");
+    return `<div class="pt-card"><ul class="pt-list">${xs.map((x,i)=>`<li><span class="t">${esc(x.kind)} inspection ${x.poor?`<span class="pill p-bad">${x.poor} defect${x.poor>1?"s":""}</span>`:`<span class="pill p-good">No defects</span>`}</span><span class="s">${fmtDate(x.date)} · ${esc(x.where)} · ${esc(x.no)}</span><span class="a">${x.html?`<button class="btn sm" data-pa="doc" data-id="insp:${i}">Report</button>`:""}</span></li>`).join("")}</ul></div>`}
   if(tab==="req"){const types=PT_TYPES[P.kind]||PT_TYPES.tenant,pre=PT.pre||{},mt=pre.maintId?(D.maint||[]).find(x=>x.id===pre.maintId):null,ty=pre.type||types[0][0];
     return `<form id="ptReq" class="pt-card fg pt-form"><div class="f"><label for="pq-t">What is it about?</label><select id="pq-t" name="type">${types.map(([k,l])=>`<option value="${k}" ${k===ty?"selected":""}>${l}</option>`).join("")}</select></div>
       <div class="f" id="pq-dw" ${ty==="vacate"?"":"hidden"}><label for="pq-d">Planned move-out date</label><input id="pq-d" name="date" type="date" min="${todayStr}"></div>
@@ -4996,6 +5035,7 @@ function ptDocOf(id){const D=PT.P.data||{},[k,a,b]=String(id).split(":");
   if(k==="pays"){const x=(D.pays||[])[+a];return x?["Receipt "+(x.no||""),x.html]:null}
   if(k==="invs"){const x=(D.invs||[])[+a];return x?["Invoice "+(x.no||""),x.html]:null}
   if(k==="lease")return D.leaseDoc?["Tenancy agreement",D.leaseDoc]:null;
+  if(k==="insp"){const x=(D.insp||[])[+a];return x&&x.html?[x.kind+" inspection "+x.no,x.html]:null}
   if(k==="ll"){const p=(D.props||[])[+a],m=p&&p.months[+b];return m?[`${p.code} statement ${monthLabel(m.m)}`,m.html]:null}
   return null}
 function ptPrint(id){const d=ptDocOf(id);if(!d)return;const w=window.open("","_blank");if(!w){toast("Allow pop-ups for this site to print");return}
@@ -5130,8 +5170,9 @@ function ldDetail(id){const l=get("leads",id);if(!l)return;const f=ldFlow(l),ls=
   const dealHTML=l.kind==="sale"||l.kind==="acq"?`<h3 class="fsec">${l.kind==="sale"?"Deal":"Acquisition"}</h3><div class="ld-kv">
     ${l.kind==="acq"?`<div><span>Asking price</span><b>${d.asking?kes(d.asking):"—"}</b></div><div><span>Valuation</span><b>${d.valuation?kes(d.valuation):"—"}</b></div><div><span>Title search</span><b>${esc(d.title||"Not checked")}</b></div><div><span>Due diligence</span><b>${esc(d.dd||"Not started")}</b></div>`:
       `<div><span>Listed price</span><b>${ls?kes(ls.price):"—"}</b></div><div><span>Offer</span><b>${d.offer?kes(d.offer):"—"}</b></div><div><span>Agreed price</span><b>${d.agreed?kes(d.agreed):"—"}</b></div><div><span>Commission</span><b>${ldComm(l)?kes(ldComm(l))+(d.commPct?` (${d.commPct}%)`:""):"—"}</b></div><div><span>Paid by buyer</span><b>${kes(ldPaid(l))}${d.agreed?` of ${n0(d.agreed)}`:""}</b></div><div><span>Agreement signed</span><b>${d.agreementDate?fmtDate(d.agreementDate):"—"}</b></div>`}
-    </div><div class="row" style="margin-top:8px"><button class="btn sm" data-a="ldDeal" data-id="${l.id}">Update ${l.kind==="sale"?"deal":"details"}</button>${l.kind==="sale"?`<button class="btn sm" data-a="ldPay" data-id="${l.id}">Record buyer payment</button>`:""}</div>
-    ${(d.payments||[]).length?`<ul class="ld-log">${d.payments.map(p=>`<li><b>${fmtDate(p.date)}</b> KES ${n0(p.amount)}${p.ref?" · "+esc(p.ref):""}${p.note?" · "+esc(p.note):""}</li>`).join("")}</ul>`:""}`:"";
+    </div><div class="row" style="margin-top:8px"><button class="btn sm" data-a="ldDeal" data-id="${l.id}">Update ${l.kind==="sale"?"deal":"details"}</button>${l.kind==="sale"?`<button class="btn sm" data-a="ldPay" data-id="${l.id}">Record buyer payment</button><button class="btn sm" data-a="ldPayout" data-id="${l.id}">Record payment to seller</button>`:""}</div>
+    ${(d.payments||[]).length?`<ul class="ld-log">${d.payments.map(p=>`<li><b>${fmtDate(p.date)}</b> KES ${n0(p.amount)}${p.ref?" · "+esc(p.ref):""}${p.note?" · "+esc(p.note):""}</li>`).join("")}</ul>`:""}
+    ${(d.payouts||[]).length?`<ul class="ld-log">${d.payouts.map(p=>`<li><b>${fmtDate(p.date)}</b> Paid to seller KES ${n0(p.amount)}${p.ref?" · "+esc(p.ref):""}</li>`).join("")}</ul>`:""}`:"";
   openModal(esc(l.name)+` <small style="color:var(--muted);font-weight:400">${esc(l.no||"")}</small>`,`
    <div class="ld-head"><span>${esc(f.label)}</span>${l.phone?`<a href="tel:${esc(l.phone)}">${esc(l.phone)}</a>`:""}${l.phone&&smsPhone(l.phone)?`<a href="${esc(waLink(l.phone,""))}" target="_blank" rel="noopener">WhatsApp</a>`:""}${l.email?`<span>${esc(l.email)}</span>`:""}<span>${esc(l.source||"")}</span>${l.agent?`<span>Agent: ${esc(l.agent)}</span>`:""}</div>
    <p style="margin:8px 0">${ls?`Asked about <strong>${esc(ls.title)}</strong> (${lsPrice(ls)}). `:""}${l.interest?esc(l.interest)+". ":""}${l.budget?"Budget "+kes(l.budget)+". ":""}${l.area?"Area: "+esc(l.area)+".":""}</p>
@@ -5260,7 +5301,171 @@ document.addEventListener("input",e=>{if(e.target.id!=="slQ")return;filters.slQ=
 function salesAlert(){if(!canSales())return "";const due=S.leads.filter(ldDue).length,vt=S.leads.reduce((n,l)=>n+(l.viewings||[]).filter(v=>v.status==="booked"&&v.date===todayStr).length,0);if(!due&&!vt)return "";
   return `<div class="banner" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 14px"><span style="flex:1;min-width:200px">${[due?`${due} lead${due>1?"s":""} to follow up today`:"",vt?`${vt} viewing${vt>1?"s":""} booked for today`:""].filter(Boolean).join(". ")}.</span><a class="btn sm" href="#sales">Open sales and lettings</a></div>`}
 
-const VIEWS={leases:vLeases,portal:vPortal,sales:vSales,maint:vMaint,mgmt:vMgmt,dashboard:()=>{const h=vDashboard(),a=leaseAlert()+salesAlert(),i=h.indexOf("</div>",h.indexOf("pagehead"));return a&&i>0&&filters.code==="all"?h.slice(0,i+6)+h.slice(i+6).replace(/<\/div>/,"</div>"+a):h},tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
+/* ===== Stage 5a: property inspections =====
+   inspections: move-in, routine, move-out, pre-letting, safety, common-area and structural checks, done on a phone,
+   with a condition for each item, defects turned into repair jobs, a signature and a printable report. */
+const IN_KINDS=["Move-in","Routine","Move-out","Pre-letting","Safety","Common area","Structural"];
+const IN_HOUSE=["Door, locks and keys","Windows and glass","Walls and paint","Floor and tiles","Ceiling","Kitchen sink and taps","Kitchen cabinets and worktop","Toilet and cistern","Shower and bathroom taps","Sockets, switches and bulbs","Water meter and plumbing","Electricity meter / token","Drainage","Cleanliness"];
+const IN_COMMON=["Gate and security","Corridors and stairs","Lighting","Water tanks and pumps","Drainage and sewer","Garbage area","Parking","Roof and gutters","Fire extinguishers","Notice board"];
+const IN_SAFETY=["Fire extinguishers in date","Emergency exits clear","Electrical wiring and boxes","Gas cylinders stored safely","Balcony and stair rails","Water tank covers locked","Security lights","Emergency numbers posted"];
+const IN_STRUCT=["Walls (cracks)","Columns and beams","Roof structure","Balconies","Stairs","Dampness","Plumbing stacks","Septic tank / sewer"];
+const IN_RATE=["Good","Fair","Poor","N/A"];
+const inItemsFor=k=>k==="Common area"?IN_COMMON:k==="Safety"?IN_SAFETY:k==="Structural"?IN_STRUCT:IN_HOUSE;
+const inPoor=x=>(x.items||[]).filter(i=>i.rating==="Poor");
+const inOpenPoor=x=>inPoor(x).filter(i=>!i.maintId);
+const inWhere=x=>{const p=get("properties",x.propertyId)||{},u=x.unitId?get("units",x.unitId):null;return `${p.code||""} ${u?"House "+unitName(u):"Common areas"}`.trim()};
+function inLastFor(uid){let d="";for(const x of S.inspections)if(x.unitId===uid&&x.status==="Done"&&(x.date||"")>d)d=x.date;return d}
+function vInspect(){
+  const code=filters.inCode||"all",kind=filters.inKind||"all",m0=month,six=ymdL(new Date(Date.now()-182*864e5));
+  let xs=S.inspections.filter(x=>(code==="all"||x.propertyId===code)&&(kind==="all"||x.kind===kind)).sort((a,b)=>(a.status==="Done")-(b.status==="Done")||(b.date||"").localeCompare(a.date||""));
+  const stale=S.units.filter(u=>(code==="all"||u.propertyId===code)&&!(propOf(u)||{}).ended&&(inLastFor(u.id)||"")<six).length;
+  const fu=S.inspections.filter(x=>x.followUp&&x.followUp<=todayStr&&!x.followDone).length;
+  return `<div class="pagehead"><h1>Inspections</h1><div class="row">${canMaint()?`<button class="btn primary" data-a="inNew">Start an inspection</button>`:""}</div></div>
+   <div class="tiles"><div class="tile"><span class="k">Done in ${monthShort(m0)}</span><span class="v">${S.inspections.filter(x=>x.status==="Done"&&(x.date||"").slice(0,7)===m0).length}</span><span class="s">All kinds</span></div>
+    <div class="tile"><span class="k">Not finished</span><span class="v">${S.inspections.filter(x=>x.status!=="Done").length}</span><span class="s">Saved as draft</span></div>
+    <div class="tile ${S.inspections.reduce((n,x)=>n+inOpenPoor(x).length,0)?"alert":""}"><span class="k">Defects with no repair job</span><span class="v">${S.inspections.reduce((n,x)=>n+inOpenPoor(x).length,0)}</span><span class="s">Items rated Poor</span></div>
+    <div class="tile ${fu?"alert":""}"><span class="k">Follow-ups due</span><span class="v">${fu}</span><span class="s">Re-check date reached</span></div>
+    <div class="tile"><span class="k">Not inspected in 6 months</span><span class="v">${stale}</span><span class="s">Houses</span></div></div>
+   <div class="row" style="margin:0 0 12px;flex-wrap:wrap"><select data-a="inCode" aria-label="Property"><option value="all">All properties</option>${sortedProps().map(p=>`<option value="${p.id}" ${p.id===code?"selected":""}>${esc(p.code)} ${esc(p.name)}</option>`).join("")}</select>
+    <select data-a="inKind" aria-label="Kind"><option value="all">All kinds</option>${IN_KINDS.map(k=>`<option ${k===kind?"selected":""}>${k}</option>`).join("")}</select></div>
+   <div class="card"><div class="tw"><table><thead><tr><th>Date</th><th>Inspection</th><th>Where</th><th>Inspector</th><th>Condition</th><th>Status</th><th></th></tr></thead><tbody>${xs.map(x=>{const n=(x.items||[]).filter(i=>i.rating&&i.rating!=="N/A"),pr=inPoor(x).length,fa=(x.items||[]).filter(i=>i.rating==="Fair").length,op=inOpenPoor(x).length;
+     return `<tr><td style="white-space:nowrap">${fmtDate(x.date)}</td><td><strong>${esc(x.kind)}</strong><span class="sub">${esc(x.no||"")}</span></td><td>${esc(inWhere(x))}${x.tenantName?`<span class="sub">${esc(x.tenantName)}</span>`:""}</td><td>${esc(x.inspector||"")}</td>
+      <td>${n.length?`${n.length-pr-fa} good${fa?`, ${fa} fair`:""}${pr?`, <b style="color:var(--bad)">${pr} poor</b>`:""}`:"<span class='sub'>Not rated</span>"}${x.followUp&&!x.followDone?`<span class="sub">Re-check ${fmtDate(x.followUp)}</span>`:""}</td>
+      <td>${x.status==="Done"?'<span class="pill p-good">Done</span>':'<span class="pill p-warn">Draft</span>'}</td>
+      <td class="num" style="white-space:nowrap"><button class="btn sm" data-a="inRep" data-id="${x.id}">Report</button>${canMaint()?`<button class="btn sm" data-a="inEdit" data-id="${x.id}">${x.status==="Done"?"Edit":"Continue"}</button>${op?`<button class="btn sm gold" data-a="inMaint" data-id="${x.id}">Log ${op} repair${op>1?"s":""}</button>`:""}${x.followUp&&!x.followDone&&x.followUp<=todayStr?`<button class="btn sm" data-a="inFu" data-id="${x.id}">Re-checked</button>`:""}`:""}</td></tr>`}).join("")||`<tr><td colspan="7" class="empty">No inspections yet. Start one on your phone while walking through the house.</td></tr>`}</tbody></table></div></div>`;
+}
+function formInspect(id,pre){
+  const x=id?get("inspections",id):null,P=pre||{};const kind0=x?x.kind:(P.kind||"Routine");
+  const pid0=x?x.propertyId:(P.propertyId||(filters.inCode&&filters.inCode!=="all"?filters.inCode:(sortedProps()[0]||{}).id));
+  const items0=x?x.items:inItemsFor(kind0).map(n=>({name:n,rating:"",note:""}));
+  const row=(it,i)=>`<div class="in-row" data-i="${i}"><div class="in-n"><input name="n_${i}" value="${esc(it.name)}" aria-label="Item" ${IN_HOUSE.concat(IN_COMMON,IN_SAFETY,IN_STRUCT).includes(it.name)?"readonly":""}></div>
+    <div class="in-r" role="radiogroup" aria-label="Condition of ${esc(it.name)}">${IN_RATE.map(r=>`<label class="in-${r==="N/A"?"na":r.toLowerCase()}"><input type="radio" name="r_${i}" value="${r}" ${it.rating===r?"checked":""}><span>${r}</span></label>`).join("")}</div>
+    <input class="in-note" name="t_${i}" value="${esc(it.note||"")}" placeholder="Note (what is wrong, what to do)">${it.maintId?`<span class="sub">Repair ${esc((get("maint",it.maintId)||{}).no||"logged")}</span>`:""}</div>`;
+  openModal(x?`${esc(x.kind)} inspection ${esc(x.no||"")}`:"Start an inspection",`<form id="fIn" class="fg">
+   <div class="f"><label for="in-k">Kind</label><select id="in-k" name="kind">${IN_KINDS.map(k=>`<option ${k===kind0?"selected":""}>${k}</option>`).join("")}</select></div>
+   <div class="f"><label for="in-d">Date</label><input id="in-d" name="date" type="date" value="${esc(x?x.date:todayStr)}" required></div>
+   <div class="f"><label for="in-p">Property</label><select id="in-p" name="propertyId">${sortedProps().map(p=>`<option value="${p.id}" ${p.id===pid0?"selected":""}>${esc(p.code)} ${esc(p.name)}</option>`).join("")}</select></div>
+   <div class="f"><label for="in-u">House</label><select id="in-u" name="unitId"></select></div>
+   <div class="f"><label for="in-i">Inspector</label><input id="in-i" name="inspector" required value="${esc(x?x.inspector:(ME.label||""))}" placeholder="Your name"></div>
+   <div class="f"><label for="in-f">Re-check on</label><input id="in-f" name="followUp" type="date" value="${esc(x?x.followUp||"":"")}"></div>
+   <div class="full"><h3 class="fsec" style="margin-top:4px">Checklist</h3><div id="inItems">${items0.map(row).join("")}</div><button type="button" class="btn sm" id="inAdd" style="margin-top:8px">Add an item</button></div>
+   <div class="f full"><label for="in-s">Defects found and recommended action</label><textarea id="in-s" name="summary" rows="3">${esc(x?x.summary||"":"")}</textarea></div>
+   <div class="f" id="in-dw"><label for="in-dc">Damage to charge the tenant (KES)</label><input id="in-dc" name="damage" type="number" min="0" step="any" value="${esc(x?x.damage||"":"")}"><span class="hint">Recorded on the report. Deduct it from the deposit when you move the tenant out.</span></div>
+   <div class="f full"><label>Signature of the tenant, landlord or caretaker present</label><div class="in-sig"><canvas id="inSig" width="600" height="180" aria-label="Signature pad: sign with your finger"></canvas>${x&&x.sig?`<img src="${esc(x.sig)}" alt="Saved signature" id="inSigOld">`:""}</div>
+    <div class="row" style="gap:8px;margin-top:6px"><input name="signer" value="${esc(x?x.signer||"":"")}" placeholder="Their name" style="flex:1;min-width:160px"><button type="button" class="btn sm" id="inSigClr">Clear signature</button></div></div>
+   <div class="err full" id="inErr"></div></form>`,
+   `<button class="btn" data-a="close">Cancel</button><button class="btn" type="button" id="inDraft">Save draft</button><button class="btn primary" type="button" id="inDone">Finish inspection</button>`,true);
+  const fm=document.getElementById("fIn"),ps=document.getElementById("in-p"),us=document.getElementById("in-u"),ks=document.getElementById("in-k"),box=document.getElementById("inItems");
+  const fillUnits=sel=>{us.innerHTML=`<option value="">Common areas / whole property</option>`+S.units.filter(u=>u.propertyId===ps.value).sort(sortUnits).map(u=>{const t=activeTenantOf(u.id);return `<option value="${u.id}" ${u.id===sel?"selected":""}>${esc(unitName(u))}${t?" · "+esc(t.name):" · vacant"}</option>`}).join("")};
+  fillUnits(x?x.unitId:(P.unitId||""));ps.onchange=()=>fillUnits("");
+  const dmg=()=>{document.getElementById("in-dw").hidden=ks.value!=="Move-out"};dmg();
+  ks.onchange=()=>{dmg();const touched=[...box.querySelectorAll('input[type=radio]:checked')].length;if(!touched&&!x){box.innerHTML=inItemsFor(ks.value).map((n,i)=>row({name:n,rating:"",note:""},i)).join("")}};
+  document.getElementById("inAdd").onclick=()=>{const i=box.querySelectorAll(".in-row").length;box.insertAdjacentHTML("beforeend",row({name:"",rating:"",note:""},i));box.querySelector(`[name="n_${i}"]`).focus()};
+  /* signature pad (finger or mouse) */
+  const cv=document.getElementById("inSig"),cx=cv.getContext("2d");let drawing=false,drawn=false;cx.lineWidth=3;cx.lineCap="round";cx.strokeStyle="#0F1E3A";
+  const pt=e=>{const r=cv.getBoundingClientRect();return [(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height]};
+  cv.addEventListener("pointerdown",e=>{drawing=true;drawn=true;cv.setPointerCapture(e.pointerId);const [a,b]=pt(e);cx.beginPath();cx.moveTo(a,b);const o=document.getElementById("inSigOld");if(o)o.remove()});
+  cv.addEventListener("pointermove",e=>{if(!drawing)return;const [a,b]=pt(e);cx.lineTo(a,b);cx.stroke()});
+  ["pointerup","pointercancel"].forEach(ev=>cv.addEventListener(ev,()=>{drawing=false}));
+  document.getElementById("inSigClr").onclick=()=>{cx.clearRect(0,0,cv.width,cv.height);drawn=false;const o=document.getElementById("inSigOld");if(o)o.remove();fm.dataset.sigClr="1"};
+  const go=async status=>{const d=Object.fromEntries(new FormData(fm)),n=box.querySelectorAll(".in-row").length,items=[];
+    for(let i=0;i<n;i++){const name=String(d["n_"+i]||"").trim();if(!name)continue;const old=(x&&x.items||[]).find(o=>o.name===name)||{};items.push({name,rating:d["r_"+i]||"",note:String(d["t_"+i]||"").trim(),...(old.maintId?{maintId:old.maintId}:{})})}
+    if(!String(d.inspector||"").trim()){document.getElementById("inErr").textContent="Write the inspector's name.";document.getElementById("in-i").focus();return}
+    if(status==="Done"&&items.some(i=>!i.rating)){document.getElementById("inErr").textContent="Rate every item (use N/A where it doesn't apply), or save a draft.";return}
+    const u=d.unitId?get("units",d.unitId):null,t=u?activeTenantOf(u.id):null;
+    const sig=drawn?cv.toDataURL("image/png"):(fm.dataset.sigClr?"":(x&&x.sig)||"");
+    const obj={...(x||{id:uid(),no:nextNo("INSP","inspections"),createdAt:new Date().toISOString(),createdBy:ME.id||""}),kind:d.kind,date:d.date,propertyId:d.propertyId,unitId:d.unitId||"",tenantId:x&&x.unitId===d.unitId?x.tenantId||"":(t?t.id:""),tenantName:x&&x.unitId===d.unitId?x.tenantName||"":(t?t.name:""),
+      inspector:d.inspector.trim(),followUp:d.followUp||"",items,summary:d.summary.trim(),damage:d.kind==="Move-out"?(+d.damage||0):0,signer:String(d.signer||"").trim(),sig,status};
+    if(status==="Done"&&!obj.doneAt)obj.doneAt=new Date().toISOString();
+    if(await save("inspections",obj)){closeModal();toast(status==="Done"?obj.no+" finished":"Draft saved");if(status==="Done"&&inOpenPoor(obj).length)setTimeout(()=>inMaintAsk(obj.id),300)}};
+  document.getElementById("inDraft").onclick=()=>go("Draft");document.getElementById("inDone").onclick=()=>go("Done")}
+function inMaintAsk(id){const x=get("inspections",id);if(!x)return;const op=inOpenPoor(x);if(!op.length)return;
+  askConfirm(`${op.length} item${op.length>1?"s were":" was"} rated Poor in ${esc(x.no)}: ${op.map(i=>esc(i.name)).join(", ")}. Log ${op.length>1?"them":"it"} as repair job${op.length>1?"s":""} on the Maintenance page?`,"Log repairs",()=>inToMaint(id))}
+async function inToMaint(id){const x=get("inspections",id);if(!x)return;const op=inOpenPoor(x);if(!op.length)return;const now=new Date().toISOString(),items=[...x.items];let n=0;
+  for(const it of op){const t=x.unitId?activeTenantOf(x.unitId):null;
+    const m={id:uid(),no:nextNo("MNTC","maint"),propertyId:x.propertyId,unitId:x.unitId||"",tenantId:t?t.id:"",category:"Other",priority:"Normal",title:`${it.name} (${x.kind.toLowerCase()} inspection)`.slice(0,80),details:it.note||"",reportedBy:"Field officer",reportedAt:now.slice(0,19),status:"Reported",createdBy:ME.id||"",inspectionId:x.id};
+    m.log=mLog(m,"Reported",`From inspection ${x.no}`);if(await save("maint",m)){n++;const k=items.indexOf(it);items[k]={...it,maintId:m.id}}}
+  await save("inspections",{...x,items});toast(n+" repair job"+(n===1?"":"s")+" logged")}
+function inReportHTML(x){const p=get("properties",x.propertyId)||{},u=x.unitId?get("units",x.unitId):null,col={Good:"#1E6B45",Fair:"#8A5A00",Poor:"#B3261E"};
+  return `<div class="doc">${docHead(x.kind+" inspection",x.no||"")}
+   <div class="meta"><div><h4>Property</h4><strong>${esc(p.code||"")} ${esc(p.name||"")}</strong><br>${u?"House "+esc(unitName(u)):"Common areas"}${x.tenantName?"<br>Tenant: "+esc(x.tenantName):""}</div><div style="text-align:right"><h4>Inspection</h4>Date: ${fmtDate(x.date)}<br>Inspector: ${esc(x.inspector||"")}<br>Status: ${x.status==="Done"?"Completed":"Draft"}</div></div>
+   <table><thead><tr><th>Item</th><th>Condition</th><th>Notes</th></tr></thead><tbody>${(x.items||[]).map(i=>`<tr><td>${esc(i.name)}</td><td style="font-weight:600;color:${col[i.rating]||"inherit"}">${esc(i.rating||"Not rated")}</td><td>${esc(i.note||"")}${i.maintId?` <small>(repair ${esc((get("maint",i.maintId)||{}).no||"")})</small>`:""}</td></tr>`).join("")}</tbody></table>
+   ${x.summary?`<p style="margin:14px 0 0"><strong>Defects and recommended action:</strong><br><span style="white-space:pre-wrap">${esc(x.summary)}</span></p>`:""}
+   ${x.damage?`<p style="margin:10px 0 0"><strong>Damage to be charged to the tenant:</strong> KES ${n0(x.damage)}</p>`:""}
+   ${x.followUp?`<p style="margin:10px 0 0">Re-check on ${fmtDate(x.followUp)}.</p>`:""}
+   <div style="display:flex;gap:40px;flex-wrap:wrap;margin-top:22px"><div><div style="height:70px;display:flex;align-items:flex-end;font-weight:600">${esc(x.inspector||"")}</div><div style="border-top:1px solid #999;padding-top:4px;font-size:12px;min-width:200px">Inspector, ${esc(S.settings.company||"Berlim Homes Ltd")}</div></div>
+    <div><div style="height:70px;display:flex;align-items:flex-end">${x.sig?`<img src="${esc(x.sig)}" alt="Signature" style="height:66px">`:""}</div><div style="border-top:1px solid #999;padding-top:4px;font-size:12px;min-width:200px">${esc(x.signer||"Tenant / landlord / caretaker")}</div></div></div>
+   <div class="foot">${esc(S.settings.company||"Berlim Homes Ltd")} acts as managing agent on behalf of the landlord.</div></div>`}
+function inReport(id){const x=get("inspections",id);if(!x)return;const html=inReportHTML(x);
+  openModal(esc(x.kind)+" inspection "+esc(x.no||""),`<div class="pt-doc">${html}</div>`,`<button class="btn" data-a="close">Close</button><button class="btn primary" id="inPr">Print or save as PDF</button>`,true);
+  document.getElementById("inPr").onclick=()=>{const w=window.open("","_blank");if(!w){toast("Allow pop-ups to print");return}w.document.write(standalone("Inspection "+(x.no||""),html).replace("</body>","<script>setTimeout(()=>print(),600)<\/script></body>"));w.document.close()}}
+
+/* ===== Stage 5b: funds: whose money is held, kept apart =====
+   Built from the records already in the ledger: nothing is double-entered. */
+function fundsData(m,ytd){
+  const months=[];if(ytd){for(let k=1;k<=+m.slice(5);k++)months.push(m.slice(0,4)+"-"+String(k).padStart(2,"0"))}else months.push(m);
+  const keep=filters.llPart;filters.llPart="";
+  try{
+    const props=sortedProps().map(p=>{let total=0,ded=0,fwd=0,done=0;months.forEach(mm=>{const L=landlordMonth(p.id,mm);total+=L.total;ded+=L.totalDed;fwd+=L.forward;done+=L.forwarded});
+      let owedBefore=0;const y0=m.slice(0,4)+"-01";for(let mm=y0;mm<months[0];mm=monthAdd(mm,1)){const L=landlordMonth(p.id,mm);owedBefore+=L.forward-L.forwarded}
+      return {p,total:Math.round(total),ded:Math.round(ded),fwd:Math.round(fwd),done:Math.round(done),before:Math.round(owedBefore),owed:Math.round(owedBefore+fwd-done)}}).filter(r=>r.total||r.ded||r.done||r.owed);
+    const inc=months.reduce((a,mm)=>{const T=mgmtIncome(mm).T;Object.keys(T).forEach(k=>a[k]=(a[k]||0)+T[k]);return a},{});
+    const inM=d=>months.includes(String(d||"").slice(0,7));
+    const salesComm=S.leads.filter(l=>l.kind==="sale"&&ldWon(l)&&inM(l.wonAt)).reduce((s,l)=>s+ldComm(l),0);
+    const exp=ME.admin?(S.expenses||[]).filter(x=>inM(x.date)):[],expT=exp.reduce((s,x)=>s+(+x.amount||0),0);
+    const expBy={};exp.forEach(x=>{const k=x.category||"Other";expBy[k]=(expBy[k]||0)+(+x.amount||0)});
+    const deps=S.tenants.map(t=>({t,...depositRow(t)})),depBer=deps.filter(d=>d.by==="Berlim").reduce((s,d)=>s+d.held,0),depLl=deps.filter(d=>d.by!=="Berlim").reduce((s,d)=>s+d.held,0);
+    const depIn=months.reduce((s,mm)=>s+sortedProps().reduce((a,p)=>a+((collections(p.id,mm)||{}).deposit||0),0),0),depOut=deps.filter(d=>!d.t.active&&inM(d.t.moveOut)).reduce((s,d)=>s+d.ref,0);
+    const sc=scProps().map(p=>{const F=scFund(p.id,months[0]);let col=0,sp=0;months.forEach(mm=>{const r=scMonth(p.id,mm);col+=r.collected;sp+=r.spent});return {p,opening:F.opening,col:Math.round(col),sp:Math.round(sp),closing:Math.round(F.opening+col-sp)}});
+    const mj=S.maint.filter(x=>inM(x.resolvedAt)&&+x.cost>0),mBy={landlord:0,tenant:0,office:0,none:0};mj.forEach(x=>{mBy[x.chargeTo||"none"]=(mBy[x.chargeTo||"none"]||0)+(+x.cost||0)});
+    const deals=S.leads.filter(l=>l.kind==="sale"&&(ldPaid(l)||(l.deal||{}).payouts)).map(l=>{const d=l.deal||{},rec=ldPaid(l),out=(d.payouts||[]).reduce((s,p)=>s+(+p.amount||0),0),comm=ldWon(l)?ldComm(l):0;
+      return {l,rec,recIn:(d.payments||[]).filter(p=>inM(p.date)).reduce((s,p)=>s+(+p.amount||0),0),out,comm,held:Math.round(rec-out-comm)}});
+    return {months,props,inc,salesComm,exp,expT,expBy,depBer,depLl,depIn:Math.round(depIn),depOut:Math.round(depOut),sc,mj,mBy,deals};
+  }finally{filters.llPart=keep}
+}
+function vFunds(){
+  if(!ME.admin)return vDashboard();
+  const ytd=filters.fdYtd==="1",F=fundsData(month,ytd),per=ytd?`January to ${monthLabel(month)}`:monthLabel(month);
+  const T=k=>F.props.reduce((s,r)=>s+r[k],0),compIn=Math.round((F.inc.total||0)+F.salesComm),net=compIn-F.expT;
+  const scT=k=>F.sc.reduce((s,r)=>s+r[k],0),dlT=k=>F.deals.reduce((s,r)=>s+r[k],0);
+  const card=(title,sub,figs,table)=>`<div class="card fd"><div class="ch"><h2>${title}</h2><span class="fd-sub">${sub}</span></div><div class="cb"><div class="fd-figs">${figs.map(([k,v,cls])=>`<div class="${cls||""}"><span>${k}</span><b>${typeof v==="number"?n0(v):v}</b></div>`).join("")}</div>${table||""}</div></div>`;
+  return `<div class="pagehead"><h1>Funds, ${esc(per)}</h1><p>Money Berlim Homes holds belongs to different people. Each account below is kept apart: what is the company's to spend, and what is held for landlords, tenants, buildings and buyers.</p>
+   <div class="row"><div class="seg" role="tablist"><button class="${ytd?"":"on"}" data-a="fdYtd" data-id="0">${monthLabel(month)}</button><button class="${ytd?"on":""}" data-a="fdYtd" data-id="1">Year to date</button></div>${downloads?`<button class="btn" data-a="fdCsv">Export to Excel</button>`:""}</div></div>
+   ${card("Company operating account","Berlim Homes' own money: earned less spent",[["Management income",Math.round(F.inc.total||0)],["Sales commission",Math.round(F.salesComm)],["Office expenses",F.expT],[net<0?"Loss":"Profit",net,net<0?"bad":"good"],["VAT collected (owed to KRA)",Math.round(F.inc.vat||0)]],
+     `<div class="tw"><table><thead><tr><th>Income</th><th class="num">KES</th></tr></thead><tbody><tr><td>Management commission</td><td class="num">${n0(F.inc.comm||0)}</td></tr><tr><td>Commission on utilities and deposits</td><td class="num">${n0((F.inc.util||0)+(F.inc.dep||0))}</td></tr><tr><td>Letting fees</td><td class="num">${n0(F.inc.letting||0)}</td></tr><tr><td>Late penalties kept</td><td class="num">${n0(F.inc.pen||0)}</td></tr><tr><td>Sales commission (deals closed)</td><td class="num">${n0(F.salesComm)}</td></tr></tbody></table></div>
+      <div class="tw"><table><thead><tr><th>Expenses</th><th class="num">KES</th></tr></thead><tbody>${Object.entries(F.expBy).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="num">${n0(v)}</td></tr>`).join("")||`<tr><td colspan="2" class="empty">No office expenses recorded.</td></tr>`}</tbody></table></div>`)}
+   ${card("Landlords' money","Rent collected for landlords, less deductions, less payments recorded as sent (Landlords page)",[["Collected for landlords",T("total")],["Deductions to company and costs",T("ded")],["Sent to landlords",T("done")],["Not yet sent to landlords",T("owed"),T("owed")>0?"warn":""]],
+     `<div class="tw"><table><thead><tr><th>Property</th><th class="num">Owed from earlier this year</th><th class="num">Collected</th><th class="num">Deductions</th><th class="num">Sent</th><th class="num">Not yet sent</th></tr></thead><tbody>${F.props.map(r=>`<tr><td><span class="code">${esc(r.p.code)}</span> ${esc(r.p.landlord||r.p.name||"")}</td><td class="num">${n0(r.before)}</td><td class="num">${n0(r.total)}</td><td class="num">${n0(r.ded)}</td><td class="num">${n0(r.done)}</td><td class="num"><strong>${n0(r.owed)}</strong></td></tr>`).join("")||`<tr><td colspan="6" class="empty">Nothing collected for landlords in this period.</td></tr>`}</tbody>
+      <tfoot><tr><td>Total</td><td class="num">${n0(T("before"))}</td><td class="num">${n0(T("total"))}</td><td class="num">${n0(T("ded"))}</td><td class="num">${n0(T("done"))}</td><td class="num">${n0(T("owed"))}</td></tr></tfoot></table></div>`)}
+   ${card("Tenants' deposits","Refundable to tenants when they move out",[["Held by Berlim Homes",Math.round(F.depBer)],["Held by landlords",Math.round(F.depLl)],["Deposits received",F.depIn],["Refunded",F.depOut]],`<p class="hint" style="margin:10px 0 0">House by house list: Leases page, Deposits held.</p>`)}
+   ${card("Service charge fund","Belongs to each building's upkeep",[["Opening balance",scT("opening")],["Collected",scT("col")],["Spent",scT("sp")],["Balance",scT("closing"),scT("closing")<0?"bad":""]],
+     F.sc.length?`<div class="tw"><table><thead><tr><th>Property</th><th class="num">Opening</th><th class="num">Collected</th><th class="num">Spent</th><th class="num">Balance</th></tr></thead><tbody>${F.sc.map(r=>`<tr><td><span class="code">${esc(r.p.code)}</span> ${esc(r.p.name)}</td><td class="num">${n0(r.opening)}</td><td class="num">${n0(r.col)}</td><td class="num">${n0(r.sp)}</td><td class="num"><strong>${n0(r.closing)}</strong></td></tr>`).join("")}</tbody></table></div>`:`<p class="hint" style="margin:10px 0 0">No property charges a service charge yet.</p>`)}
+   ${card("Repairs","Cost of repairs finished in the period, by who pays",[["Charged to landlords",F.mBy.landlord||0],["Charged to tenants",F.mBy.tenant||0],["Paid by Berlim Homes",F.mBy.office||0],["Already settled",F.mBy.none||0]],"")}
+   ${card("Sales: buyers' money","Received from buyers, less paid to sellers and commission",[["Received",dlT("rec")],["Received in period",dlT("recIn")],["Paid to sellers",dlT("out")],["Held for sellers",dlT("held"),dlT("held")>0?"warn":""]],
+     F.deals.length?`<div class="tw"><table><thead><tr><th>Buyer</th><th>Property</th><th class="num">Received</th><th class="num">Paid to seller</th><th class="num">Commission</th><th class="num">Held</th></tr></thead><tbody>${F.deals.map(r=>`<tr><td>${esc(r.l.name)}<span class="sub">${esc(r.l.no||"")} · ${esc(r.l.stage)}</span></td><td>${esc((get("listings",r.l.listingId)||{}).title||r.l.interest||"")}</td><td class="num">${n0(r.rec)}</td><td class="num">${n0(r.out)}</td><td class="num">${n0(r.comm)}</td><td class="num"><strong>${n0(r.held)}</strong></td></tr>`).join("")}</tbody></table></div>`:`<p class="hint" style="margin:10px 0 0">No buyer payments recorded. Record them on a sale lead (Sales and lettings).</p>`)}`;
+}
+function fundsCsv(){const ytd=filters.fdYtd==="1",F=fundsData(month,ytd),rows=[["Account","Line","Amount (KES)"]];
+  rows.push(["Company","Management income",Math.round(F.inc.total||0)],["Company","Sales commission",Math.round(F.salesComm)],["Company","Office expenses",-F.expT],["Company","VAT collected (owed to KRA)",Math.round(F.inc.vat||0)]);
+  F.props.forEach(r=>rows.push(["Landlords",`${r.p.code} still held`,r.owed]));rows.push(["Deposits","Held by Berlim Homes",Math.round(F.depBer)],["Deposits","Held by landlords",Math.round(F.depLl)]);
+  F.sc.forEach(r=>rows.push(["Service charge",`${r.p.code} balance`,r.closing]));Object.entries(F.mBy).forEach(([k,v])=>rows.push(["Repairs","Charged to "+k,v]));F.deals.forEach(r=>rows.push(["Sales",`${r.l.no} ${r.l.name} held`,r.held]));
+  return csv(rows)}
+function formLdPayout(id){const l=get("leads",id);if(!l)return;
+  openModal("Payment to the seller: "+esc(l.name)+"'s deal",`<form id="fDo" class="fg"><div class="f"><label for="do-a">Amount (KES)</label><input id="do-a" name="amount" type="number" min="1" step="any" required></div><div class="f"><label for="do-d">Date</label><input id="do-d" name="date" type="date" value="${todayStr}" required></div>
+   <div class="f full"><label for="do-r">Reference</label><input id="do-r" name="ref" placeholder="Bank or M-Pesa code"></div></form>`,`<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fDo" type="submit">Record payment</button>`,true);
+  document.getElementById("fDo").onsubmit=async e=>{e.preventDefault();const x=Object.fromEntries(new FormData(e.target)),d=l.deal||{},p={date:x.date,amount:+x.amount,ref:x.ref.trim().toUpperCase()};
+    if(await save("leads",{...l,deal:{...d,payouts:[...(d.payouts||[]),p]},notes:ldNote(l,`Paid KES ${n0(p.amount)} to the seller`,"deal")})){closeModal();toast("Payment to seller recorded");setTimeout(()=>ldDetail(id),150)}}}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(!b||document.body.classList.contains("portal-mode"))return;const a=b.dataset.a,id=b.dataset.id;
+  if(a==="inNew")formInspect();
+  else if(a==="inEdit")formInspect(id);
+  else if(a==="inRep")inReport(id);
+  else if(a==="inMaint")inMaintAsk(id);
+  else if(a==="inFu"){const x=get("inspections",id);if(x)save("inspections",{...x,followDone:todayStr}).then(ok=>ok&&toast("Re-check recorded"))}
+  else if(a==="fdYtd"){e.preventDefault();filters.fdYtd=id;render()}
+  else if(a==="fdCsv")dlFile("funds-"+month+(filters.fdYtd==="1"?"-ytd":"")+".csv",fundsCsv());
+  else if(a==="ldPayout")formLdPayout(id)});
+document.addEventListener("change",e=>{const a=e.target.dataset&&e.target.dataset.a;if(a==="inCode"){filters.inCode=e.target.value;render()}else if(a==="inKind"){filters.inKind=e.target.value;render()}});
+
+const VIEWS={leases:vLeases,portal:vPortal,sales:vSales,inspect:vInspect,funds:vFunds,maint:vMaint,mgmt:vMgmt,dashboard:()=>{const h=vDashboard(),a=leaseAlert()+salesAlert(),i=h.indexOf("</div>",h.indexOf("pagehead"));return a&&i>0&&filters.code==="all"?h.slice(0,i+6)+h.slice(i+6).replace(/<\/div>/,"</div>"+a):h},tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
 let _rq=null;function smsSig(){return (S.sms||[]).filter(x=>x.id[0]!=="_").map(x=>x.id+":"+x.status).join("|")}
 function queueRender(){if(_rq)return;_rq=setTimeout(()=>{_rq=null;render()},mode==="cloud"?40:0)}
@@ -5281,6 +5486,8 @@ function render(){
   if(view==="setup"&&!can("props"))view="dashboard";
   if(view==="portal"&&!(ME.admin||can("tenants")||can("landlords")))view="dashboard";
   if(view==="sales"&&!canSales())view="dashboard";
+  if(view==="inspect"&&!canMaint())view="dashboard";
+  if(view==="funds"&&!ME.admin)view="dashboard";
   m.innerHTML=banner+(VIEWS[view]||vDashboard)();fillProfiles();
   document.querySelectorAll("#tabs a").forEach(a=>a.classList.toggle("on",a.dataset.v===view));
 }
