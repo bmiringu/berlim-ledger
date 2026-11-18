@@ -15,7 +15,7 @@ const BACKUP_FOLDER = 'Berlim Homes ledger backups';
 const BACKUP_KEEP_DAYS = 30;
 const BACKUP_COLS = ['properties', 'units', 'tenants', 'readings', 'invoices', 'payments', 'providers', 'pbills', 'ppays',
   'approvals', 'staff', 'accessRequests', 'remits', 'ldeds', 'linvoices', 'landlords', 'lreports', 'sms', 'maint',
-  'expenses', 'people', 'logins'];
+  'expenses', 'people', 'logins', 'scexp'];
 
 function val_(v) {
   if (!v) return null;
@@ -72,7 +72,7 @@ function backupNow() {
 const SHEET_NAMES = { properties: 'Properties', units: 'Units', tenants: 'Tenants', invoices: 'Invoices', payments: 'Payments',
   readings: 'Meter readings', landlords: 'Landlords', remits: 'Landlord payments', ldeds: 'Landlord deductions', lreports: 'Landlord reports',
   linvoices: 'Landlord invoices', expenses: 'Expenses', maint: 'Maintenance', providers: 'Providers', pbills: 'Provider bills',
-  ppays: 'Provider payments', approvals: 'Approvals', staff: 'Staff', people: 'People', accessRequests: 'Access requests', logins: 'Logins', sms: 'SMS' };
+  ppays: 'Provider payments', approvals: 'Approvals', staff: 'Staff', people: 'People', accessRequests: 'Access requests', logins: 'Logins', sms: 'SMS', scexp: 'Service charge expenses' };
 const FIRST_COLS = ['id', 'no', 'name', 'code', 'label', 'tenantId', 'unitId', 'propertyId', 'month', 'date', 'issueDate', 'dueDate', 'total', 'amount', 'phone'];
 
 function cell_(v) {
@@ -101,7 +101,7 @@ function backupSheets_(data, folder, stamp) {
   const about = [['Berlim Homes rent ledger backup'], ['Saved', stamp + ' (Nairobi time)'], ['Restore', 'Use the .json file of the same date: Admin > Import in the ledger'], [''], ['Tab', 'Records']];
   // readable tabs first
   const order = ['properties', 'units', 'tenants', 'invoices', 'payments', 'readings', 'landlords', 'remits', 'ldeds', 'lreports', 'linvoices',
-    'expenses', 'maint', 'providers', 'pbills', 'ppays', 'approvals', 'staff', 'people', 'accessRequests', 'logins', 'sms'];
+    'expenses', 'maint', 'scexp', 'providers', 'pbills', 'ppays', 'approvals', 'staff', 'people', 'accessRequests', 'logins', 'sms'];
   order.forEach(col => {
     let rows = C[col] || [];
     if (!rows.length) return;
