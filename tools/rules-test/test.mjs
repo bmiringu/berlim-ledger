@@ -1,7 +1,7 @@
 import {initializeTestEnvironment,assertFails,assertSucceeds} from "@firebase/rules-unit-testing";
 import {doc,getDoc,setDoc,collection,getDocs,query,where,deleteDoc} from "firebase/firestore";
 import fs from "fs";
-const env=await initializeTestEnvironment({projectId:"demo-berlim",firestore:{rules:fs.readFileSync("../../firestore.rules","utf8"),host:"127.0.0.1",port:8085}});
+const env=await initializeTestEnvironment({projectId:"demo-berlim",firestore:{rules:fs.readFileSync("firestore.rules","utf8"),host:"127.0.0.1",port:8085}});
 await env.withSecurityRulesDisabled(async c=>{const d=c.firestore();
   await setDoc(doc(d,"staff","staff1"),{role:"manager",active:true});
   await setDoc(doc(d,"portal","ten1"),{uid:"ten1",kind:"tenant",refId:"T1",data:{balance:100}});
