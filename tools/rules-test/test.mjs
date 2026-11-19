@@ -36,5 +36,9 @@ await T("staff writes pages",assertSucceeds(setDoc(doc(staff,"portal","ten2"),{u
 await T("staff writes portalUsers",assertSucceeds(setDoc(doc(staff,"portalUsers","ten2"),{kind:"tenant",refId:"T2"})));
 await T("staff cannot delete page",assertFails(deleteDoc(doc(staff,"portal","ten2"))));
 await T("admin deletes page",assertSucceeds(deleteDoc(doc(admin,"portal","ten2"))));
+await T("staff cannot read journals",assertFails(getDoc(doc(staff,"journals","j1"))));
+await T("staff cannot write journals",assertFails(setDoc(doc(staff,"journals","j2"),{memo:"x"})));
+await T("admin writes journals",assertSucceeds(setDoc(doc(admin,"journals","j3"),{memo:"x",lines:[]})));
+await T("tenant cannot read journals",assertFails(getDoc(doc(ten1,"journals","j3"))));
 await T("tenant cannot read portalUsers",assertFails(getDoc(doc(ten1,"portalUsers","ten2"))));
 await env.cleanup();process.exit(0);

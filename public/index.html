@@ -960,6 +960,143 @@ body.portal-mode>header,body.portal-mode>nav,body.portal-mode>main,body.portal-m
 .fd-figs .good b{color:var(--good)}.fd-figs .bad b{color:var(--bad)}.fd-figs .warn b{color:var(--warn)}
 .fd .cb>.tw+.tw{margin-top:12px}
 
+/* =================== executive layer =================== */
+html main{padding-top:0}
+#view{display:flex;flex-direction:column;gap:18px;min-width:0}
+/* the sidebar carries navigation only: account, sync and role move to the top bar */
+body:has(#topbar:not([hidden])) #fbUser,body:has(#topbar:not([hidden])) header.mast .status,body:has(#topbar:not([hidden])) #rolebadge{display:none!important}
+html nav.tabs .ngrp{display:block;font-size:11.5px;font-weight:600;color:#7D89A1;padding:14px 10px 4px;letter-spacing:.01em}
+html nav.tabs .ngrp:first-child{padding-top:4px}
+html nav.tabs .ngrp[hidden]{display:none}
+html nav.tabs a{padding:7px 10px;font-size:13.5px}
+
+/* top bar */
+.topbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 -36px 6px;padding:12px 36px;background:rgba(242,243,245,.92);backdrop-filter:saturate(1.4) blur(8px);-webkit-backdrop-filter:saturate(1.4) blur(8px);border-bottom:1px solid var(--rule)}
+.topbar[hidden]{display:none}
+.tb-l{display:flex;flex-direction:column;min-width:0}
+.tb-hi{font-weight:600;font-size:15px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-date{font-size:12.5px;color:var(--muted)}
+.tb-r{display:flex;align-items:center;gap:6px}
+.tb-sync{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-right:8px;white-space:nowrap}
+.tb-sync i{width:7px;height:7px;border-radius:50%;background:var(--warn)}
+.tb-sync.ok i{background:#2E9D62}
+.tb-pop{position:relative}
+.tb-btn{position:relative;width:40px;height:40px;border-radius:10px;border:1px solid transparent;background:transparent;display:grid;place-items:center;color:var(--navy);cursor:pointer}
+.tb-btn:hover,.tb-btn[aria-expanded=true]{background:var(--paper);border-color:var(--rule)}
+.tb-btn svg{width:21px;height:21px;fill:currentColor}
+.tb-btn b{position:absolute;top:4px;right:3px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--brass);color:var(--navy);font-size:10.5px;font-weight:700;line-height:17px;text-align:center;box-shadow:0 0 0 2px var(--canvas)}
+.tb-btn b.bad{background:var(--bad);color:#fff}
+.tb-me{display:flex;align-items:center;gap:10px;border:1px solid transparent;background:transparent;border-radius:10px;padding:4px 8px 4px 4px;cursor:pointer;margin-left:4px;text-align:left}
+.tb-me:hover,.tb-me[aria-expanded=true]{background:var(--paper);border-color:var(--rule)}
+.tb-av{width:32px;height:32px;border-radius:50%;background:#E3E7EE;color:var(--navy);display:grid;place-items:center;font-weight:600;font-size:13px;flex:none}
+.tb-av.me{background:var(--navy);color:#F3EEE2}
+.tb-who{display:flex;flex-direction:column;line-height:1.2}
+.tb-who b{font-size:13px;font-weight:600;color:var(--ink);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tb-who em{font-style:normal;font-size:11.5px;color:var(--muted)}
+.tb-panel{position:absolute;right:0;top:calc(100% + 8px);width:360px;max-width:calc(100vw - 24px);background:var(--paper);border:1px solid var(--rule);border-radius:12px;box-shadow:0 18px 40px -12px rgba(15,30,58,.28);overflow:hidden;z-index:60}
+.tb-panel[hidden]{display:none}
+.tb-ph{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:12px 16px;border-bottom:1px solid var(--rule-soft)}
+.tb-ph strong{font-size:14px}.tb-ph span{font-size:12px;color:var(--muted)}
+.tb-panel ul{list-style:none;margin:0;padding:6px;max-height:min(60vh,420px);overflow:auto}
+.tb-panel li a,.tb-panel li button{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:13.5px;width:100%;background:none;border:0;text-align:left;cursor:pointer;font-family:inherit}
+.tb-panel li a:hover,.tb-panel li button:hover{background:var(--hover)}
+.tb-panel li a.new{background:#F7F3EA}
+.tb-tx{display:flex;flex-direction:column;min-width:0;gap:1px}
+.tb-tx b{font-size:13.5px}.tb-tx em{font-style:normal;font-size:12px;color:var(--muted)}.tb-tx>span{color:var(--ink);overflow:hidden;text-overflow:ellipsis}
+.tb-n i{width:8px;height:8px;border-radius:50%;background:var(--navy);margin-top:6px;flex:none}
+.tb-n.warn i{background:var(--brass)}.tb-n.bad i{background:var(--bad)}
+.tb-empty{margin:0;padding:22px 16px;color:var(--muted);font-size:13.5px;text-align:center}
+.tb-foot{display:block;padding:11px 16px;border-top:1px solid var(--rule-soft);font-size:13px;font-weight:600;color:var(--navy);text-decoration:none;text-align:center}
+.tb-foot:hover{background:var(--hover)}
+.tb-menu{width:260px}
+
+/* executive dashboard */
+.ex-head{align-items:flex-end}
+.ex-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:var(--paper);border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+.ex-kpi{padding:16px 18px;display:flex;flex-direction:column;gap:4px;border-left:1px solid var(--rule-soft);min-width:0}
+.ex-kpi:first-child{border-left:0}
+.ex-kpi .k{font-size:12.5px;color:var(--muted)}
+.ex-kpi b{font-size:27px;font-weight:600;letter-spacing:-.02em;color:var(--ink);font-variant-numeric:tabular-nums lining-nums;line-height:1.15}
+.ex-kpi.warn b{color:var(--bad)}
+.ex-kpi em{font-style:normal;font-size:12px;color:var(--muted)}
+.ex-prog{height:4px;border-radius:2px;background:var(--rule-soft);overflow:hidden;margin:4px 0 2px}
+.ex-prog i{display:block;height:100%;background:var(--navy);border-radius:2px}
+.ex-d{font-weight:600}.ex-d.up{color:var(--good)}.ex-d.dn{color:var(--bad)}
+.ex-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:18px;align-items:start}
+.ex-grid>.card,.ex-side>.card{margin:0}
+.ex-side{display:flex;flex-direction:column;gap:18px;min-width:0}
+.ex-bar{position:relative;height:6px;border-radius:3px;background:var(--rule-soft);overflow:hidden;flex:1;min-width:60px}
+.ex-bar i{display:block;height:100%;border-radius:3px;background:var(--navy)}
+.ex-bar i.mid{background:var(--brass)}.ex-bar i.lo{background:var(--bad)}
+.ex-coll td:nth-child(4){display:flex;align-items:center;gap:10px;min-width:150px}
+.ex-pc{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:34px;text-align:right}
+.ex-att ul{list-style:none;margin:0;padding:6px}
+.ex-att li a{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:13.5px}
+.ex-att li a:hover{background:var(--hover)}
+.ex-smsbal span{display:block;font-size:12.5px;color:var(--muted)}
+.ex-smsbal b{display:block;font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink)}
+.ex-smsbal.low b{color:var(--bad)}
+.ex-smsbal em{font-style:normal;font-size:12px;color:var(--muted)}
+.ex-smsrow{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--muted);margin-top:10px;padding-top:10px;border-top:1px solid var(--rule-soft)}
+.ex-chart{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;height:190px;align-items:end}
+.ex-col{display:flex;flex-direction:column;align-items:center;gap:4px;height:100%}
+.ex-bars{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;gap:4px}
+.ex-bars i{display:block;width:34%;max-width:26px;border-radius:3px 3px 0 0;min-height:2px}
+.ex-bars i.b{background:#D9CDB2}.ex-bars i.c{background:var(--navy)}
+.ex-col span{font-size:12px;color:var(--muted)}.ex-col em{font-style:normal;font-size:11.5px;color:var(--ink);font-variant-numeric:tabular-nums}
+.ex-age{display:flex;flex-direction:column;gap:12px}
+.ex-ag{display:grid;grid-template-columns:110px 1fr 90px;gap:12px;align-items:center;font-size:13px}
+.ex-ag span{color:var(--muted)}.ex-ag b{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.ex-age .btn{align-self:flex-start}
+.banner.ahead,.banner.ac-warn{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#F4EEDF;border:1px solid #E3D7BC;color:var(--ink);padding:10px 14px}
+.banner.ahead span,.banner.ac-warn span{flex:1;min-width:240px}
+
+/* accounts */
+.ac-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.ac-per{font-size:13px;color:var(--muted)}
+.ac-tabs{flex-wrap:wrap;row-gap:4px}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:var(--paper);border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+.kpi{padding:14px 18px;border-left:1px solid var(--rule-soft);display:flex;flex-direction:column;gap:3px;min-width:0}
+.kpi:first-child{border-left:0}
+.kpi span{font-size:12.5px;color:var(--muted)}
+.kpi b{font-size:23px;font-weight:600;font-variant-numeric:tabular-nums lining-nums;color:var(--ink)}
+.kpi em{font-style:normal;font-size:12px;color:var(--muted)}
+.kpi.bad b{color:var(--bad)}.kpi.good b{color:var(--good)}
+.ac-tbl td,.ac-tbl th{vertical-align:top}
+.ac-tbl tr.ac-open td{background:var(--hover);font-weight:500}
+.ac-tbl tr.ac-sub td{border-top:0;padding-top:2px}
+.ac-tbl tr.ac-top td{border-top:1px solid var(--rule)}
+.ac-ind{display:inline-block;width:18px}
+.ac-fs td{padding:7px 16px}
+.ac-fs tr.ac-h td{font-weight:600;color:var(--navy);padding-top:16px;background:none;border-top:0}
+.ac-fs tr.ac-t td{font-weight:600;border-top:1px solid var(--rule)}
+.ac-fs tr.ac-g td{font-weight:700;font-size:15px;border-top:2px solid var(--ink);border-bottom:3px double var(--ink)}
+.ac-fs tr.ac-g.neg td{color:var(--bad)}
+.ac-split{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(0,1fr);gap:18px;align-items:start}
+.ac-split>.card{margin:0}
+.ac-cat{margin:0 0 12px}
+.ac-cat>div{display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:4px}
+.ac-cat>div b{font-variant-numeric:tabular-nums}
+.ac-cat i{display:block;height:6px;border-radius:3px;background:var(--navy)}
+td .neg,.neg{color:var(--bad)}
+
+@media (max-width:1100px){.ex-kpis,.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.ex-kpi:nth-child(4),.kpi:nth-child(4){border-left:0}.ex-kpi:nth-child(n+4),.kpi:nth-child(n+4){border-top:1px solid var(--rule-soft)}.ex-grid,.ac-split{grid-template-columns:1fr}}
+@media (max-width:760px){
+  .topbar{margin:0 -14px 4px;padding:8px 14px}
+  .tb-hi{font-size:14px}.tb-date,.tb-sync,.tb-who{display:none}
+  .tb-me{padding:4px;margin:0}
+  .tb-panel{position:fixed;left:12px;right:12px;top:60px;width:auto}
+  .ex-kpis,.kpis{grid-template-columns:1fr 1fr}.ex-kpi,.kpi{border-left:0;border-top:1px solid var(--rule-soft)}.ex-kpi:nth-child(-n+2),.kpi:nth-child(-n+2){border-top:0}.ex-kpi:nth-child(even),.kpi:nth-child(even){border-left:1px solid var(--rule-soft)}
+  .ex-kpi b{font-size:22px}.kpi b{font-size:19px}
+  .ex-ag{grid-template-columns:90px 1fr 70px}
+  .ex-coll td:nth-child(4){min-width:110px}
+}
+@media print{.topbar{display:none!important}}
+@media (max-width:900px){.topbar{margin:0 -14px 4px;padding:8px 14px}html nav.tabs .ngrp{display:none!important}}
+.pagehead.ex-head,.pagehead{justify-content:space-between}
+@media (max-width:760px){.ex-kpi:last-child:nth-child(odd),.kpi:last-child:nth-child(odd){grid-column:1/-1;border-left:0!important}}
+@media (max-width:760px){.ac-tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}.ac-tabs::-webkit-scrollbar{display:none}.ac-tabs button{white-space:nowrap;flex:none}}
+
 </style>
 <style id="fb">
 body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
@@ -1006,26 +1143,32 @@ body.fb-locked>header,body.fb-locked>nav,body.fb-locked>main{visibility:hidden}
   <div class="status" id="status"><i></i><span>Connecting…</span></div>
 </header>
 <nav class="tabs" id="tabs" aria-label="Sections">
+  <span class="ngrp" aria-hidden="true">Overview</span>
   <a href="#dashboard" data-v="dashboard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z"/></svg><span class="lg">Dashboard</span><span class="sm">Home</span></a>
+  <span class="ngrp" aria-hidden="true">Tenancy</span>
   <a href="#tenants" data-v="tenants"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm-8 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm0 2c-2.3 0-7 1.2-7 3.5V19h7v-2.5c0-.9.4-1.8 1.1-2.5A11 11 0 0 0 8 13zm8 0c-2.7 0-8 1.3-8 4v2h16v-2c0-2.7-5.3-4-8-4z"/></svg><span class="lg">Tenants</span><span class="sm">Tenants</span></a>
   <a href="#leases" data-v="leases" id="leasesTab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM8 12h8v1.5H8zm0 3.5h8V17H8zm0-7h4V10H8z"/></svg><span class="lg">Leases</span><span class="sm">Leases</span></a>
   <a href="#portal" data-v="portal" id="portalTab" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h11a2 2 0 0 1 2 2v3h-2V5H4v14h11v-3h2v3a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm12.6 5.4L21.2 13l-4.6 4.6-1.4-1.4 2.2-2.2H9v-2h8.4l-2.2-2.2z"/></svg><span class="lg">Portal</span><span class="sm">Portal</span><b class="navbadge" id="ptCount" hidden></b></a>
-  <a href="#sales" data-v="sales" id="salesTab" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.4 11.6 12.4 2.6A2 2 0 0 0 11 2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 .6 1.4l9 9a2 2 0 0 0 2.8 0l7-7a2 2 0 0 0 0-2.8zM6.5 8A1.5 1.5 0 1 1 8 6.5 1.5 1.5 0 0 1 6.5 8z"/></svg><span class="lg">Sales &amp; lettings</span><span class="sm">Sales</span><b class="navbadge" id="slCount" hidden></b></a>
+  <span class="ngrp" aria-hidden="true">Property</span>
   <a href="#units" data-v="units"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 11h3v9h6v-6h2v6h6v-9h3z"/></svg><span class="lg">Properties</span><span class="sm">Houses</span></a>
   <a href="#utilities" data-v="utilities"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C8 7 6 10.2 6 13a6 6 0 0 0 12 0c0-2.8-2-6-6-11zm1 17.9V18a3 3 0 0 0 3-3h1.9A5 5 0 0 1 13 19.9z"/></svg><span class="lg">Utilities</span><span class="sm">Utilities</span></a>
   <a href="#maint" data-v="maint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22.7 19.3l-6.1-6.1a6.5 6.5 0 0 0-8.4-8.4l3.6 3.6-2.8 2.8-3.6-3.6a6.5 6.5 0 0 0 8.4 8.4l6.1 6.1a1 1 0 0 0 1.4 0l1.4-1.4a1 1 0 0 0 0-1.4z"/></svg><span class="lg">Maintenance</span><span class="sm">Repairs</span></a>
   <a href="#inspect" data-v="inspect" id="inspectTab" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h6v2h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h3zm0 2v2h6V4zm-1.4 9.6L6.2 15l3.3 3.3 6.3-6.3-1.4-1.4-4.9 4.9z"/></svg><span class="lg">Inspections</span><span class="sm">Inspect</span></a>
+  <span class="ngrp" aria-hidden="true">Money</span>
   <a href="#invoices" data-v="invoices"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM9 12h8v1.5H9zm0 3.5h8V17H9zm0-7h4V10H9z"/></svg><span class="lg">Invoices</span><span class="sm">Invoices</span></a>
   <a href="#payments" data-v="payments"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v12H3zm2 2v2h14V8zm0 6v2h5v-2z"/></svg><span class="lg">Payments</span><span class="sm">Payments</span></a>
-  <a href="#providers" data-v="providers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM10 5h4v2h-4zm3 10h-2v-2H9v-2h2V9h2v2h2v2h-2z"/></svg><span class="lg">Providers</span><span class="sm">Providers</span></a>
   <a href="#landlords" data-v="landlords"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a5 5 0 1 1-5 5 5 5 0 0 1 5-5zm0 12c5.3 0 8 2.7 8 5v3H4v-3c0-2.3 2.7-5 8-5zm6.5-6h4v2h-4zm1-3h3v2h-3zm0 6h3v2h-3z"/></svg><span class="lg">Landlords</span><span class="sm">Landlords</span></a>
+  <a href="#providers" data-v="providers"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM10 5h4v2h-4zm3 10h-2v-2H9v-2h2V9h2v2h2v2h-2z"/></svg><span class="lg">Providers</span><span class="sm">Providers</span></a>
+  <a href="#accounts" data-v="accounts" id="acctTab" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v3H3zm1 4h16v9H4zm3 2v5h2v-5zm4 0v5h2v-5zm4 0v5h2v-5zM12 1l9 4H3z"/></svg><span class="lg">Accounts</span><span class="sm">Accounts</span></a>
+  <span class="ngrp" aria-hidden="true">Growth</span>
+  <a href="#sales" data-v="sales" id="salesTab" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.4 11.6 12.4 2.6A2 2 0 0 0 11 2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 .6 1.4l9 9a2 2 0 0 0 2.8 0l7-7a2 2 0 0 0 0-2.8zM6.5 8A1.5 1.5 0 1 1 8 6.5 1.5 1.5 0 0 1 6.5 8z"/></svg><span class="lg">Sales &amp; lettings</span><span class="sm">Sales</span><b class="navbadge" id="slCount" hidden></b></a>
+  <span class="ngrp" aria-hidden="true">Administration</span>
   <a href="#approvals" data-v="approvals"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg><span class="lg" id="apLabel">Approvals</span><span class="sm" id="apLabelSm">Approvals</span><b class="navbadge" id="apCount" hidden></b></a>
-  <a href="#setup" data-v="setup"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3h-4l-.4 2.7a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1L11 21h4l.4-2.7a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5A3.5 3.5 0 1 1 16.5 12 3.5 3.5 0 0 1 13 15.5z"/></svg><span class="lg">Setup</span><span class="sm">Setup</span></a>
   <a href="#mgmt" data-v="mgmt" id="mgmtTab" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h2v16h16v2H3zm4 10h3v5H7zm5-5h3v10h-3zm5-4h3v14h-3z"/></svg><span class="lg">Management</span><span class="sm">Mgmt</span></a>
-  <a href="#funds" data-v="funds" id="fundsTab" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v3H3zm1 4h16v9H4zm3 2v5h2v-5zm4 0v5h2v-5zm4 0v5h2v-5zM12 1l9 4H3z"/></svg><span class="lg">Funds</span><span class="sm">Funds</span></a>
+  <a href="#setup" data-v="setup"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3h-4l-.4 2.7a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.6 7.6 0 0 0 1.7 1L11 21h4l.4-2.7a7.6 7.6 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5A3.5 3.5 0 1 1 16.5 12 3.5 3.5 0 0 1 13 15.5z"/></svg><span class="lg">Setup</span><span class="sm">Setup</span></a>
   <a href="#admin" data-v="admin" id="adminTab" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1 3 5v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V5zm0 6a3 3 0 1 1-3 3 3 3 0 0 1 3-3zm0 13.2a8.9 8.9 0 0 1-5.4-3.9c0-1.8 3.6-2.8 5.4-2.8s5.4 1 5.4 2.8a8.9 8.9 0 0 1-5.4 3.9z"/></svg><span class="lg">Admin</span><span class="sm">Admin</span></a>
 </nav>
-<main id="main"><div class="empty">Loading records…</div></main>
+<main id="main"><div id="topbar" class="topbar" hidden></div><div id="view"><div class="empty">Loading records…</div></div></main>
 <div id="modalRoot"></div>
 
 <script>window.FB_BUILD=true;(function(){var r;var p=new Promise(function(x){r=x});window.__fbResolve=r;window.claude={use:function(n){return p.then(function(api){return api&&api[n]||null})}}})();</script>
@@ -1354,7 +1497,8 @@ function vUnits(){
 }
 function vUtilities(){
   if(filters.uprop!=="all"&&!get("properties",filters.uprop))filters.uprop="all";
-  const head=`<div class="pagehead"><h1>Utility billing, ${monthLabel(month)}</h1><p>Search a property by its code to enter this month's water and electricity readings. Last month's closing reading becomes this month's opening reading.</p></div>${propSearch("util")}`;
+  const nxt=monthAdd(todayStr.slice(0,7),1),early=month===todayStr.slice(0,7)?`<button class="btn" data-a="mAhead">Bill on ${monthLabel(nxt)}'s bills now</button>`:"";
+  const head=`<div class="pagehead"><h1>Utility billing, ${monthLabel(month)}</h1><div class="row">${early}</div><p>Search a property by its code to enter this month's water and electricity readings. Last month's closing reading becomes this month's opening reading. Saving readings bills the tenants straight away. Readings taken at the end of the month can go on next month's bills now: open ${monthLabel(nxt)} early.</p></div>${propSearch("util")}`;
   if(filters.uprop==="all")return head+`<div class="card"><div class="empty">Search a property code above (for example T3) to open its utility billing.</div></div>`;
   const P=get("properties",filters.uprop),p=cfg(P),prev=monthAdd(month,-1);
   const units=S.units.filter(u=>u.propertyId===P.id&&activeTenantOf(u.id)).sort(sortUnits);
@@ -2069,13 +2213,17 @@ function firstMonthOf(pid){if(firstMonthMemo.dv!==DV){const map={},put=(k,m)=>{i
     firstMonthMemo={dv:DV,map}}
   return firstMonthMemo.map[pid]||firstMonthMemo.map.all||todayStr.slice(0,7)}
 function viewProp(){const v=(location.hash||"#dashboard").slice(1);const f=v==="landlords"?filters.llProp:v==="utilities"?filters.uprop:filters.code;return f&&f!=="all"&&get("properties",f)?f:"all"}
-function monthBounds(){const max=todayStr.slice(0,7);let min=firstMonthOf(viewProp());if(min>max)min=max;return {min,max}}
+/* the next month can be opened early, to enter meter readings and send bills before the month starts */
+function monthBounds(){const max=monthAdd(todayStr.slice(0,7),1);let min=firstMonthOf(viewProp());if(min>max)min=max;return {min,max}}
 function clampMonth(){const {min,max}=monthBounds();if(month>max)month=max;if(month<min)month=min;mi.min=min;mi.max=max;mi.value=month;
   const pv=document.getElementById("mprev"),nx=document.getElementById("mnext");pv.disabled=month<=min;nx.disabled=month>=max;
-  pv.title=month<=min?"No records before "+monthLabel(min):"Previous month";nx.title=month>=max?"You can't go past the current month":"Next month"}
-mi.addEventListener("change",()=>{if(mi.value){const {min,max}=monthBounds();if(mi.value>max)toast("You can't open a month we are not yet in");else if(mi.value<min)toast("No records before "+monthLabel(min));month=mi.value;monthPinned=true;render()}});
+  pv.title=month<=min?"No records before "+monthLabel(min):"Previous month";nx.title=month>=max?"You can work up to next month":month===todayStr.slice(0,7)?"Open "+monthLabel(max)+" early, to bill ahead":"Next month"}
+mi.addEventListener("change",()=>{if(mi.value){const {min,max}=monthBounds();if(mi.value>max)toast("You can work up to "+monthLabel(max)+", to bill ahead");else if(mi.value<min)toast("No records before "+monthLabel(min));month=mi.value;monthPinned=true;render()}});
 document.getElementById("mprev").onclick=()=>{const {min}=monthBounds();if(month<=min){toast("No records before "+monthLabel(min));return}monthPinned=true;month=monthAdd(month,-1);render()};
-document.getElementById("mnext").onclick=()=>{const {max}=monthBounds();if(month>=max){toast("You can't go past the current month");return}monthPinned=true;month=monthAdd(month,1);render()};
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;
+  if(b.dataset.a==="mAhead"){e.preventDefault();month=monthAdd(todayStr.slice(0,7),1);monthPinned=true;render();toast("Now in "+monthLabel(month)+": readings you save here go on "+monthLabel(month)+"'s bills")}
+  else if(b.dataset.a==="mThis"){e.preventDefault();month=todayStr.slice(0,7);monthPinned=true;render()}});
+document.getElementById("mnext").onclick=()=>{const {max}=monthBounds();if(month>=max){toast("You can work up to "+monthLabel(max)+", to bill ahead");return}monthPinned=true;month=monthAdd(month,1);render()};
 
 /* ================= v3: access, approvals, providers, ex-tenants, photos, move-in billing ================= */
 const PERMS=[["payments","Record, edit and delete tenant payments"],["invoices","Generate, reverse and penalise invoices"],["readings","Enter meter readings and meter photos"],["tenants","Add, edit and move out tenants (with move-in bills)"],["providers","Service provider bills and payments"],["props","Properties, houses, rates and setup"],["landlords","Landlord accounts, agreements and remittances"],["maint","Log, assign and resolve maintenance issues"],["sales","Leads, listings, viewings and sales deals"]];
@@ -2123,7 +2271,7 @@ function applyRoleChrome(){
   const rb=document.getElementById("rolebadge");
   if(mode==="cloud"||mode==="demo"){rb.hidden=false;rb.innerHTML=ME.admin?`Admin console`:ME.staff?`Staff <small>${esc((ROLES[ME.staff.role]||{}).label||"")}</small>`:`No access yet`}
   document.getElementById("adminTab").hidden=!ME.admin;{const mt=document.getElementById("mgmtTab");if(mt)mt.hidden=!ME.admin}
-  const st=document.querySelector('#tabs a[data-v="setup"]');if(st)st.hidden=!can("props");{const lt=document.getElementById("leasesTab");if(lt)lt.hidden=!(ME.admin||can("tenants")||can("landlords"))}{const pt=document.getElementById("portalTab");if(pt)pt.hidden=!(ME.admin||can("tenants")||can("landlords"));const pc=document.getElementById("ptCount");if(pc){const n=(S.portalMsgs||[]).filter(m=>m.status==="new").length;pc.hidden=!n||!!(pt&&pt.hidden);pc.textContent=n}}{const it=document.getElementById("inspectTab");if(it)it.hidden=!canMaint();const ft=document.getElementById("fundsTab");if(ft)ft.hidden=!ME.admin}{const st=document.getElementById("salesTab");if(st)st.hidden=!canSales();const sc=document.getElementById("slCount");if(sc){const n=(S.leads||[]).filter(ldDue).length;sc.hidden=!n||!canSales();sc.textContent=n}}
+  const st=document.querySelector('#tabs a[data-v="setup"]');if(st)st.hidden=!can("props");{const lt=document.getElementById("leasesTab");if(lt)lt.hidden=!(ME.admin||can("tenants")||can("landlords"))}{const pt=document.getElementById("portalTab");if(pt)pt.hidden=!(ME.admin||can("tenants")||can("landlords"));const pc=document.getElementById("ptCount");if(pc){const n=(S.portalMsgs||[]).filter(m=>m.status==="new").length;pc.hidden=!n||!!(pt&&pt.hidden);pc.textContent=n}}{const it=document.getElementById("inspectTab");if(it)it.hidden=!canMaint();const ft=document.getElementById("acctTab");if(ft)ft.hidden=!ME.admin}{const st=document.getElementById("salesTab");if(st)st.hidden=!canSales();const sc=document.getElementById("slCount");if(sc){const n=(S.leads||[]).filter(ldDue).length;sc.hidden=!n||!canSales();sc.textContent=n}}
   const pend=S.approvals.filter(a=>a.status==="pending"&&(ME.admin||a.by===ME.id)).length+(canApproveTenantSusp()?S.tenants.filter(suspPending).length:0)+(ME.admin?S.properties.filter(propEndPending).length:0);
   const c=document.getElementById("apCount");c.hidden=!pend;c.textContent=pend;
   document.getElementById("apLabel").textContent=ME.admin?"Approvals":"My requests";document.getElementById("apLabelSm").textContent=ME.admin?"Approvals":"Requests";
@@ -3709,7 +3857,7 @@ document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.c
 
 
 /* ===== suspensions (tenants), service endings (properties / landlords), monthly profit and loss ===== */
-S.expenses=S.expenses||[];
+S.expenses=S.expenses||[];S.journals=S.journals||[];
 const isManager=()=>!!(ME.staff&&ME.staff.role==="manager"&&ME.staff.active!==false);
 const canApproveTenantSusp=()=>!!ME.admin||isManager();
 const suspOn=t=>!!(t&&t.susp&&t.susp.status==="approved");
@@ -3811,17 +3959,22 @@ function expensesCard(){
   return `<div class="card"><div class="ch"><h2>Office expenses, ${monthLabel(month)}</h2><button class="btn sm primary" data-a="expNew">Record expense</button></div><div class="tw">${xs.length?`<table><thead><tr><th>Date</th><th>Category</th><th>Details</th><th>Paid by</th><th class="num">Amount</th><th></th></tr></thead><tbody>${xs.map(x=>`<tr><td>${fmtDate(x.date)}</td><td>${esc(x.category)}</td><td>${esc(x.desc||"")}</td><td style="font-size:13px">${esc(x.method||"")}${x.ref?`<span class="sub">${esc(x.ref)}</span>`:""}</td><td class="num">${n0(x.amount)}</td><td class="num"><button class="btn sm" data-a="expEdit" data-id="${x.id}">Edit</button> <button class="btn sm danger" data-a="expDel" data-id="${x.id}">Delete</button></td></tr>`).join("")}</tbody><tfoot><tr><td colspan="4">TOTAL · ${Object.entries(byC).map(([c,v])=>esc(c)+" "+n0(v)).join(" · ")}</td><td class="num">${n0(tot)}</td><td></td></tr></tfoot></table>`:`<div class="empty">No expenses recorded for ${monthLabel(month)}. Record salaries, office rent, transport, airtime and other costs to see profit or loss.</div>`}</div></div>`;
 }
 function formExpense(id){
-  const x=id?get("expenses",id):null;
-  openModal(x?"Edit expense":"Record office expense",`<form id="fEx" class="fg">
+  const x=id?get("expenses",id):null,fund=x?x.fund||"company":"company";
+  openModal(x?"Edit expense":"Record expense",`<form id="fEx" class="fg">
+   <div class="f full"><label>What is it for?</label><div class="row" style="gap:18px;flex-wrap:wrap"><label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="radio" name="fund" value="company" ${fund==="company"?"checked":""}> A company expense</label><label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="radio" name="fund" value="landlord" ${fund==="landlord"?"checked":""}> Paid for a landlord (caretaker, repairs, soap…)</label></div>
+    <span class="hint" id="ex-h"></span></div>
    <div class="f"><label for="ex-d">Date</label><input id="ex-d" name="date" type="date" required value="${esc(x?x.date:todayStr)}"></div>
    <div class="f"><label for="ex-c">Category</label><select id="ex-c" name="category">${EXP_CATS.map(c=>`<option ${x&&x.category===c?"selected":""}>${c}</option>`).join("")}</select></div>
-   <div class="f"><label for="ex-a">Amount (KES)</label><input id="ex-a" name="amount" type="number" min="1" required value="${esc(x?x.amount:"")}"></div>
-   <div class="f"><label for="ex-m">Paid by</label><select id="ex-m" name="method">${PMETHODS.filter(m=>m!=="Settled before system").map(m=>`<option ${x&&x.method===m?"selected":""}>${m}</option>`).join("")}</select></div>
-   <div class="f"><label for="ex-r">Reference (optional)</label><input id="ex-r" name="ref" value="${esc(x?x.ref||"":"")}"></div>
-   <div class="f full"><label for="ex-n">Details</label><input id="ex-n" name="desc" value="${esc(x?x.desc||"":"")}" placeholder="e.g. October salary, Scholastica"></div></form>`,
-   `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fEx" type="submit">Save expense</button>`);
-  document.getElementById("fEx").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));
-    const obj={...(x||{id:uid(),by:ME.id||""}),date:d.date,category:d.category,amount:+d.amount||0,method:d.method,ref:(d.ref||"").trim(),desc:(d.desc||"").trim()};
+   <div class="f"><label for="ex-p">Property</label><select id="ex-p" name="propertyId"><option value="">Not for one property</option>${sortedProps().map(p=>`<option value="${p.id}" ${x&&x.propertyId===p.id?"selected":""}>${esc(p.code)} ${esc(p.name)}</option>`).join("")}</select></div>
+   <div class="f"><label for="ex-a">Amount (KES)</label><input id="ex-a" name="amount" type="number" min="1" step="any" required value="${esc(x?x.amount:"")}"></div>
+   <div class="f"><label for="ex-m">Paid from</label><select id="ex-m" name="method">${PMETHODS.map(m=>`<option ${x&&x.method===m?"selected":""}>${m}</option>`).join("")}</select></div>
+   <div class="f"><label for="ex-r">Reference</label><input id="ex-r" name="ref" value="${esc(x?x.ref||"":"")}" placeholder="M-Pesa or bank code"></div>
+   <div class="f full"><label for="ex-n">Details</label><input id="ex-n" name="desc" value="${esc(x?x.desc||"":"")}" placeholder="e.g. October salary, Scholastica"></div><div class="err full" id="exErr"></div></form>`,
+   `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fEx" type="submit">Save expense</button>`,true);
+  const fm=document.getElementById("fEx"),hint=()=>{const f=new FormData(fm).get("fund");document.getElementById("ex-h").textContent=f==="landlord"?"Money taken from a landlord on their report (caretaker, soap, repairs) is held until you pay it. Record the payment here so it leaves that fund, not the company's profit.":"Office costs: salaries, rent, transport, airtime and the like. Service charge spending is recorded under Leases, Service charge fund."};
+  fm.addEventListener("change",e=>{if(e.target.name==="fund")hint()});hint();
+  fm.onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(fm));if(d.fund==="landlord"&&!d.propertyId){document.getElementById("exErr").textContent="Choose the property this was paid for.";return}
+    const obj={...(x||{id:uid(),by:ME.id||""}),date:d.date,fund:d.fund,category:d.category,propertyId:d.propertyId||"",amount:+d.amount||0,method:d.method,ref:(d.ref||"").trim().toUpperCase(),desc:(d.desc||"").trim()};
     if(await patchDoc("expenses",obj)){closeModal();toast("Expense saved")}};
 }
 document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a,id=b.dataset.id;
@@ -4651,11 +4804,12 @@ function formScExp(id){const x=id?get("scexp",id):null;const ps=scProps().length
    <div class="f"><label for="sc-d">Date paid</label><input id="sc-d" name="date" type="date" required value="${esc(x?x.date:(month===todayStr.slice(0,7)?todayStr:month+"-01"))}"></div>
    <div class="f"><label for="sc-c">Category</label><select id="sc-c" name="category">${SC_CATS.map(c=>`<option ${x&&x.category===c?"selected":""}>${c}</option>`).join("")}</select></div>
    <div class="f"><label for="sc-a">Amount (KES)</label><input id="sc-a" name="amount" type="number" min="1" required value="${esc(x?x.amount:"")}"></div>
+   <div class="f"><label for="sc-m">Paid from</label><select id="sc-m" name="method">${PMETHODS.map(m=>`<option ${x&&x.method===m?"selected":""}>${m}</option>`).join("")}</select></div>
    <div class="f"><label for="sc-v">Paid to</label><input id="sc-v" name="vendor" value="${esc(x?x.vendor||"":"")}" placeholder="e.g. Shield Security"></div>
    <div class="f full"><label for="sc-s">Description</label><input id="sc-s" name="desc" value="${esc(x?x.desc||"":"")}" placeholder="e.g. Guards, November"></div></form>`,
    `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fSc" type="submit">${x?"Save changes":"Record expense"}</button>`);
   document.getElementById("fSc").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));
-    const obj={...(x||{id:uid(),createdAt:new Date().toISOString(),by:ME.id||""}),propertyId:d.propertyId,date:d.date,month:d.date.slice(0,7),category:d.category,amount:+d.amount||0,vendor:(d.vendor||"").trim(),desc:(d.desc||"").trim()};
+    const obj={...(x||{id:uid(),createdAt:new Date().toISOString(),by:ME.id||""}),propertyId:d.propertyId,date:d.date,month:d.date.slice(0,7),category:d.category,amount:+d.amount||0,method:d.method||"",vendor:(d.vendor||"").trim(),desc:(d.desc||"").trim()};
     const P=get("properties",obj.propertyId)||{};
     if(await submit("scexp",`${P.code||""} service charge: ${obj.category} KES ${n0(obj.amount)}`,[{op:"set",col:"scexp",obj}],"props")){closeModal();toast(x?"Expense updated":"Expense recorded")}}}
 
@@ -5400,55 +5554,6 @@ function inReport(id){const x=get("inspections",id);if(!x)return;const html=inRe
   openModal(esc(x.kind)+" inspection "+esc(x.no||""),`<div class="pt-doc">${html}</div>`,`<button class="btn" data-a="close">Close</button><button class="btn primary" id="inPr">Print or save as PDF</button>`,true);
   document.getElementById("inPr").onclick=()=>{const w=window.open("","_blank");if(!w){toast("Allow pop-ups to print");return}w.document.write(standalone("Inspection "+(x.no||""),html).replace("</body>","<script>setTimeout(()=>print(),600)<\/script></body>"));w.document.close()}}
 
-/* ===== Stage 5b: funds: whose money is held, kept apart =====
-   Built from the records already in the ledger: nothing is double-entered. */
-function fundsData(m,ytd){
-  const months=[];if(ytd){for(let k=1;k<=+m.slice(5);k++)months.push(m.slice(0,4)+"-"+String(k).padStart(2,"0"))}else months.push(m);
-  const keep=filters.llPart;filters.llPart="";
-  try{
-    const props=sortedProps().map(p=>{let total=0,ded=0,fwd=0,done=0;months.forEach(mm=>{const L=landlordMonth(p.id,mm);total+=L.total;ded+=L.totalDed;fwd+=L.forward;done+=L.forwarded});
-      let owedBefore=0;const y0=m.slice(0,4)+"-01";for(let mm=y0;mm<months[0];mm=monthAdd(mm,1)){const L=landlordMonth(p.id,mm);owedBefore+=L.forward-L.forwarded}
-      return {p,total:Math.round(total),ded:Math.round(ded),fwd:Math.round(fwd),done:Math.round(done),before:Math.round(owedBefore),owed:Math.round(owedBefore+fwd-done)}}).filter(r=>r.total||r.ded||r.done||r.owed);
-    const inc=months.reduce((a,mm)=>{const T=mgmtIncome(mm).T;Object.keys(T).forEach(k=>a[k]=(a[k]||0)+T[k]);return a},{});
-    const inM=d=>months.includes(String(d||"").slice(0,7));
-    const salesComm=S.leads.filter(l=>l.kind==="sale"&&ldWon(l)&&inM(l.wonAt)).reduce((s,l)=>s+ldComm(l),0);
-    const exp=ME.admin?(S.expenses||[]).filter(x=>inM(x.date)):[],expT=exp.reduce((s,x)=>s+(+x.amount||0),0);
-    const expBy={};exp.forEach(x=>{const k=x.category||"Other";expBy[k]=(expBy[k]||0)+(+x.amount||0)});
-    const deps=S.tenants.map(t=>({t,...depositRow(t)})),depBer=deps.filter(d=>d.by==="Berlim").reduce((s,d)=>s+d.held,0),depLl=deps.filter(d=>d.by!=="Berlim").reduce((s,d)=>s+d.held,0);
-    const depIn=months.reduce((s,mm)=>s+sortedProps().reduce((a,p)=>a+((collections(p.id,mm)||{}).deposit||0),0),0),depOut=deps.filter(d=>!d.t.active&&inM(d.t.moveOut)).reduce((s,d)=>s+d.ref,0);
-    const sc=scProps().map(p=>{const F=scFund(p.id,months[0]);let col=0,sp=0;months.forEach(mm=>{const r=scMonth(p.id,mm);col+=r.collected;sp+=r.spent});return {p,opening:F.opening,col:Math.round(col),sp:Math.round(sp),closing:Math.round(F.opening+col-sp)}});
-    const mj=S.maint.filter(x=>inM(x.resolvedAt)&&+x.cost>0),mBy={landlord:0,tenant:0,office:0,none:0};mj.forEach(x=>{mBy[x.chargeTo||"none"]=(mBy[x.chargeTo||"none"]||0)+(+x.cost||0)});
-    const deals=S.leads.filter(l=>l.kind==="sale"&&(ldPaid(l)||(l.deal||{}).payouts)).map(l=>{const d=l.deal||{},rec=ldPaid(l),out=(d.payouts||[]).reduce((s,p)=>s+(+p.amount||0),0),comm=ldWon(l)?ldComm(l):0;
-      return {l,rec,recIn:(d.payments||[]).filter(p=>inM(p.date)).reduce((s,p)=>s+(+p.amount||0),0),out,comm,held:Math.round(rec-out-comm)}});
-    return {months,props,inc,salesComm,exp,expT,expBy,depBer,depLl,depIn:Math.round(depIn),depOut:Math.round(depOut),sc,mj,mBy,deals};
-  }finally{filters.llPart=keep}
-}
-function vFunds(){
-  if(!ME.admin)return vDashboard();
-  const ytd=filters.fdYtd==="1",F=fundsData(month,ytd),per=ytd?`January to ${monthLabel(month)}`:monthLabel(month);
-  const T=k=>F.props.reduce((s,r)=>s+r[k],0),compIn=Math.round((F.inc.total||0)+F.salesComm),net=compIn-F.expT;
-  const scT=k=>F.sc.reduce((s,r)=>s+r[k],0),dlT=k=>F.deals.reduce((s,r)=>s+r[k],0);
-  const card=(title,sub,figs,table)=>`<div class="card fd"><div class="ch"><h2>${title}</h2><span class="fd-sub">${sub}</span></div><div class="cb"><div class="fd-figs">${figs.map(([k,v,cls])=>`<div class="${cls||""}"><span>${k}</span><b>${typeof v==="number"?n0(v):v}</b></div>`).join("")}</div>${table||""}</div></div>`;
-  return `<div class="pagehead"><h1>Funds, ${esc(per)}</h1><p>Money Berlim Homes holds belongs to different people. Each account below is kept apart: what is the company's to spend, and what is held for landlords, tenants, buildings and buyers.</p>
-   <div class="row"><div class="seg" role="tablist"><button class="${ytd?"":"on"}" data-a="fdYtd" data-id="0">${monthLabel(month)}</button><button class="${ytd?"on":""}" data-a="fdYtd" data-id="1">Year to date</button></div>${downloads?`<button class="btn" data-a="fdCsv">Export to Excel</button>`:""}</div></div>
-   ${card("Company operating account","Berlim Homes' own money: earned less spent",[["Management income",Math.round(F.inc.total||0)],["Sales commission",Math.round(F.salesComm)],["Office expenses",F.expT],[net<0?"Loss":"Profit",net,net<0?"bad":"good"],["VAT collected (owed to KRA)",Math.round(F.inc.vat||0)]],
-     `<div class="tw"><table><thead><tr><th>Income</th><th class="num">KES</th></tr></thead><tbody><tr><td>Management commission</td><td class="num">${n0(F.inc.comm||0)}</td></tr><tr><td>Commission on utilities and deposits</td><td class="num">${n0((F.inc.util||0)+(F.inc.dep||0))}</td></tr><tr><td>Letting fees</td><td class="num">${n0(F.inc.letting||0)}</td></tr><tr><td>Late penalties kept</td><td class="num">${n0(F.inc.pen||0)}</td></tr><tr><td>Sales commission (deals closed)</td><td class="num">${n0(F.salesComm)}</td></tr></tbody></table></div>
-      <div class="tw"><table><thead><tr><th>Expenses</th><th class="num">KES</th></tr></thead><tbody>${Object.entries(F.expBy).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="num">${n0(v)}</td></tr>`).join("")||`<tr><td colspan="2" class="empty">No office expenses recorded.</td></tr>`}</tbody></table></div>`)}
-   ${card("Landlords' money","Rent collected for landlords, less deductions, less payments recorded as sent (Landlords page)",[["Collected for landlords",T("total")],["Deductions to company and costs",T("ded")],["Sent to landlords",T("done")],["Not yet sent to landlords",T("owed"),T("owed")>0?"warn":""]],
-     `<div class="tw"><table><thead><tr><th>Property</th><th class="num">Owed from earlier this year</th><th class="num">Collected</th><th class="num">Deductions</th><th class="num">Sent</th><th class="num">Not yet sent</th></tr></thead><tbody>${F.props.map(r=>`<tr><td><span class="code">${esc(r.p.code)}</span> ${esc(r.p.landlord||r.p.name||"")}</td><td class="num">${n0(r.before)}</td><td class="num">${n0(r.total)}</td><td class="num">${n0(r.ded)}</td><td class="num">${n0(r.done)}</td><td class="num"><strong>${n0(r.owed)}</strong></td></tr>`).join("")||`<tr><td colspan="6" class="empty">Nothing collected for landlords in this period.</td></tr>`}</tbody>
-      <tfoot><tr><td>Total</td><td class="num">${n0(T("before"))}</td><td class="num">${n0(T("total"))}</td><td class="num">${n0(T("ded"))}</td><td class="num">${n0(T("done"))}</td><td class="num">${n0(T("owed"))}</td></tr></tfoot></table></div>`)}
-   ${card("Tenants' deposits","Refundable to tenants when they move out",[["Held by Berlim Homes",Math.round(F.depBer)],["Held by landlords",Math.round(F.depLl)],["Deposits received",F.depIn],["Refunded",F.depOut]],`<p class="hint" style="margin:10px 0 0">House by house list: Leases page, Deposits held.</p>`)}
-   ${card("Service charge fund","Belongs to each building's upkeep",[["Opening balance",scT("opening")],["Collected",scT("col")],["Spent",scT("sp")],["Balance",scT("closing"),scT("closing")<0?"bad":""]],
-     F.sc.length?`<div class="tw"><table><thead><tr><th>Property</th><th class="num">Opening</th><th class="num">Collected</th><th class="num">Spent</th><th class="num">Balance</th></tr></thead><tbody>${F.sc.map(r=>`<tr><td><span class="code">${esc(r.p.code)}</span> ${esc(r.p.name)}</td><td class="num">${n0(r.opening)}</td><td class="num">${n0(r.col)}</td><td class="num">${n0(r.sp)}</td><td class="num"><strong>${n0(r.closing)}</strong></td></tr>`).join("")}</tbody></table></div>`:`<p class="hint" style="margin:10px 0 0">No property charges a service charge yet.</p>`)}
-   ${card("Repairs","Cost of repairs finished in the period, by who pays",[["Charged to landlords",F.mBy.landlord||0],["Charged to tenants",F.mBy.tenant||0],["Paid by Berlim Homes",F.mBy.office||0],["Already settled",F.mBy.none||0]],"")}
-   ${card("Sales: buyers' money","Received from buyers, less paid to sellers and commission",[["Received",dlT("rec")],["Received in period",dlT("recIn")],["Paid to sellers",dlT("out")],["Held for sellers",dlT("held"),dlT("held")>0?"warn":""]],
-     F.deals.length?`<div class="tw"><table><thead><tr><th>Buyer</th><th>Property</th><th class="num">Received</th><th class="num">Paid to seller</th><th class="num">Commission</th><th class="num">Held</th></tr></thead><tbody>${F.deals.map(r=>`<tr><td>${esc(r.l.name)}<span class="sub">${esc(r.l.no||"")} · ${esc(r.l.stage)}</span></td><td>${esc((get("listings",r.l.listingId)||{}).title||r.l.interest||"")}</td><td class="num">${n0(r.rec)}</td><td class="num">${n0(r.out)}</td><td class="num">${n0(r.comm)}</td><td class="num"><strong>${n0(r.held)}</strong></td></tr>`).join("")}</tbody></table></div>`:`<p class="hint" style="margin:10px 0 0">No buyer payments recorded. Record them on a sale lead (Sales and lettings).</p>`)}`;
-}
-function fundsCsv(){const ytd=filters.fdYtd==="1",F=fundsData(month,ytd),rows=[["Account","Line","Amount (KES)"]];
-  rows.push(["Company","Management income",Math.round(F.inc.total||0)],["Company","Sales commission",Math.round(F.salesComm)],["Company","Office expenses",-F.expT],["Company","VAT collected (owed to KRA)",Math.round(F.inc.vat||0)]);
-  F.props.forEach(r=>rows.push(["Landlords",`${r.p.code} still held`,r.owed]));rows.push(["Deposits","Held by Berlim Homes",Math.round(F.depBer)],["Deposits","Held by landlords",Math.round(F.depLl)]);
-  F.sc.forEach(r=>rows.push(["Service charge",`${r.p.code} balance`,r.closing]));Object.entries(F.mBy).forEach(([k,v])=>rows.push(["Repairs","Charged to "+k,v]));F.deals.forEach(r=>rows.push(["Sales",`${r.l.no} ${r.l.name} held`,r.held]));
-  return csv(rows)}
 function formLdPayout(id){const l=get("leads",id);if(!l)return;
   openModal("Payment to the seller: "+esc(l.name)+"'s deal",`<form id="fDo" class="fg"><div class="f"><label for="do-a">Amount (KES)</label><input id="do-a" name="amount" type="number" min="1" step="any" required></div><div class="f"><label for="do-d">Date</label><input id="do-d" name="date" type="date" value="${todayStr}" required></div>
    <div class="f full"><label for="do-r">Reference</label><input id="do-r" name="ref" placeholder="Bank or M-Pesa code"></div></form>`,`<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fDo" type="submit">Record payment</button>`,true);
@@ -5460,35 +5565,389 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(!b
   else if(a==="inRep")inReport(id);
   else if(a==="inMaint")inMaintAsk(id);
   else if(a==="inFu"){const x=get("inspections",id);if(x)save("inspections",{...x,followDone:todayStr}).then(ok=>ok&&toast("Re-check recorded"))}
-  else if(a==="fdYtd"){e.preventDefault();filters.fdYtd=id;render()}
-  else if(a==="fdCsv")dlFile("funds-"+month+(filters.fdYtd==="1"?"-ytd":"")+".csv",fundsCsv());
   else if(a==="ldPayout")formLdPayout(id)});
 document.addEventListener("change",e=>{const a=e.target.dataset&&e.target.dataset.a;if(a==="inCode"){filters.inCode=e.target.value;render()}else if(a==="inKind"){filters.inKind=e.target.value;render()}});
 
-const VIEWS={leases:vLeases,portal:vPortal,sales:vSales,inspect:vInspect,funds:vFunds,maint:vMaint,mgmt:vMgmt,dashboard:()=>{const h=vDashboard(),a=leaseAlert()+salesAlert(),i=h.indexOf("</div>",h.indexOf("pagehead"));return a&&i>0&&filters.code==="all"?h.slice(0,i+6)+h.slice(i+6).replace(/<\/div>/,"</div>"+a):h},tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
+/* ===== Accounts: double-entry books built from the ledger's own records =====
+   Every record that moves money or changes who it belongs to becomes a balanced journal entry (debits = credits):
+   tenant bills, payments, landlord report deductions, remittances, office expenses, service-charge spending, deposit refunds,
+   provider payments, buyers' money, and any manual entry (opening balances, transfers, owner's money).
+   Nothing is typed twice: change the record and the books follow. Manual entries live in "journals" (admins only). */
+const GL_EXP=EXP_CATS.map((c,i)=>[String(5010+i*10),c]);
+const GL_BASE={
+  "1010":"M-Pesa","1020":"Bank","1030":"Cash","1100":"Tenants owing",
+  "2010":"Owed to landlords","2020":"Tenants' deposits held","2030":"Service charge fund","2040":"VAT owed to KRA","2050":"Buyers' money held","2070":"Landlord costs to pay","2099":"Billing to review",
+  "3010":"Opening balances and owner's capital","3020":"Owner's drawings",
+  "4010":"Management commission","4020":"Commission on utilities","4030":"Commission on deposits","4040":"Letting fees","4050":"Late penalties","4060":"Tenant charges kept","4061":"Garbage fees kept","4070":"Sales commission","4090":"Other income",
+  ...Object.fromEntries(GL_EXP)};
+const GL_BANKS=["1010","1020","1030"];
+const GL_ABOUT={"1100":"Billed to tenants and not yet paid","2010":"Rent and charges collected for landlords, less deductions and payments sent","2020":"Refundable to tenants when they move out (where Berlim Homes keeps deposits)","2030":"Belongs to each building's upkeep","2040":"VAT on fees, to pay to KRA","2050":"Received from buyers, less paid to sellers and commission","2070":"Taken from landlords for caretakers, repairs, soap and similar, until paid","2099":"Amounts billed that did not appear on a landlord report (or the reverse): check these"};
+const glName=a=>((S.settings.glNames||{})[a])||GL_BASE[a]||a;
+const glKind=a=>({1:"Asset",2:"Held for others",3:"Owner's equity",4:"Income",5:"Expense"})[a[0]]||"";
+const glDebitSide=a=>a[0]==="1"||a[0]==="5";
+const glExpAcct=c=>(GL_EXP.find(x=>x[1]===c)||GL_EXP[GL_EXP.length-1])[0];
+const glDef=()=>S.settings.glDefault||"1010";
+function glAcctFor(method){const m=String(method||"");if(/m-?pesa|mpesa|till|paybill/i.test(m))return "1010";if(/bank|cheque|sacco|eft|rtgs|transfer/i.test(m))return "1020";if(/cash/i.test(m))return "1030";return glDef()}
+const GL_SRC={bill:"Tenant bill",open:"Opening balance",pay:"Tenant payment",ded:"Landlord report deductions",adj:"Landlord report check",remit:"Paid to landlord",exp:"Expense",sc:"Service charge spending",dep:"Deposit refund",prov:"Service provider payment",sale:"Sales",jnl:"Manual entry"};
+let _gl={k:null,v:null};
+function glBuild(){
+  const k=[S.invoices,S.payments,S.remits,S.ldeds,S.lreports,S.expenses,S.journals,S.scexp,S.ppays,S.leads,S.tenants,S.units,S.properties,S.settings,todayStr];
+  if(_gl.k&&k.every((x,i)=>x===_gl.k[i]))return _gl.v;
+  const E=[],add=(d,src,ref,memo,lines,o)=>{const L=lines.filter(l=>Math.round(l[1]*100)/100);if(!L.length)return;const s=L.reduce((a,l)=>a+l[1],0);if(Math.abs(s)>0.5)L.push(["2099",-s]);E.push({d:d||"",src,ref:ref||"",memo:memo||"",lines:L,...(o||{})})};
+  const unitOfT=tid=>{const t=get("tenants",tid);return t?get("units",t.unitId):null};
+  const tLab=t=>{if(!t)return "Tenant";const u=get("units",t.unitId),p=propOf(u)||{};return `${t.name} (${p.code||""} ${u?unitName(u):""})`};
+  /* 1. bills to tenants */
+  const llBilled={},months={};
+  for(const i of S.invoices){if(i.reversed)continue;const amt=invAmt(i);if(!amt)continue;const t=get("tenants",i.tenantId),u=get("units",i.unitId)||unitOfT(i.tenantId),P=u?propOf(u):null,p=P?cfg(P):{},pid=P?P.id:"";
+    const d=(i.issueDate||i.month+"-01").slice(0,10);
+    if(i.adj){add(d,"open",i.no,"Balance before records started: "+tLab(t),[["1100",amt,pid],["3010",-amt,pid]],{col:"invoices",id:i.id});continue}
+    const cr={};for(const l of i.lines||[]){const a=+l.amount||0;if(!a)continue;const ac=l.kind==="penalty"?"4050":l.toLandlord===false?"4060":(l.kind==="garbage"&&!p.garbageToLandlord)?"4061":"2010";cr[ac]=(cr[ac]||0)+a}
+    const sum=Object.values(cr).reduce((s,v)=>s+v,0);if(Math.round(amt-sum))cr["2010"]=(cr["2010"]||0)+(amt-sum);
+    if(pid){const key=pid+"|"+i.month;llBilled[key]=(llBilled[key]||0)+(cr["2010"]||0);months[pid]=months[pid]||new Set();months[pid].add(i.month)}
+    add(d,"bill",i.no,`${CATS[catOf(i)]?CATS[catOf(i)].short:"Bill"}, ${monthShort(i.month)}: ${tLab(t)}`,[["1100",amt,pid],...Object.entries(cr).map(([a,v])=>[a,-v,pid])],{col:"invoices",id:i.id})}
+  /* 2. tenant payments */
+  for(const x of S.payments){const amt=+x.amount||0;if(!amt)continue;const t=get("tenants",x.tenantId),u=unitOfT(x.tenantId),pid=u?u.propertyId:"";
+    const dr=x.method==="Paid to landlord"?"2010":x.method==="Settled before system"?"3010":glAcctFor(x.method);
+    add((x.date||"").slice(0,10),"pay",x.receiptNo||x.ref||"",`${x.method==="Paid to landlord"?"Paid to landlord directly":"Received"}: ${tLab(t)}${x.ref&&x.receiptNo?" · "+x.ref:""}`,[[dr,amt,pid],["1100",-amt,pid]],{col:"payments",id:x.id})}
+  /* 3. landlord reports: deductions, and a check that the report matches the bills */
+  const nowM=monthAdd(todayStr.slice(0,7),1),keep=filters.llPart;filters.llPart="";
+  try{for(const P of S.properties){const ms=new Set([...(months[P.id]||[]),...S.remits.filter(r=>r.propertyId===P.id).map(r=>r.month),...S.ldeds.filter(r=>r.propertyId===P.id).map(r=>r.month)]);
+    for(const m of [...ms].filter(Boolean).sort()){if(m>nowM)continue;const L=landlordMonthAll(P.id,m),d=lastDay(m)>todayStr&&m<=todayStr.slice(0,7)?todayStr:lastDay(m),diff=Math.round(L.total-(llBilled[P.id+"|"+m]||0));
+      if(diff)add(d,"adj",P.code+" "+monthShort(m),`${P.code} landlord report for ${monthLabel(m)} differs from the bills by KES ${n0(diff)}`,[["2099",diff,P.id],["2010",-diff,P.id]]);
+      const lines=[];for(const x of L.ded){const a=+x.amount||0;if(!a)continue;const key=x.key||"";let ac=null;
+        if(x.ppay||key.startsWith("direct_"))continue;
+        if(key==="comm")ac="4010";else if(key==="ucomm")ac="4020";else if(key==="dcomm")ac="4030";else if(key.startsWith("let_"))ac="4040";else if(key==="vat"||key==="vatu")ac="2040";else if(key==="held")ac="2020";else if(key==="service")ac="2030";
+        else if(x.id){const ld=get("ldeds",x.id)||{};ac=ld.kind==="deposit_held"?"2020":(ld.auto==="deposit"||ld.kind==="deposit_refund"||ld.kind==="rent_refund")?glAcctFor(ld.method):ld.kind==="rent_direct"?"2099":"2070"}
+        else ac=x.fee?"4090":"2070";
+        lines.push([ac,-a,P.id,x.desc])}
+      const tot=lines.reduce((s,l)=>s-l[1],0);if(tot)add(d,"ded",P.code+" "+monthShort(m),`${P.code} ${monthLabel(m)}: ${lines.map(l=>l[3]).join(", ")}`.slice(0,240),[["2010",tot,P.id],...lines.map(l=>[l[0],l[1],l[2]])])}}}
+  finally{filters.llPart=keep}
+  /* 4. money sent to landlords */
+  for(const r of S.remits){const a=+r.amount||0;if(!a)continue;const P=get("properties",r.propertyId)||{};
+    add((r.date||"").slice(0,10),"remit",r.ref||"",`Paid to ${P.landlord||"landlord"} for ${P.code||""} ${monthLabel(r.month||"")}${r.paidTo?" · "+r.paidTo:""}`,[["2010",a,P.id],[r.method==="Settled before system"?"3010":glAcctFor(r.method),-a,P.id]],{col:"remits",id:r.id})}
+  /* 5. office expenses (and payments made from landlord costs or the service charge fund) */
+  for(const x of S.expenses||[]){const a=+x.amount||0;if(!a)continue;const dr=x.fund==="landlord"?"2070":x.fund==="sc"?"2030":glExpAcct(x.category);
+    add((x.date||"").slice(0,10),"exp",x.ref||"",`${x.fund==="landlord"?"Paid for a landlord: ":x.fund==="sc"?"Service charge: ":""}${x.category}${x.desc?": "+x.desc:""}${x.propertyId?" ("+((get("properties",x.propertyId)||{}).code||"")+")":""}`,[[dr,a,x.propertyId||""],[glAcctFor(x.method),-a,x.propertyId||""]],{col:"expenses",id:x.id})}
+  /* 6. service charge spending */
+  for(const x of S.scexp||[]){const a=+x.amount||0;if(!a)continue;const P=get("properties",x.propertyId)||{};
+    add((x.date||(x.month||"")+"-01").slice(0,10),"sc",x.ref||"",`${P.code||""} service charge: ${x.category||""}${x.desc?" · "+x.desc:""}`,[["2030",a,P.id],[glAcctFor(x.method),-a,P.id]],{col:"scexp",id:x.id})}
+  /* 7. deposits Berlim Homes keeps: refunds and deductions at move-out */
+  for(const t of S.tenants){if(t.active||!t.moveOut)continue;const u=get("units",t.unitId),P=u?propOf(u):null;if(!P||!cfg(P).holdDeposits||t.depLded)continue;
+    const ref=+t.depositRefund||0,ded=firstNum(t.depositDeduct);
+    if(ref)add(t.moveOut,"dep","",`Deposit refunded: ${tLab(t)}`,[["2020",ref,P.id],[glAcctFor(t.depositRefundMethod),-ref,P.id]],{col:"tenants",id:t.id});
+    if(ded)add(t.moveOut,"dep","",`Deposit kept for damages, passed to the landlord: ${tLab(t)}`,[["2020",ded,P.id],["2010",-ded,P.id]],{col:"tenants",id:t.id})}
+  /* 8. service providers paid */
+  for(const x of S.ppays||[]){const a=+x.amount||0;if(!a)continue;const v=get("providers",x.providerId)||{};
+    add((x.date||"").slice(0,10),"prov",x.ref||"",`${v.name||"Service provider"}${v.service?" ("+v.service+")":""}${x.deduct?", taken from the landlord":""}`,[[x.deduct?"2010":glExpAcct("Utilities"),a,x.propertyId||""],[glAcctFor(x.method),-a,x.propertyId||""]],{col:"ppays",id:x.id})}
+  /* 9. property sales: buyers' money, payments to sellers, commission */
+  for(const l of S.leads||[]){if(l.kind!=="sale")continue;const d=l.deal||{};
+    (d.payments||[]).forEach(p=>{const a=+p.amount||0;if(a)add(p.date,"sale",p.ref||"",`Buyer ${l.name} paid${p.note?" ("+p.note+")":""}`,[[glAcctFor(p.method||"Bank"),a],["2050",-a]],{col:"leads",id:l.id})});
+    (d.payouts||[]).forEach(p=>{const a=+p.amount||0;if(a)add(p.date,"sale",p.ref||"",`Paid to the seller, ${l.name}'s purchase`,[["2050",a],[glAcctFor(p.method||"Bank"),-a]],{col:"leads",id:l.id})});
+    if(ldWon(l)&&ldComm(l))add(l.wonAt||todayStr,"sale",l.no||"",`Sales commission, ${l.name}'s purchase`,[["2050",ldComm(l)],["4070",-ldComm(l)]],{col:"leads",id:l.id})}
+  /* 10. manual entries */
+  for(const j of S.journals||[])add(j.date,"jnl",j.no||"",j.memo||"Manual entry",(j.lines||[]).map(l=>[l.a,(+l.dr||0)-(+l.cr||0),l.pid||""]),{col:"journals",id:j.id,kind:j.kind});
+  E.sort((a,b)=>(a.d||"").localeCompare(b.d||"")||(a.src||"").localeCompare(b.src||""));
+  E.forEach((e,n)=>e.n=n);
+  _gl={k,v:E};return E;
+}
+function glPeriod(){const m=month,mode=filters.acPer||"month";if(mode==="all")return {from:"0000",to:lastDay(m),label:"All time to "+monthLabel(m)};if(mode==="ytd")return {from:m.slice(0,4)+"-01-01",to:lastDay(m),label:"January to "+monthLabel(m)+" "};return {from:m+"-01",to:lastDay(m),label:monthLabel(m)}}
+function glTotals(E,from,to){const o={},dr={},cr={},c={};for(const e of E){if(e.d>to)continue;const before=e.d<from;for(const [a,v] of e.lines){if(before)o[a]=(o[a]||0)+v;else{if(v>0)dr[a]=(dr[a]||0)+v;else cr[a]=(cr[a]||0)-v}c[a]=(c[a]||0)+v}}return {o,dr,cr,c}}
+const glAccts=E=>{const s=new Set(Object.keys(GL_BASE));E.forEach(e=>e.lines.forEach(l=>s.add(l[0])));return [...s].sort()};
+const glAmt=(a,v)=>{const x=glDebitSide(a)?v:-v;return x<0?`(${n0(-x)})`:n0(x)};
+function glCsvDl(name,rows){dlFile(name,csv(rows))}
+
+function vAccounts(){
+  if(!ME.admin)return vDashboard();
+  const tab=filters.acTab||"over",per=glPeriod(),E=glBuild(),T=glTotals(E,per.from,per.to);
+  const perSeg=`<div class="seg" role="tablist" aria-label="Period">${[["month",monthLabel(month)],["ytd","Year to date"],["all","All time"]].map(([k,l])=>`<button class="${(filters.acPer||"month")===k?"on":""}" data-a="acPer" data-id="${k}">${l}</button>`).join("")}</div>`;
+  const tabs=`<div class="seg ac-tabs" role="tablist">${[["over","Overview"],["cash","Cashbook"],["exp","Expenses"],["jnl","Journal"],["tb","Trial balance"],["pl","Profit and loss"],["bs","Balance sheet"],["led","Account ledger"]].map(([k,l])=>`<button class="${tab===k?"on":""}" data-a="acTab" data-id="${k}">${l}</button>`).join("")}</div>`;
+  const head=`<div class="pagehead"><h1>Accounts</h1><div class="row"><button class="btn primary" data-a="expNew">Record expense</button><button class="btn" data-a="jnNew">New entry</button></div>
+   <p>The company's books, kept by double entry from the records in the ledger. Each shilling shows where it came from, which account it sits in and whom it belongs to.</p></div>
+   <div class="ac-bar">${perSeg}${(filters.acPer||"month")!=="month"?`<span class="ac-per">${esc(per.label)}</span>`:""}</div>${tabs}`;
+  let body="";
+  const bal=a=>T.c[a]||0,open=a=>T.o[a]||0;
+  if(tab==="over"){
+    const cash=GL_BANKS.reduce((s,a)=>s+bal(a),0),held=["2010","2020","2030","2040","2050","2070"].reduce((s,a)=>s-bal(a),0),owing=bal("1100");
+    const inc=Object.keys(T.c).filter(a=>a[0]==="4").reduce((s,a)=>s+(T.cr[a]||0)-(T.dr[a]||0),0),exp=Object.keys(T.c).filter(a=>a[0]==="5").reduce((s,a)=>s+(T.dr[a]||0)-(T.cr[a]||0),0);
+    const noOpen=!(S.journals||[]).some(j=>j.kind==="open");
+    const row=a=>{const o=open(a),i=glDebitSide(a)?(T.dr[a]||0):(T.cr[a]||0),x=glDebitSide(a)?(T.cr[a]||0):(T.dr[a]||0),c=glDebitSide(a)?bal(a):-bal(a);
+      return `<tr><td><button class="link" data-a="acLed" data-id="${a}"><strong>${esc(glName(a))}</strong></button><span class="sub">${esc(GL_ABOUT[a]||glKind(a))}</span></td><td class="num">${n0(glDebitSide(a)?o:-o)}</td><td class="num">${n0(i)}</td><td class="num">${n0(x)}</td><td class="num"><strong class="${c<0?"neg":""}">${c<0?"("+n0(-c)+")":n0(c)}</strong></td></tr>`};
+    body=`${noOpen?`<div class="banner ac-warn"><span><strong>Start with opening balances.</strong> Enter what each account (M-Pesa, bank, cash) held on the day you started, so the cashbook matches your statements.</span><button class="btn sm primary" data-a="jnNew" data-id="open">Enter opening balances</button></div>`:""}
+     <div class="kpis"><div class="kpi"><span>Money in accounts</span><b>${n0(cash)}</b><em>M-Pesa, bank and cash at ${fmtDate(per.to)}</em></div>
+      <div class="kpi"><span>Held for others</span><b>${n0(held)}</b><em>Landlords, deposits, service charge, VAT, buyers</em></div>
+      <div class="kpi ${cash-held<0?"bad":""}"><span>Company's own money</span><b>${cash-held<0?"("+n0(held-cash)+")":n0(cash-held)}</b><em>${cash-held<0?"Less cash than is owed to others":"Cash left after what is owed to others"}</em></div>
+      <div class="kpi"><span>Tenants owe</span><b>${n0(owing)}</b><em>Billed and not yet paid</em></div>
+      <div class="kpi ${inc-exp<0?"bad":"good"}"><span>${inc-exp<0?"Loss":"Profit"}, ${esc(per.label.trim())}</span><b>${n0(Math.abs(inc-exp))}</b><em>Income ${n0(inc)} less expenses ${n0(exp)}</em></div></div>
+     <p class="hint" style="margin:-6px 0 0">Balances here are what the records say. If money was paid out (to landlords, staff or suppliers) and not recorded, the accounts show more than the bank does. Compare each account with its statement on the Cashbook tab to find what is missing.</p>
+     <div class="card"><div class="ch"><h2>Money accounts</h2><span class="hint">Opening and closing balances for ${esc(per.label.trim())}</span></div><div class="tw"><table><thead><tr><th>Account</th><th class="num">Opening</th><th class="num">Money in</th><th class="num">Money out</th><th class="num">Closing</th></tr></thead><tbody>${GL_BANKS.map(row).join("")}</tbody>
+      <tfoot><tr><td>Total</td><td class="num">${n0(GL_BANKS.reduce((s,a)=>s+open(a),0))}</td><td class="num">${n0(GL_BANKS.reduce((s,a)=>s+(T.dr[a]||0),0))}</td><td class="num">${n0(GL_BANKS.reduce((s,a)=>s+(T.cr[a]||0),0))}</td><td class="num">${n0(cash)}</td></tr></tfoot></table></div>
+      <div class="cb row" style="gap:10px;flex-wrap:wrap"><button class="btn sm" data-a="acTab" data-id="cash">Open the cashbook</button><button class="btn sm" data-a="jnNew" data-id="xfer">Move money between accounts</button><button class="btn sm" data-a="acNames">Rename accounts</button><span class="hint" style="flex:1;min-width:240px">Payments with no method given go to ${esc(glName(glDef()))}. <button class="link" data-a="acNames">Change</button></span></div></div>
+     <div class="card"><div class="ch"><h2>Money held for others</h2><span class="hint">Not the company's to spend</span></div><div class="tw"><table><thead><tr><th>Fund</th><th class="num">Opening</th><th class="num">Added</th><th class="num">Paid or used</th><th class="num">Held now</th></tr></thead><tbody>${["2010","2020","2030","2040","2050","2070"].map(row).join("")}${Math.round(bal("2099"))?row("2099"):""}</tbody></table></div></div>
+     <div class="card"><div class="ch"><h2>Landlords: what each is owed</h2><button class="btn sm" data-a="acTab" data-id="bs">Balance sheet</button></div><div class="tw"><table><thead><tr><th>Property</th><th class="num">Owed at start</th><th class="num">Collected for them</th><th class="num">Deducted</th><th class="num">Paid to them</th><th class="num">Owed now</th></tr></thead><tbody>${glByProp(E,per,"2010").map(r=>`<tr><td><span class="code">${esc(r.p.code)}</span> ${esc(r.p.landlord||r.p.name||"")}</td><td class="num">${n0(-r.o)}</td><td class="num">${n0(r.bill)}</td><td class="num">${n0(r.ded)}</td><td class="num">${n0(r.paid)}</td><td class="num"><strong class="${r.c>0?"neg":""}">${r.c>0?"("+n0(r.c)+")":n0(-r.c)}</strong></td></tr>`).join("")||`<tr><td colspan="6" class="empty">No landlord records yet.</td></tr>`}</tbody></table></div>
+      <div class="cb"><p class="hint" style="margin:0">A figure in brackets means Berlim Homes has paid that landlord more than was collected for them (an advance).</p></div></div>`;
+  }
+  else if(tab==="cash"){
+    const ac=filters.acAcct&&GL_BANKS.includes(filters.acAcct)?filters.acAcct:"all",q=(filters.acQ||"").toLowerCase(),accts=ac==="all"?GL_BANKS:[ac];
+    let run=accts.reduce((s,a)=>s+open(a),0);const o0=run;
+    const rows=[];for(const e of E){if(e.d<per.from||e.d>per.to)continue;const mine=e.lines.filter(l=>accts.includes(l[0]));if(!mine.length)continue;const v=mine.reduce((s,l)=>s+l[1],0);if(!Math.round(v))continue;
+      const other=e.lines.filter(l=>!accts.includes(l[0])).map(l=>glName(l[0]));run+=v;if(q&&!(e.memo+" "+e.ref).toLowerCase().includes(q))continue;rows.push({e,v,run,other:[...new Set(other)].join(", "),acc:ac==="all"?[...new Set(mine.map(l=>glName(l[0])))].join(", "):""})}
+    const inT=rows.reduce((s,r)=>s+(r.v>0?r.v:0),0),outT=rows.reduce((s,r)=>s+(r.v<0?-r.v:0),0);
+    body=`<div class="row" style="margin:0 0 12px;gap:10px;flex-wrap:wrap"><select data-a="acAcct" aria-label="Account"><option value="all">All money accounts</option>${GL_BANKS.map(a=>`<option value="${a}" ${a===ac?"selected":""}>${esc(glName(a))}</option>`).join("")}</select>
+      <input type="search" id="acQ" placeholder="Search receipt, code, name" value="${esc(filters.acQ||"")}" style="min-width:240px"><span style="flex:1"></span>${downloads?`<button class="btn sm" data-a="acCsv" data-id="cash">Export to Excel</button>`:""}</div>
+     <div class="card"><div class="tw"><table class="ac-tbl"><thead><tr><th>Date</th><th>Reference</th><th>Details</th><th>${ac==="all"?"Account · ":""}Belongs to</th><th class="num">Money in</th><th class="num">Money out</th><th class="num">Balance</th></tr></thead><tbody>
+      ${(()=>{const sh=rows.slice(-600),bf=sh.length?sh[0].run-sh[0].v:o0;return `<tr class="ac-open"><td>${sh.length<rows.length?"":fmtDate(per.from<"1000"?"":per.from)}</td><td></td><td>${sh.length<rows.length?"Balance brought forward":"Opening balance"}</td><td></td><td></td><td></td><td class="num"><strong>${bf<0?"("+n0(-bf)+")":n0(bf)}</strong></td></tr>`})()}
+      ${rows.slice(-600).map(r=>`<tr><td style="white-space:nowrap">${fmtDate(r.e.d)}</td><td style="white-space:nowrap">${esc(r.e.ref)}</td><td>${esc(r.e.memo)}<span class="sub">${esc(GL_SRC[r.e.src]||"")}</span></td><td style="font-size:13px">${r.acc?esc(r.acc)+" · ":""}${esc(r.other)}</td><td class="num">${r.v>0?n0(r.v):""}</td><td class="num">${r.v<0?n0(-r.v):""}</td><td class="num">${r.run<0?"("+n0(-r.run)+")":n0(r.run)}</td></tr>`).join("")||`<tr><td colspan="7" class="empty">No money moved in ${esc(per.label.trim())}.</td></tr>`}</tbody>
+      <tfoot><tr><td colspan="4">Totals${rows.length>600?` (last 600 of ${rows.length} lines shown)`:""}</td><td class="num">${n0(inT)}</td><td class="num">${n0(outT)}</td><td class="num">${n0(run)}</td></tr></tfoot></table></div></div>
+     ${ac!=="all"?glReconHTML(ac,run,per):""}`;
+  }
+  else if(tab==="exp"){
+    const cat=filters.acCat||"all",xs=(S.expenses||[]).filter(x=>(x.date||"")>=per.from&&(x.date||"")<=per.to&&(cat==="all"||x.category===cat)).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+    const by={};xs.forEach(x=>{const k=x.fund==="landlord"?"Paid for landlords":x.fund==="sc"?"Service charge spending":x.category;by[k]=(by[k]||0)+(+x.amount||0)});const tot=xs.reduce((s,x)=>s+(+x.amount||0),0),mx=Math.max(1,...Object.values(by));
+    body=`<div class="row" style="margin:0 0 12px;gap:10px;flex-wrap:wrap"><select data-a="acCat" aria-label="Category"><option value="all">All categories</option>${EXP_CATS.map(c=>`<option ${c===cat?"selected":""}>${c}</option>`).join("")}</select><span style="flex:1"></span>${downloads?`<button class="btn sm" data-a="acCsv" data-id="exp">Export to Excel</button>`:""}<button class="btn sm primary" data-a="expNew">Record expense</button></div>
+     <div class="ac-split"><div class="card"><div class="ch"><h2>Expenses, ${esc(per.label.trim())}</h2><span class="hint">KES ${n0(tot)}</span></div><div class="tw"><table><thead><tr><th>Date</th><th>Category</th><th>Details</th><th>Paid from</th><th class="num">Amount</th><th></th></tr></thead><tbody>${xs.map(x=>`<tr><td style="white-space:nowrap">${fmtDate(x.date)}</td><td>${esc(x.category)}${x.fund==="landlord"?'<span class="sub">For a landlord</span>':x.fund==="sc"?'<span class="sub">Service charge fund</span>':""}</td><td>${esc(x.desc||"")}${x.propertyId?`<span class="sub">${esc((get("properties",x.propertyId)||{}).code||"")}</span>`:""}</td><td style="font-size:13px">${esc(glName(glAcctFor(x.method)))}<span class="sub">${esc(x.method||"")}${x.ref?" · "+esc(x.ref):""}</span></td><td class="num">${n0(x.amount)}</td><td class="num" style="white-space:nowrap"><button class="btn sm" data-a="expEdit" data-id="${x.id}">Edit</button><button class="btn sm danger" data-a="expDel" data-id="${x.id}">Delete</button></td></tr>`).join("")||`<tr><td colspan="6" class="empty">No expenses recorded in ${esc(per.label.trim())}.</td></tr>`}</tbody>
+      <tfoot><tr><td colspan="4">Total</td><td class="num">${n0(tot)}</td><td></td></tr></tfoot></table></div></div>
+      <div class="card"><div class="ch"><h2>By category</h2></div><div class="cb">${Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="ac-cat"><div><span>${esc(k)}</span><b>${n0(v)}</b></div><i style="width:${Math.round(v/mx*100)}%"></i></div>`).join("")||'<p class="hint" style="margin:0">Nothing yet.</p>'}</div></div></div>`;
+  }
+  else if(tab==="jnl"){
+    const src=filters.acSrc||"all",xs=E.filter(e=>e.d>=per.from&&e.d<=per.to&&(src==="all"||e.src===src)).slice().reverse();
+    body=`<div class="row" style="margin:0 0 12px;gap:10px;flex-wrap:wrap"><select data-a="acSrc" aria-label="Kind of entry"><option value="all">All entries</option>${Object.entries(GL_SRC).map(([k,l])=>`<option value="${k}" ${k===src?"selected":""}>${l}</option>`).join("")}</select><span class="hint">${xs.length} entr${xs.length===1?"y":"ies"}</span><span style="flex:1"></span>${downloads?`<button class="btn sm" data-a="acCsv" data-id="jnl">Export to Excel</button>`:""}<button class="btn sm primary" data-a="jnNew">New entry</button></div>
+     <div class="card"><div class="tw"><table class="ac-tbl"><thead><tr><th>Date</th><th>Entry</th><th>Account</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead><tbody>${xs.slice(0,400).map(e=>e.lines.map((l,k)=>`<tr class="${k?"ac-sub":"ac-top"}"><td style="white-space:nowrap">${k?"":fmtDate(e.d)}</td><td>${k?"":`<strong>${esc(GL_SRC[e.src]||"")}</strong>${e.ref?" · "+esc(e.ref):""}<span class="sub">${esc(e.memo)}</span>${e.src==="jnl"?` <button class="link" data-a="jnDel" data-id="${e.id}">Delete</button>`:""}`}</td><td>${l[1]<0?'<span class="ac-ind"></span>':""}${esc(glName(l[0]))}${l[2]&&get("properties",l[2])?` <span class="sub" style="display:inline">${esc(get("properties",l[2]).code)}</span>`:""}</td><td class="num">${l[1]>0?n0(l[1]):""}</td><td class="num">${l[1]<0?n0(-l[1]):""}</td></tr>`).join("")).join("")||`<tr><td colspan="5" class="empty">No entries.</td></tr>`}</tbody></table></div>${xs.length>400?`<div class="cb"><p class="hint" style="margin:0">Showing the latest 400 entries. Pick a kind of entry or a shorter period to see others, or export.</p></div>`:""}</div>`;
+  }
+  else if(tab==="tb"){
+    const accts=glAccts(E).filter(a=>Math.round(T.c[a]||0));let D=0,C=0;
+    body=`<div class="card"><div class="ch"><h2>Trial balance at ${fmtDate(per.to)}</h2><div class="row">${downloads?`<button class="btn sm" data-a="acCsv" data-id="tb">Export to Excel</button>`:""}<button class="btn sm" data-a="acPrint" data-id="tb">Print</button></div></div><div class="tw" id="acDoc"><table class="ac-tbl"><thead><tr><th>Code</th><th>Account</th><th>Type</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead><tbody>${accts.map(a=>{const v=T.c[a];if(v>0)D+=v;else C-=v;return `<tr><td>${a}</td><td><button class="link" data-a="acLed" data-id="${a}">${esc(glName(a))}</button></td><td>${glKind(a)}</td><td class="num">${v>0?n0(v):""}</td><td class="num">${v<0?n0(-v):""}</td></tr>`}).join("")}</tbody>
+     <tfoot><tr><td colspan="3">Total</td><td class="num">${n0(D)}</td><td class="num">${n0(C)}</td></tr></tfoot></table></div><div class="cb"><p class="hint" style="margin:0">${Math.round(D-C)?`<b style="color:var(--bad)">Out of balance by ${n0(D-C)}.</b>`:"Debits equal credits: the books balance."} Includes everything up to ${fmtDate(per.to)}.</p></div></div>`;
+  }
+  else if(tab==="pl"){
+    const mv=a=>(T.dr[a]||0)-(T.cr[a]||0),inc=glAccts(E).filter(a=>a[0]==="4"&&Math.round(mv(a))),exp=glAccts(E).filter(a=>a[0]==="5"&&Math.round(mv(a)));
+    const I=inc.reduce((s,a)=>s-mv(a),0),X=exp.reduce((s,a)=>s+mv(a),0);
+    body=`<div class="card"><div class="ch"><h2>Profit and loss, ${esc(per.label.trim())}</h2><div class="row">${downloads?`<button class="btn sm" data-a="acCsv" data-id="pl">Export to Excel</button>`:""}<button class="btn sm" data-a="acPrint" data-id="pl">Print</button></div></div><div class="tw" id="acDoc"><table class="ac-tbl ac-fs"><tbody>
+     <tr class="ac-h"><td colspan="2">Income</td></tr>${inc.map(a=>`<tr><td><button class="link" data-a="acLed" data-id="${a}">${esc(glName(a))}</button></td><td class="num">${n0(-mv(a))}</td></tr>`).join("")||'<tr><td class="sub">None</td><td></td></tr>'}<tr class="ac-t"><td>Total income</td><td class="num">${n0(I)}</td></tr>
+     <tr class="ac-h"><td colspan="2">Expenses</td></tr>${exp.map(a=>`<tr><td><button class="link" data-a="acLed" data-id="${a}">${esc(glName(a))}</button></td><td class="num">${n0(mv(a))}</td></tr>`).join("")||'<tr><td class="sub">None</td><td></td></tr>'}<tr class="ac-t"><td>Total expenses</td><td class="num">${n0(X)}</td></tr>
+     <tr class="ac-g ${I-X<0?"neg":""}"><td>${I-X<0?"Net loss":"Net profit"}</td><td class="num">${I-X<0?"("+n0(X-I)+")":n0(I-X)}</td></tr></tbody></table></div>
+     <div class="cb"><p class="hint" style="margin:0">Commission and fees count when they are taken on the landlord report; penalties when they are billed. VAT collected is owed to KRA and is not income.</p></div></div>`;
+  }
+  else if(tab==="bs"){
+    const B=a=>T.c[a]||0,as=glAccts(E).filter(a=>a[0]==="1"&&Math.round(B(a))),li=glAccts(E).filter(a=>a[0]==="2"&&Math.round(B(a))),eq=glAccts(E).filter(a=>a[0]==="3"&&Math.round(B(a)));
+    const RE=-glAccts(E).filter(a=>a[0]==="4"||a[0]==="5").reduce((s,a)=>s+B(a),0),A=as.reduce((s,a)=>s+B(a),0),Lb=li.reduce((s,a)=>s-B(a),0),Q=eq.reduce((s,a)=>s-B(a),0)+RE;
+    const r=(a,v)=>`<tr><td><button class="link" data-a="acLed" data-id="${a}">${esc(glName(a))}</button></td><td class="num">${v<0?"("+n0(-v)+")":n0(v)}</td></tr>`;
+    body=`<div class="card"><div class="ch"><h2>Balance sheet at ${fmtDate(per.to)}</h2><div class="row">${downloads?`<button class="btn sm" data-a="acCsv" data-id="bs">Export to Excel</button>`:""}<button class="btn sm" data-a="acPrint" data-id="bs">Print</button></div></div><div class="tw" id="acDoc"><table class="ac-tbl ac-fs"><tbody>
+     <tr class="ac-h"><td colspan="2">What the company holds</td></tr>${as.map(a=>r(a,B(a))).join("")}<tr class="ac-t"><td>Total assets</td><td class="num">${n0(A)}</td></tr>
+     <tr class="ac-h"><td colspan="2">Held for others</td></tr>${li.map(a=>r(a,-B(a))).join("")||'<tr><td class="sub">None</td><td></td></tr>'}<tr class="ac-t"><td>Total held for others</td><td class="num">${n0(Lb)}</td></tr>
+     <tr class="ac-h"><td colspan="2">Owner's equity</td></tr>${eq.map(a=>r(a,-B(a))).join("")}<tr><td>Profit kept in the business</td><td class="num">${RE<0?"("+n0(-RE)+")":n0(RE)}</td></tr><tr class="ac-t"><td>Total owner's equity</td><td class="num">${Q<0?"("+n0(-Q)+")":n0(Q)}</td></tr>
+     <tr class="ac-g"><td>Held for others plus owner's equity</td><td class="num">${n0(Lb+Q)}</td></tr></tbody></table></div>
+     <div class="cb"><p class="hint" style="margin:0">${Math.round(A-(Lb+Q))?`<b style="color:var(--bad)">Out of balance by ${n0(A-Lb-Q)}.</b>`:"Assets equal what is held for others plus the owner's equity."}</p></div></div>`;
+  }
+  else{
+    const a=filters.acLed&&glAccts(E).includes(filters.acLed)?filters.acLed:"1010";let run=T.o[a]||0;const o0=run;
+    const xs=[];for(const e of E){if(e.d<per.from||e.d>per.to)continue;const v=e.lines.filter(l=>l[0]===a).reduce((s,l)=>s+l[1],0);if(!Math.round(v))continue;run+=v;xs.push({e,v,run})}
+    const sh=v=>{const x=glDebitSide(a)?v:-v;return x<0?"("+n0(-x)+")":n0(x)};
+    body=`<div class="row" style="margin:0 0 12px;gap:10px;flex-wrap:wrap"><select data-a="acLedSel" aria-label="Account">${glAccts(E).map(x=>`<option value="${x}" ${x===a?"selected":""}>${x} ${esc(glName(x))}</option>`).join("")}</select><span class="hint">${esc(GL_ABOUT[a]||glKind(a))}</span><span style="flex:1"></span>${downloads?`<button class="btn sm" data-a="acCsv" data-id="led">Export to Excel</button>`:""}</div>
+     <div class="card"><div class="tw"><table class="ac-tbl"><thead><tr><th>Date</th><th>Reference</th><th>Details</th><th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th></tr></thead><tbody>
+      <tr class="ac-open"><td></td><td></td><td>${xs.length>600?"Balance brought forward":"Opening balance"}</td><td></td><td></td><td class="num"><strong>${sh(xs.length>600?xs[xs.length-600].run-xs[xs.length-600].v:o0)}</strong></td></tr>
+      ${xs.slice(-600).map(r=>`<tr><td style="white-space:nowrap">${fmtDate(r.e.d)}</td><td style="white-space:nowrap">${esc(r.e.ref)}</td><td>${esc(r.e.memo)}<span class="sub">${esc(GL_SRC[r.e.src]||"")}</span></td><td class="num">${r.v>0?n0(r.v):""}</td><td class="num">${r.v<0?n0(-r.v):""}</td><td class="num">${sh(r.run)}</td></tr>`).join("")||`<tr><td colspan="6" class="empty">Nothing on this account in ${esc(per.label.trim())}.</td></tr>`}</tbody>
+      <tfoot><tr><td colspan="3">Closing balance${xs.length>600?` (last 600 of ${xs.length} lines shown)`:""}</td><td class="num">${n0(xs.reduce((s,r)=>s+(r.v>0?r.v:0),0))}</td><td class="num">${n0(xs.reduce((s,r)=>s+(r.v<0?-r.v:0),0))}</td><td class="num"><strong>${sh(run)}</strong></td></tr></tfoot></table></div></div>`;
+  }
+  return head+body;
+}
+function glByProp(E,per,acct){const m={};for(const e of E){if(e.d>per.to)continue;for(const [a,v,pid] of e.lines){if(a!==acct||!pid)continue;const r=m[pid]||(m[pid]={o:0,bill:0,ded:0,paid:0,c:0});if(e.d<per.from)r.o+=v;else if(e.src==="bill"||e.src==="adj"||(e.src==="dep"&&v<0))r.bill-=v;else if(e.src==="remit"||e.src==="pay")r.paid+=v;else r.ded+=v;r.c+=v}}
+  return sortedProps().filter(p=>m[p.id]).map(p=>({p,...m[p.id]}))}
+function glReconHTML(a,bal,per){const R=(S.settings.glRecon||{})[a]||{};const diff=R.bal!=null&&R.date?Math.round(+R.bal-glBalAt(a,R.date)):null;
+  return `<div class="card"><div class="ch"><h2>Check against the statement</h2></div><div class="cb"><form id="fRec" class="row" style="gap:10px;align-items:flex-end;flex-wrap:wrap" data-acct="${a}">
+   <div class="f"><label for="rc-d">Statement date</label><input id="rc-d" name="date" type="date" value="${esc(R.date||per.to)}" required></div><div class="f"><label for="rc-b">Balance on the statement (KES)</label><input id="rc-b" name="bal" type="number" step="any" value="${esc(R.bal??"")}" required></div><button class="btn primary" type="submit">Compare</button></form>
+   ${diff!==null?`<p style="margin:12px 0 0">${diff===0?`<span class="pill p-good">Matches</span> The ${esc(glName(a))} statement agrees with the books at ${fmtDate(R.date)}.`:`<span class="pill p-bad">Difference ${n0(diff)}</span> The statement shows KES ${n0(R.bal)}; the books show KES ${n0(glBalAt(a,R.date))} at ${fmtDate(R.date)}. ${diff>0?"Money came in that isn't recorded (or a payment was recorded twice).":"Money went out that isn't recorded, for example charges, an expense or a refund."}`}</p>`:""}</div></div>`}
+function glBalAt(a,d){let s=0;for(const e of glBuild()){if(e.d>d)break;for(const l of e.lines)if(l[0]===a)s+=l[1]}return Math.round(s)}
+function formJournal(kind){
+  const k=kind||"xfer",bank=a=>`<select name="${a}" id="jn-${a}">${GL_BANKS.map(x=>`<option value="${x}">${esc(glName(x))}</option>`).join("")}</select>`;
+  const accts=Object.keys(GL_BASE).sort();
+  const forms={
+    open:`<p class="hint full" style="margin:0">What each account held on the day you start keeping these books. Use a minus figure for an overdraft.</p><div class="f"><label for="jn-d">As at</label><input id="jn-d" name="date" type="date" required value="${(S.journals||[]).length?todayStr:month+"-01"}"></div>${GL_BANKS.map(a=>`<div class="f"><label for="jn-o${a}">${esc(glName(a))} (KES)</label><input id="jn-o${a}" name="o${a}" type="number" step="any"></div>`).join("")}`,
+    xfer:`<div class="f"><label for="jn-from">From</label>${bank("from")}</div><div class="f"><label for="jn-to">To</label>${bank("to")}</div><div class="f"><label for="jn-a">Amount (KES)</label><input id="jn-a" name="amount" type="number" min="1" step="any" required></div><div class="f"><label for="jn-c">Charges, if any (KES)</label><input id="jn-c" name="charge" type="number" min="0" step="any"></div>`,
+    in:`<div class="f"><label for="jn-to">Into</label>${bank("to")}</div><div class="f"><label for="jn-src">What it is</label><select id="jn-src" name="src"><option value="3010">Owner putting money in</option><option value="4090">Other income</option></select></div><div class="f"><label for="jn-a">Amount (KES)</label><input id="jn-a" name="amount" type="number" min="1" step="any" required></div>`,
+    draw:`<div class="f"><label for="jn-from">From</label>${bank("from")}</div><div class="f"><label for="jn-a">Amount (KES)</label><input id="jn-a" name="amount" type="number" min="1" step="any" required></div>`,
+    gen:`<p class="hint full" style="margin:0">For anything else: debits on the left, credits on the right. The two totals must match.</p><div class="full" id="jnLines">${[0,1].map(i=>jnLine(i,accts)).join("")}</div><div class="full row"><button type="button" class="btn sm" id="jnAdd">Add a line</button><span class="hint" id="jnSum"></span></div>`};
+  const titles={open:"Opening balances",xfer:"Move money between accounts",in:"Money in (not from a tenant)",draw:"Owner taking money out",gen:"Journal entry"};
+  openModal(titles[k]||"New entry",`<div class="seg" role="tablist" style="margin-bottom:12px">${Object.entries(titles).map(([x,l])=>`<button class="${x===k?"on":""}" data-a="jnNew" data-id="${x}">${l}</button>`).join("")}</div>
+   <form id="fJn" class="fg">${forms[k]}${k!=="open"?`<div class="f"><label for="jn-d">Date</label><input id="jn-d" name="date" type="date" required value="${todayStr}"></div><div class="f"><label for="jn-r">Reference</label><input id="jn-r" name="ref" placeholder="M-Pesa or bank code"></div>`:""}<div class="f full"><label for="jn-m">Details</label><input id="jn-m" name="memo" maxlength="160" placeholder="${k==="xfer"?"e.g. Paybill to bank, weekly sweep":k==="open"?"Opening balances":"What is this for?"}"></div><div class="err full" id="jnErr"></div></form>`,
+   `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fJn" type="submit">Save entry</button>`,true);
+  const fm=document.getElementById("fJn"),err=document.getElementById("jnErr");
+  if(k==="gen"){const box=document.getElementById("jnLines");document.getElementById("jnAdd").onclick=()=>{box.insertAdjacentHTML("beforeend",jnLine(box.children.length,accts))};
+    const sum=()=>{let d=0,c=0;box.querySelectorAll(".jn-l").forEach(r=>{d+=+r.querySelector("[name^=dr]").value||0;c+=+r.querySelector("[name^=cr]").value||0});document.getElementById("jnSum").textContent=`Debits ${n0(d)} · credits ${n0(c)}${Math.round(d-c)?" · difference "+n0(d-c):" · balanced"}`};fm.addEventListener("input",sum);sum()}
+  fm.onsubmit=async e=>{e.preventDefault();err.textContent="";const d=Object.fromEntries(new FormData(fm));let lines=[],memo=(d.memo||"").trim();
+    if(k==="open"){GL_BANKS.forEach(a=>{const v=+d["o"+a]||0;if(v)lines.push({a,dr:v>0?v:0,cr:v<0?-v:0},{a:"3010",dr:v<0?-v:0,cr:v>0?v:0})});if(!lines.length){err.textContent="Enter at least one balance.";return}memo=memo||"Opening balances"}
+    else if(k==="xfer"){if(d.from===d.to){err.textContent="Choose two different accounts.";return}const a=+d.amount||0,c=+d.charge||0;lines=[{a:d.to,dr:a,cr:0},{a:d.from,dr:0,cr:a}];if(c)lines.push({a:glExpAcct("Bank and M-Pesa charges"),dr:c,cr:0},{a:d.from,dr:0,cr:c});memo=memo||`${glName(d.from)} to ${glName(d.to)}`}
+    else if(k==="in"){const a=+d.amount||0;lines=[{a:d.to,dr:a,cr:0},{a:d.src,dr:0,cr:a}];memo=memo||(d.src==="3010"?"Owner's money in":"Other income")}
+    else if(k==="draw"){const a=+d.amount||0;lines=[{a:"3020",dr:a,cr:0},{a:d.from,dr:0,cr:a}];memo=memo||"Owner's drawing"}
+    else{fm.querySelectorAll(".jn-l").forEach(r=>{const a=r.querySelector("select").value,dr=+r.querySelector("[name^=dr]").value||0,cr=+r.querySelector("[name^=cr]").value||0;if(dr||cr)lines.push({a,dr,cr})});
+      const D=lines.reduce((s,l)=>s+l.dr,0),C=lines.reduce((s,l)=>s+l.cr,0);if(lines.length<2||!D){err.textContent="Enter at least two lines.";return}if(Math.round(D-C)){err.textContent="Debits and credits must be equal.";return}if(!memo){err.textContent="Write what the entry is for.";return}}
+    const obj={id:uid(),no:nextNo("JRNL","journals"),date:d.date,kind:k,memo,ref:(d.ref||"").trim().toUpperCase(),lines,by:ME.id||"",createdAt:new Date().toISOString()};
+    if(await patchDoc("journals",obj)){closeModal();toast("Entry "+obj.no+" saved")}}}
+function jnLine(i,accts){return `<div class="jn-l row" style="gap:8px;margin-bottom:6px"><select name="a${i}" aria-label="Account" style="flex:2;min-width:180px">${accts.map(a=>`<option value="${a}">${a} ${esc(glName(a))}</option>`).join("")}</select><input name="dr${i}" type="number" min="0" step="any" placeholder="Debit" aria-label="Debit" style="flex:1;min-width:90px"><input name="cr${i}" type="number" min="0" step="any" placeholder="Credit" aria-label="Credit" style="flex:1;min-width:90px"></div>`}
+function formAcNames(){const N=S.settings.glNames||{};
+  openModal("Money accounts",`<form id="fAN" class="fg">${GL_BANKS.map(a=>`<div class="f"><label for="an-${a}">Name for "${GL_BASE[a]}"</label><input id="an-${a}" name="${a}" value="${esc(N[a]||"")}" placeholder="${a==="1010"?"e.g. M-Pesa Paybill 4120917":a==="1020"?"e.g. Equity Bank 0123...":"e.g. Office petty cash"}"></div>`).join("")}
+   <div class="f full"><label for="an-def">When a record gives no payment method, put it in</label><select id="an-def" name="def">${GL_BANKS.map(a=>`<option value="${a}" ${a===glDef()?"selected":""}>${esc(glName(a))}</option>`).join("")}</select></div></form>`,
+   `<button class="btn" data-a="close">Cancel</button><button class="btn primary" form="fAN" type="submit">Save</button>`);
+  document.getElementById("fAN").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target)),n={};GL_BANKS.forEach(a=>{if(d[a]&&d[a].trim())n[a]=d[a].trim()});if(await saveSettings({...S.settings,glNames:n,glDefault:d.def})){closeModal();toast("Saved")}}}
+function acCsv(kind){const per=glPeriod(),E=glBuild(),T=glTotals(E,per.from,per.to),nm=`${kind}-${per.from.slice(0,7)}-${per.to.slice(0,7)}.csv`;
+  if(kind==="tb")return glCsvDl("trial-balance-"+per.to+".csv",[["Code","Account","Type","Debit","Credit"],...glAccts(E).filter(a=>Math.round(T.c[a]||0)).map(a=>[a,glName(a),glKind(a),T.c[a]>0?Math.round(T.c[a]):"",T.c[a]<0?Math.round(-T.c[a]):""])]);
+  if(kind==="exp")return glCsvDl("expenses-"+nm,[["Date","Category","For","Details","Property","Paid from","Method","Reference","Amount"],...(S.expenses||[]).filter(x=>(x.date||"")>=per.from&&(x.date||"")<=per.to).map(x=>[x.date,x.category,x.fund==="landlord"?"Landlord":x.fund==="sc"?"Service charge":"Company",x.desc||"",(get("properties",x.propertyId)||{}).code||"",glName(glAcctFor(x.method)),x.method||"",x.ref||"",x.amount])]);
+  const rows=[["Date","Kind","Reference","Details","Account code","Account","Property","Debit","Credit"]];
+  for(const e of E){if(e.d<per.from||e.d>per.to)continue;for(const l of e.lines){if(kind==="cash"&&!GL_BANKS.includes(l[0]))continue;if(kind==="led"&&l[0]!==(filters.acLed||"1010"))continue;rows.push([e.d,GL_SRC[e.src]||"",e.ref,e.memo,l[0],glName(l[0]),(get("properties",l[2])||{}).code||"",l[1]>0?Math.round(l[1]):"",l[1]<0?Math.round(-l[1]):""])}}
+  if(kind==="pl"||kind==="bs"){const rs=[["Account","Amount"]];glAccts(E).filter(a=>kind==="pl"?(a[0]==="4"||a[0]==="5"):"123".includes(a[0])).forEach(a=>{const v=kind==="pl"?(T.dr[a]||0)-(T.cr[a]||0):T.c[a]||0;if(Math.round(v))rs.push([glName(a),Math.round(glDebitSide(a)?v:-v)])});return glCsvDl((kind==="pl"?"profit-and-loss-":"balance-sheet-")+per.to+".csv",rs)}
+  glCsvDl((kind==="cash"?"cashbook-":kind==="led"?"ledger-":"journal-")+nm,rows)}
+function acPrint(kind){const el=document.getElementById("acDoc");if(!el)return;const t={tb:"Trial balance",pl:"Profit and loss",bs:"Balance sheet"}[kind]||"Accounts",per=glPeriod();
+  const html=`<div class="doc">${docHead(t,per.label.trim())}${el.innerHTML.replace(/<button[^>]*>([^<]*)<\/button>/g,"$1")}</div>`;const w=window.open("","_blank");if(!w){toast("Allow pop-ups to print");return}w.document.write(standalone(t,html).replace("</body>","<script>setTimeout(()=>print(),600)<\/script></body>"));w.document.close()}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(!b||document.body.classList.contains("portal-mode"))return;const a=b.dataset.a,id=b.dataset.id;
+  if(a==="acTab"){e.preventDefault();filters.acTab=id;if(view!=="accounts")go("accounts");else render()}
+  else if(a==="acPer"){e.preventDefault();filters.acPer=id;render()}
+  else if(a==="acLed"){e.preventDefault();filters.acLed=id;filters.acTab="led";if(view!=="accounts")go("accounts");else render();window.scrollTo(0,0)}
+  else if(a==="jnNew"){e.preventDefault();if(ME.admin)formJournal(id)}
+  else if(a==="jnDel"){e.preventDefault();const j=(S.journals||[]).find(x=>x.id===id);if(j&&ME.admin)askConfirm(`Delete entry ${esc(j.no||"")} (${esc(j.memo||"")})?`,"Delete",async()=>{if(await remove("journals",id)){S.journals=S.journals.filter(x=>x.id!==id);render()}})}
+  else if(a==="acNames"){e.preventDefault();formAcNames()}
+  else if(a==="acCsv"){e.preventDefault();acCsv(id)}
+  else if(a==="acPrint"){e.preventDefault();acPrint(id)}});
+document.addEventListener("change",e=>{const a=e.target.dataset&&e.target.dataset.a;if(a==="acAcct"){filters.acAcct=e.target.value;render()}else if(a==="acCat"){filters.acCat=e.target.value;render()}else if(a==="acSrc"){filters.acSrc=e.target.value;render()}else if(a==="acLedSel"){filters.acLed=e.target.value;render()}});
+document.addEventListener("input",e=>{if(e.target.id!=="acQ")return;filters.acQ=e.target.value;clearTimeout(window.__acQ);window.__acQ=setTimeout(()=>{render();const q=document.getElementById("acQ");if(q){q.focus();q.setSelectionRange(q.value.length,q.value.length)}},300)});
+document.addEventListener("submit",async e=>{if(e.target.id!=="fRec")return;e.preventDefault();const d=Object.fromEntries(new FormData(e.target)),a=e.target.dataset.acct;const R={...(S.settings.glRecon||{}),[a]:{date:d.date,bal:+d.bal}};if(await saveSettings({...S.settings,glRecon:R}))toast("Compared")});
+
+/* ===== Executive layer: top bar (messages, notifications, account), SMS credit, executive dashboard ===== */
+const TB_ICONS={
+  msg:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2zm0 2v11.2L7.2 14H20V6zm3 3h10v2H7zm0-3h10v2H7z" transform="translate(0 1)"/></svg>',
+  bell:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-6V11a7 7 0 0 0-5.5-6.84V3a1.5 1.5 0 0 0-3 0v1.16A7 7 0 0 0 5 11v5l-2 2v1h18v-1z"/></svg>'};
+function smsState(){const st=(S.sms||[]).find(x=>x.id==="_status")||{},c=smsCfg?smsCfg():{},live=!!st.lastRun&&(Date.now()-new Date(st.lastRun).getTime())<15*60*1000;
+  const bal=st.balance!=null&&st.balance!==""?+st.balance:null,low=+(S.settings.smsLow||200);
+  const wk=Date.now()-7*864e5,failed=(S.sms||[]).filter(x=>x.status==="failed"&&new Date(x.createdAt||0).getTime()>wk).length,queued=(S.sms||[]).filter(x=>x.status==="queued").length;
+  return {st,on:!!c.on,live,bal,low,isLow:bal!==null&&bal<low,at:st.balanceAt||"",failed,queued}}
+/* everything waiting for someone: shown under the bell, most urgent first */
+function notifItems(){const out=[],add=(n,text,href,tone,ic)=>{if(n>0)out.push({n,text,href,tone:tone||"",ic:ic||""})};
+  try{
+    const pend=S.approvals.filter(a=>a.status==="pending"&&(ME.admin||a.by===ME.id)).length+(canApproveTenantSusp()?S.tenants.filter(suspPending).length:0)+(ME.admin?S.properties.filter(propEndPending).length:0);
+    add(pend,ME.admin?`${pend} change${pend>1?"s":""} waiting for your approval`:`${pend} of your requests waiting for approval`,"#approvals","warn");
+    if(ME.admin){const reqs=S.accessRequests.filter(r=>!S.staff.some(s=>s.id===r.id)).length;add(reqs,`${reqs} person${reqs>1?"s":""} asking for access to the ledger`,"#admin","warn")}
+    if(ME.admin||can("invoices")){const cur=todayStr.slice(0,7),miss=eligibleTenants(cur).filter(t=>!get("invoices",cur+"_"+t.id)).length;add(miss,`${miss} tenant${miss>1?"s":""} not yet billed for ${monthLabel(cur)}`,"#invoices","warn")}
+    if(canSales()){const due=S.leads.filter(ldDue).length,vt=S.leads.reduce((n,l)=>n+(l.viewings||[]).filter(v=>v.status==="booked"&&v.date===todayStr).length,0);
+      add(due,`${due} lead${due>1?"s":""} to follow up`,"#sales");add(vt,`${vt} viewing${vt>1?"s":""} booked for today`,"#sales")}
+    if(canMaint()){const urg=S.maint.filter(x=>M_OPEN.includes(x.status)&&/urgent|high|emergency/i.test(x.priority||"")).length,open=S.maint.filter(x=>M_OPEN.includes(x.status)).length;
+      add(urg,`${urg} urgent repair${urg>1?"s":""} open`,"#maint","bad");if(!urg)add(open,`${open} repair${open>1?"s":""} open`,"#maint");
+      const nd=S.inspections.reduce((n,x)=>n+inOpenPoor(x).length,0),fu=S.inspections.filter(x=>x.followUp&&x.followUp<=todayStr&&!x.followDone).length;
+      add(nd,`${nd} inspection defect${nd>1?"s":""} with no repair job`,"#inspect");add(fu,`${fu} inspection re-check${fu>1?"s":""} due`,"#inspect")}
+    if(ME.admin||can("tenants")||can("landlords")){const in30=ymdL(new Date(Date.now()+30*864e5)),ex=S.tenants.filter(t=>{if(!t.active)return false;const L=leaseInfo(t);return L.end&&L.end>=todayStr&&L.end<=in30}).length;
+      add(ex,`${ex} lease${ex>1?"s":""} ending in the next 30 days`,"#leases")}
+    if(ME.admin||can("landlords")){const lm=monthAdd(todayStr.slice(0,7),-1),ns=sortedProps().filter(p=>!propEnded(p,lm)&&S.invoices.some(i=>i.month===lm&&(get("units",i.unitId)||{}).propertyId===p.id)&&!(lrep(p.id,lm)||{}).sentAt).length;
+      add(ns,`${ns} landlord report${ns>1?"s":""} for ${monthLabel(lm)} not yet sent`,"#landlords")}
+    if(ME.admin&&window.FB_BUILD){const s=smsState();if(s.on&&!s.live)add(1,"The SMS sender is not connected: texts are not going out","#admin","bad");
+      if(s.isLow)add(1,`SMS credit is low: ${n0(s.bal)} left`,"#admin","bad");add(s.failed,`${s.failed} SMS failed in the last 7 days`,"#admin","warn")}
+  }catch(e){}
+  return out}
+function msgItems(){if(!(ME.admin||can("tenants")||can("landlords")))return [];return [...(S.portalMsgs||[])].sort((a,b)=>((a.status==="new")===(b.status==="new")?0:a.status==="new"?-1:1)||(b.at||"").localeCompare(a.at||"")).slice(0,8)}
+function tbInitials(){const n=(ME.label||ME.email||"").replace(/@.*/,"").replace(/[._-]+/g," ").trim().split(/\s+/);return ((n[0]||"?")[0]+((n[1]||"")[0]||"")).toUpperCase()}
+function tbGreeting(){const h=new Date().getHours();return h<12?"Good morning":h<17?"Good afternoon":"Good evening"}
+function tbName(){const l=(ME.label||"").trim();return l?l.split(/\s+/)[0]:""}
+function renderTopbar(){const tb=document.getElementById("topbar");if(!tb)return;if(mode==="loading"||!(ME.admin||ME.staff)){tb.hidden=true;return}tb.hidden=false;
+  const N=notifItems(),M=msgItems(),mNew=(S.portalMsgs||[]).filter(m=>m.status==="new").length,showMsg=ME.admin||can("tenants")||can("landlords");
+  const d=new Date(),date=d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  const sig=JSON.stringify([N.map(x=>x.text),mNew,M.map(m=>m.id+m.status),tbInitials(),date,(document.getElementById("status")||{}).className]);if(tb.dataset.sig===sig)return;tb.dataset.sig=sig;
+  const st=document.getElementById("status"),ok=st&&/ok/.test(st.className);
+  tb.innerHTML=`<div class="tb-l"><span class="tb-hi">${tbGreeting()}${tbName()?", "+esc(tbName()):""}</span><span class="tb-date">${esc(date)}</span></div>
+   <div class="tb-r"><span class="tb-sync ${ok?"ok":""}" title="${esc(st?st.textContent:"")}"><i></i>${ok?"Synced":"Connecting"}</span>
+    ${showMsg?`<div class="tb-pop"><button class="tb-btn" data-tb="msg" aria-haspopup="true" aria-expanded="false" aria-label="Messages from tenants and landlords${mNew?", "+mNew+" new":""}">${TB_ICONS.msg}${mNew?`<b>${mNew>9?"9+":mNew}</b>`:""}</button>
+     <div class="tb-panel" data-p="msg" hidden><div class="tb-ph"><strong>Messages</strong><span>${mNew?mNew+" new":"No new messages"}</span></div>${M.length?`<ul>${M.map(m=>{const w=ptWho(m);return `<li><a href="#portal" class="${m.status==="new"?"new":""}"><span class="tb-av">${esc((w.name||"?")[0])}</span><span class="tb-tx"><b>${esc(w.name)}</b><em>${esc(ptTypeLabel(m.type))} · ${esc(ptWhen(m.at))}</em><span>${esc(String(m.text||"").slice(0,90))}</span></span></a></li>`}).join("")}</ul>`:`<p class="tb-empty">Requests from tenants and landlords appear here.</p>`}<a class="tb-foot" href="#portal">Open the portal inbox</a></div></div>`:""}
+    <div class="tb-pop"><button class="tb-btn" data-tb="bell" aria-haspopup="true" aria-expanded="false" aria-label="Notifications${N.length?", "+N.length+" waiting":""}">${TB_ICONS.bell}${N.length?`<b class="${N.some(x=>x.tone==="bad")?"bad":""}">${N.length>9?"9+":N.length}</b>`:""}</button>
+     <div class="tb-panel" data-p="bell" hidden><div class="tb-ph"><strong>Notifications</strong><span>${N.length?N.length+" waiting":"All clear"}</span></div>${N.length?`<ul>${N.map(x=>`<li><a href="${x.href}" class="tb-n ${x.tone}"><i></i><span class="tb-tx"><span>${esc(x.text)}</span></span></a></li>`).join("")}</ul>`:`<p class="tb-empty">Nothing is waiting for you.</p>`}</div></div>
+    <div class="tb-pop"><button class="tb-me" data-tb="me" aria-haspopup="true" aria-expanded="false"><span class="tb-av me">${esc(tbInitials())}</span><span class="tb-who"><b>${esc(ME.label||(ME.email||"").split("@")[0])}</b><em>${ME.admin?"Administrator":esc((ROLES[(ME.staff||{}).role]||{}).label||"Team")}</em></span></button>
+     <div class="tb-panel tb-menu" data-p="me" hidden><div class="tb-ph"><strong>${esc(ME.email||"")}</strong></div><ul>${ME.admin?`<li><a href="#admin">Team and settings</a></li><li><a href="#accounts">Accounts</a></li>`:""}<li><a href="#approvals">${ME.admin?"Approvals":"My requests"}</a></li>${document.getElementById("fbOut")?`<li><button type="button" data-tb="out">Sign out</button></li>`:""}</ul></div></div></div>`}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-tb]");const panels=[...document.querySelectorAll("#topbar .tb-panel")];
+  if(!b){if(!e.target.closest("#topbar .tb-panel"))panels.forEach(p=>{p.hidden=true});document.querySelectorAll("#topbar [aria-expanded=true]").forEach(x=>x.setAttribute("aria-expanded","false"));if(e.target.closest("#topbar .tb-panel a"))panels.forEach(p=>{p.hidden=true});return}
+  if(b.dataset.tb==="out"){const o=document.getElementById("fbOut");if(o)o.click();return}
+  const p=document.querySelector(`#topbar .tb-panel[data-p="${b.dataset.tb}"]`);if(!p)return;const open=p.hidden;panels.forEach(x=>{x.hidden=true});document.querySelectorAll("#topbar [aria-expanded=true]").forEach(x=>x.setAttribute("aria-expanded","false"));p.hidden=!open;b.setAttribute("aria-expanded",String(open))});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")document.querySelectorAll("#topbar .tb-panel").forEach(p=>{p.hidden=true})});
+
+/* ---------- executive dashboard (administrators, all properties) ---------- */
+function smsCard(){if(!window.FB_BUILD)return "";const s=smsState();
+  return `<div class="card ex-sms"><div class="ch"><h2>SMS</h2><span class="pill ${s.on&&s.live?"p-good":s.on?"p-bad":"p-mute"}">${!s.on?"Turned off":s.live?"Sender connected":"Sender not connected"}</span></div><div class="cb">
+   <div class="ex-smsbal ${s.isLow?"low":""}"><span>Credit left</span><b>${s.bal===null?"Not known yet":n0(s.bal)}</b><em>${s.at?"Checked "+esc(ptWhen(s.at)):"Waiting for the sender to report"}${s.isLow?" · low":""}</em></div>
+   <div class="ex-smsrow"><span>${s.queued} waiting to send</span><span class="${s.failed?"neg":""}">${s.failed} failed this week</span></div>
+   <div class="row" style="gap:8px;margin-top:10px"><button class="btn sm" data-a="smsBalNow">Check credit now</button><a class="btn sm" href="#admin">SMS settings</a></div></div></div>`}
+function exAging(){const C=compute(),b={cur:0,a30:0,a60:0,a90:0,old:0};let n=0;
+  for(const t of S.tenants){const c=C.ten[t.id];if(!c||c.balance<=0)continue;n++;for(const i of S.invoices){if(i.tenantId!==t.id||i.reversed)continue;const x=C.inv[i.id];if(!x||x.bal<=0)continue;
+    const days=Math.floor((new Date(todayStr)-new Date(i.dueDate||i.month+"-05"))/864e5);const k=days<=0?"cur":days<=30?"a30":days<=60?"a60":days<=90?"a90":"old";b[k]+=x.bal}}
+  return {b,n}}
+function vExecDash(){
+  const props=sortedProps(),reps=props.map(p=>({p,r:monthReport(p.id,month)}));
+  const Tt=k=>reps.reduce((s,x)=>s+x.r.tot[k],0),T=k=>reps.reduce((s,x)=>s+x.r[k],0);
+  const units=T("units"),occ=T("occ"),charges=T("charges"),paid=Tt("paid"),arrears=Tt("arrears"),pct=charges?Math.min(100,Math.round(paid/charges*100)):0;
+  const prev=monthAdd(month,-1),inc=mgmtIncome(month).T.total,incP=mgmtIncome(prev).T.total;
+  const missing=month>=todayStr.slice(0,7)?eligibleTenants(month).filter(t=>!get("invoices",month+"_"+t.id)).length:0;
+  const N=notifItems(),A=exAging(),amax=Math.max(1,...Object.values(A.b));
+  const series=[];for(let k=5;k>=0;k--){const m=monthAdd(month,-k);series.push({m,b:S.invoices.filter(i=>i.month===m&&!i.adj).reduce((s,i)=>s+invAmt(i),0),c:S.payments.filter(p=>(p.date||"").slice(0,7)===m&&p.method!=="Opening credit").reduce((s,p)=>s+(+p.amount||0),0)})}
+  const smax=Math.max(1,...series.map(x=>Math.max(x.b,x.c)));
+  let cash=null;try{if((S.journals||[]).some(j=>j.kind==="open")){const E=glBuild();cash=0;for(const e of E){if(e.d>todayStr)break;for(const l of e.lines)if(GL_BANKS.includes(l[0]))cash+=l[1]}}}catch(e){}
+  const in60=ymdL(new Date(Date.now()+60*864e5)),ending=S.tenants.filter(t=>t.active).map(t=>({t,L:leaseInfo(t)})).filter(x=>x.L.end&&x.L.end>=todayStr&&x.L.end<=in60).sort((a,b)=>a.L.end.localeCompare(b.L.end)).slice(0,6);
+  const recent=[...S.payments].sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.createdAt||"").localeCompare(a.createdAt||"")).slice(0,7);
+  const delta=(a,b)=>{if(!b)return "";const d=Math.round((a-b)/Math.abs(b)*100);return `<span class="ex-d ${d<0?"dn":"up"}">${d<0?"▼":"▲"} ${Math.abs(d)}% vs ${monthShort(prev)}</span>`};
+  return `<div class="pagehead ex-head"><div><h1>${monthLabel(month)} overview</h1><p>All properties at a glance. Figures update as records change.</p></div>
+    <div class="row">${missing?`<button class="btn gold" data-a="gen">Generate ${missing} invoice${missing>1?"s":""}</button>`:""}${window.FB_BUILD?`<button class="btn" data-a="smsNotice">Send notice</button>`:""}<button class="btn primary" data-a="pay">Record payment</button></div></div>
+   <div class="ex-kpis">
+    <div class="ex-kpi"><span class="k">Collected this month</span><b>${n0(paid)}</b><div class="ex-prog" role="img" aria-label="${pct}% of charges collected"><i style="width:${pct}%"></i></div><em>${pct}% of KES ${n0(charges)} charged</em></div>
+    <div class="ex-kpi ${arrears>0?"warn":""}"><span class="k">Arrears</span><b>${n0(arrears)}</b><em>${A.n} tenant${A.n===1?"":"s"} owing · net of credits</em></div>
+    <div class="ex-kpi"><span class="k">Occupancy</span><b>${units?Math.round(occ/units*100):0}%</b><div class="ex-prog"><i style="width:${units?Math.round(occ/units*100):0}%"></i></div><em>${occ} of ${units} houses let</em></div>
+    <div class="ex-kpi"><span class="k">Management income</span><b>${n0(inc)}</b><em>${delta(inc,incP)||"Commission, fees, penalties"}</em></div>
+    <div class="ex-kpi"><span class="k">${cash===null?"Due to landlords":"Money in accounts"}</span><b>${n0(cash===null?T("forward"):Math.round(cash))}</b><em>${cash===null?"This month, after deductions":"M-Pesa, bank and cash today"}</em></div>
+   </div>
+   <div class="ex-grid">
+    <div class="card ex-coll"><div class="ch"><h2>Collection by property</h2><span class="hint">${monthLabel(month)}</span></div><div class="tw"><table><thead><tr><th>Property</th><th class="num">Charged</th><th class="num">Collected</th><th style="width:28%">Progress</th><th class="num">Arrears</th><th class="num">Let</th></tr></thead><tbody>
+     ${reps.filter(x=>x.r.units).map(x=>{const c=x.r.charges,pd=x.r.tot.paid,pc=c?Math.min(100,Math.round(pd/c*100)):0;return `<tr><td><button class="link" data-a="exProp" data-id="${x.p.id}"><span class="code">${esc(x.p.code)}</span> ${esc(x.p.name)}</button></td><td class="num">${n0(c)}</td><td class="num">${n0(pd)}</td><td><div class="ex-bar"><i style="width:${pc}%" class="${pc<50?"lo":pc<85?"mid":""}"></i></div><span class="ex-pc">${pc}%</span></td><td class="num ${x.r.tot.arrears>0?"neg":""}">${n0(x.r.tot.arrears)}</td><td class="num">${x.r.occ}/${x.r.units}</td></tr>`}).join("")}
+     </tbody><tfoot><tr><td>All properties</td><td class="num">${n0(charges)}</td><td class="num">${n0(paid)}</td><td><span class="ex-pc">${pct}%</span></td><td class="num">${n0(arrears)}</td><td class="num">${occ}/${units}</td></tr></tfoot></table></div></div>
+    <div class="ex-side">
+     <div class="card ex-att"><div class="ch"><h2>Needs attention</h2><span class="pill ${N.length?"p-warn":"p-good"}">${N.length?N.length+" items":"All clear"}</span></div>${N.length?`<ul>${N.map(x=>`<li><a href="${x.href}" class="tb-n ${x.tone}"><i></i><span>${esc(x.text)}</span></a></li>`).join("")}</ul>`:`<div class="cb"><p class="hint" style="margin:0">Nothing is waiting. Well done.</p></div>`}</div>
+     ${smsCard()}
+    </div>
+   </div>
+   <div class="ex-grid">
+    <div class="card"><div class="ch"><h2>Billed and received, last six months</h2></div><div class="cb">
+     <div class="ex-chart">${series.map(x=>`<div class="ex-col"><div class="ex-bars"><i class="b" style="height:${Math.round(x.b/smax*100)}%" title="Billed KES ${n0(x.b)}"></i><i class="c" style="height:${Math.round(x.c/smax*100)}%" title="Received KES ${n0(x.c)}"></i></div><span>${monthShort(x.m)}</span><em>${n0(x.c)}</em></div>`).join("")}</div>
+     <div class="legend"><span style="--c:#D9CDB2">Billed</span><span style="--c:var(--navy)">Received</span></div></div></div>
+    <div class="card"><div class="ch"><h2>Arrears by age</h2><span class="hint">Days past the due date</span></div><div class="cb ex-age">
+     ${[["cur","Not yet due"],["a30","1 to 30 days"],["a60","31 to 60 days"],["a90","61 to 90 days"],["old","Over 90 days"]].map(([k,l])=>`<div class="ex-ag"><span>${l}</span><div class="ex-bar"><i style="width:${Math.round(A.b[k]/amax*100)}%" class="${k==="old"||k==="a90"?"lo":k==="a60"?"mid":""}"></i></div><b>${n0(A.b[k])}</b></div>`).join("")}
+     <a class="btn sm" href="#tenants" style="margin-top:6px">See tenants owing</a></div></div>
+   </div>
+   <div class="ex-grid">
+    <div class="card"><div class="ch"><h2>Latest payments</h2><a class="btn sm" href="#payments">All payments</a></div><div class="tw"><table><tbody>${recent.map(x=>{const t=get("tenants",x.tenantId),u=t?get("units",t.unitId):null;return `<tr><td style="white-space:nowrap">${fmtDate(x.date)}</td><td>${esc(t?t.name:"")}<span class="sub">${esc((propOf(u)||{}).code||"")} ${u?esc(unitName(u)):""}</span></td><td style="font-size:13px">${esc(x.method||"")}</td><td class="num"><strong>${n0(x.amount)}</strong></td></tr>`}).join("")||`<tr><td class="empty">No payments yet.</td></tr>`}</tbody></table></div></div>
+    <div class="card"><div class="ch"><h2>Leases ending soon</h2><a class="btn sm" href="#leases">Leases</a></div><div class="tw"><table><tbody>${ending.map(x=>{const u=get("units",x.t.unitId);return `<tr><td>${esc(x.t.name)}<span class="sub">${esc((propOf(u)||{}).code||"")} ${u?esc(unitName(u)):""}</span></td><td class="num" style="white-space:nowrap">${fmtDate(x.L.end)}</td></tr>`}).join("")||`<tr><td class="empty">No leases end in the next 60 days.</td></tr>`}</tbody></table></div></div>
+   </div>
+   ${propSearch("dash")}`;
+}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(!b||document.body.classList.contains("portal-mode"))return;
+  if(b.dataset.a==="exProp"){e.preventDefault();filters.code=b.dataset.id;render();window.scrollTo(0,0)}
+  else if(b.dataset.a==="smsBalNow"){e.preventDefault();smsPoke();toast("Asked the SMS sender for the latest credit. It updates within a minute or two.")}});
+
+const VIEWS={leases:vLeases,portal:vPortal,sales:vSales,inspect:vInspect,accounts:vAccounts,funds:vAccounts,maint:vMaint,mgmt:vMgmt,dashboard:()=>{if(ME.admin&&filters.code==="all"&&!(IMP&&S.settings.importedVersion!==IMP.version))return vExecDash();const h=vDashboard(),a=leaseAlert()+salesAlert(),i=h.indexOf("</div>",h.indexOf("pagehead"));return a&&i>0&&filters.code==="all"?h.slice(0,i+6)+h.slice(i+6).replace(/<\/div>/,"</div>"+a):h},tenants:vTenants,units:vUnits,utilities:vUtilities,invoices:vInvoices,payments:vPayments,providers:vProviders,landlords:()=>filters.llTab==="register"?vLandlordRegister():vLandlords(),approvals:()=>{const h=vApprovals(),c=pendingCard(),i=h.indexOf("</div>",h.indexOf("pagehead"));return c&&i>0?h.slice(0,i+6)+c+h.slice(i+6):c+h},setup:vSetup,admin:vAdmin};
 let pendingRender=false;
 let _rq=null;function smsSig(){return (S.sms||[]).filter(x=>x.id[0]!=="_").map(x=>x.id+":"+x.status).join("|")}
 function queueRender(){if(_rq)return;_rq=setTimeout(()=>{_rq=null;render()},mode==="cloud"?40:0)}
 function render(){
   if(mode==="loading")return;try{clampMonth()}catch(e){}
-  const m=document.getElementById("main");
+  const m=document.getElementById("view");
   // keep in-progress meter entries from being wiped by a live update
   if(view==="utilities"&&document.activeElement&&document.activeElement.closest&&document.activeElement.closest("#readTbl")){pendingRender=true;return}
   pendingRender=false;
   const sameView=render._last===view+"|"+month,keepY=window.scrollY,keepX=[...m.querySelectorAll(".tw,.chips")].map(e=>e.scrollLeft);render._last=view+"|"+month;
   if(sameView)requestAnimationFrame(()=>{if(Math.abs(window.scrollY-keepY)>2)window.scrollTo(0,keepY);m.querySelectorAll(".tw,.chips").forEach((e,i)=>{if(keepX[i])e.scrollLeft=keepX[i]})});
   if(!monthPinned&&S.invoices.length&&!S.invoices.some(i=>i.month===month)){const last=S.invoices.map(i=>i.month).filter(m=>m<=todayStr.slice(0,7)).sort().pop();if(last&&last!==month){month=last;document.getElementById("month").value=month}}
-  const banner=mode==="demo"?`<div class="banner">Demo mode: these are example records and nothing you change here is saved. Open this page from Claude while signed in to keep real records.</div>`:"";
-  applyRoleChrome();
-  if(!ME.admin&&!ME.staff){m.innerHTML=banner+vNoAccess();return}
+  const ahead=month>todayStr.slice(0,7)?`<div class="banner ahead"><span><strong>Working ahead in ${monthLabel(month)}.</strong> Enter meter readings and send bills early here. Rent isn't due yet, and ${monthLabel(month)}'s landlord reports aren't final.</span><button class="btn sm" data-a="mThis">Back to ${monthLabel(todayStr.slice(0,7))}</button></div>`:"";
+  const banner=(mode==="demo"?`<div class="banner">Demo mode: these are example records and nothing you change here is saved. Open this page from Claude while signed in to keep real records.</div>`:"")+ahead;
+  applyRoleChrome();try{let g=null,any=false;document.querySelectorAll("#tabs > *").forEach(el=>{if(el.classList.contains("ngrp")){if(g)g.hidden=!any;g=el;any=false}else if(el.tagName==="A"&&!el.hidden)any=true});if(g)g.hidden=!any}catch(e){}
+  if(!ME.admin&&!ME.staff){m.innerHTML=banner+vNoAccess();try{renderTopbar()}catch(e){}return}
   if(view==="admin"&&!ME.admin)view="dashboard";
   if(view==="mgmt"&&!ME.admin)view="dashboard";
   if(view==="setup"&&!can("props"))view="dashboard";
   if(view==="portal"&&!(ME.admin||can("tenants")||can("landlords")))view="dashboard";
   if(view==="sales"&&!canSales())view="dashboard";
   if(view==="inspect"&&!canMaint())view="dashboard";
-  if(view==="funds"&&!ME.admin)view="dashboard";
-  m.innerHTML=banner+(VIEWS[view]||vDashboard)();fillProfiles();
+  if((view==="funds"||view==="accounts")&&!ME.admin)view="dashboard";
+  if(view==="funds")view="accounts";
+  if(view==="accounts"&&!ME.admin)view="dashboard";
+  m.innerHTML=banner+(VIEWS[view]||vDashboard)();fillProfiles();try{renderTopbar()}catch(e){}
   document.querySelectorAll("#tabs a").forEach(a=>a.classList.toggle("on",a.dataset.v===view));
 }
 document.addEventListener("focusout",()=>{setTimeout(()=>{if(pendingRender&&!(document.activeElement&&document.activeElement.closest&&document.activeElement.closest("#readTbl")))render()},50)});
@@ -5500,7 +5959,7 @@ document.addEventListener("click",e=>{const a=e.target.closest('a[href^="#"]');i
 window.addEventListener("hashchange",route);
 view=VIEWS[location.hash.slice(1)]?location.hash.slice(1):"dashboard";
 
-function setStatus(cls,txt){const s=document.getElementById("status");s.className="status "+cls;s.querySelector("span").textContent=txt}
+function setStatus(cls,txt){const s=document.getElementById("status");s.className="status "+cls;s.querySelector("span").textContent=txt;try{renderTopbar()}catch(e){}}
 
 /* ---------- demo data (only used when saved records are unavailable) ---------- */
 function loadDemo(){
@@ -5545,6 +6004,7 @@ loadImportFile();
       if(col==="sms"&&view!=="admin"&&prevSig===smsSig()&&fresh.has("sms"))return;if(col==="staff")staffLoaded=true;try{bootTick(col,false)}catch(e){}if(!snap.metadata.fromCache){fresh.add(col);settle()}queueRender()},
     err=>{if(col==="staff"){staffLoaded=true;render()}clearTimeout(slow);setStatus("demo","Could not load "+col);fresh.add(col);try{bootTick(col,false)}catch(e){}})});
   if(ME.admin){try{db.collection("expenses").onSnapshot(s=>{S.expenses=s.docs.map(d=>({...d.data(),id:d.id}));DV++;queueRender()},()=>{})}catch(e){}}
+  if(ME.admin){try{db.collection("journals").onSnapshot(s=>{S.journals=s.docs.map(d=>({...d.data(),id:d.id}));DV++;queueRender()},()=>{})}catch(e){}}
   db.doc("settings/config").onSnapshot(d=>{S.settings=d.exists?{...DEFAULT_SETTINGS,...d.data()}:{...DEFAULT_SETTINGS};DV++;if(!d.metadata.fromCache){fresh.add("settings");settle()}queueRender()},()=>{fresh.add("settings")});
   render();
 })();
